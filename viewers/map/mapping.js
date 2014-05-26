@@ -437,7 +437,8 @@ if (typeof mxn.LatLonPoint == "function") {
 					M.map.setCenterAndZoom(M.defaultCenter, M.defaultZoom);
 				}
 			}
-
+            M.map.maxZoom = 24;
+M.map.maps.googlev3.maxZoom = 24
 			//tiled images
 			var errors = M.addLayers(M.mapdata.layers, (M.mapdata.timemap.length>0)?0:1 );
 

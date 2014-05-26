@@ -88,7 +88,8 @@ if (@$argv) {
 
 }
 /*****DEBUG****/
-//error_log("flathml session".print_r(@$_SESSION,true));
+//error_log("flathml session ".print_r(@$_SESSION,true));
+//error_log("flathml REQUEST = ".print_r($_REQUEST,true));
 /*header("Content-type: text/javascript");
 */
 if (@$_REQUEST['mode'] != '1') {
@@ -141,8 +142,7 @@ function makeTag($name, $attributes = null, $textContent = null, $close = true, 
         if ($close) $tag.= "</$name>";
     }
     echo $tag . "\n";
-    /*****DEBUG****/
-    //	error_log("in makeTag tag = $tag");
+    /*****DEBUG****///	error_log("in makeTag tag = $tag");
 
 }
 /**
@@ -178,8 +178,7 @@ function openTag($name, $attributes = null) {
  */
 function closeTag($name) {
     echo "</$name>\n";
-    /*****DEBUG****/
-    //	error_log("in closeTag name = $name");
+    /*****DEBUG****///	error_log("in closeTag name = $name");
 
 }
 /**
@@ -240,6 +239,7 @@ while ($row = mysql_fetch_assoc($res)) {
     $DTN[$row['dty_ID']] = $row['dty_Name'];
     $DTT[$row['dty_ID']] = $row['dty_Type'];
 }
+//error_log("DTT count = ".count($DTT)."DTN count = ".count($DTN));
 $INV = mysql__select_assoc('defTerms', //saw Enum change just assoc id to related id
 'trm_ID', 'trm_InverseTermID', '1');
 // lookup detail type enum values
@@ -267,8 +267,6 @@ $INCLUDE_FILE_CONTENT = (@$_REQUEST['fc'] && $_REQUEST['fc'] == - 1 ? false : (@
 //TODO: supress loopback by default unless there is a filter.
 $SUPRESS_LOOPBACKS = (@$_REQUEST['slb'] && $_REQUEST['slb'] == 0 ? false : true); // default to supress loopbacks or gives oneside of a relationship record
 $FRESH = (@$_REQUEST['f'] && $_REQUEST['f'] == 1 ? true : false);
-//$PUBONLY = (((@$_REQUEST['pub_ID'] && is_numeric($_REQUEST['pub_ID'])) ||
-//			(@$_REQUEST['pubonly'] && $_REQUEST['pubonly'] > 0)) ? true :false);
 $PUBONLY = ((@$_REQUEST['pubonly'] && $_REQUEST['pubonly'] > 0) ? true : (!is_logged_in() ? true : false));
 $filterString = (@$_REQUEST['rtfilters'] ? $_REQUEST['rtfilters'] : null);
 if ($filterString && preg_match('/[^\\:\\s"\\[\\]\\{\\}0-9\\,]/', $filterString)) {
@@ -457,12 +455,10 @@ function findPointers($qrec_ids, &$recSet, $depth, $rtyIDs, $dtyIDs) {
 function findReversePointers($qrec_ids, &$recSet, $depth, $rtyIDs, $dtyIDs) {
     global $REVERSE, $ACCESSABLE_OWNER_IDS, $relRT, $PUBONLY;
     //if (!$REVERSE) return array();
-    /*****DEBUG****/
-    //error_log("in findReversePointers");
+    /*****DEBUG****///error_log("in findReversePointers");
     $nlrIDs = array(); // new linked record IDs
     $query = 'SELECT dtl_Value as srcRecID, src.rec_RecTypeID as srcType, ' . 'dtl_RecID as trgRecID, dty_ID as ptrDetailTypeID ' . ', trg.* ' . ', trg.rec_NonOwnerVisibility ' . 'FROM recDetails ' . 'LEFT JOIN defDetailTypes ON dtl_DetailTypeID = dty_ID ' . 'LEFT JOIN Records trg on trg.rec_ID = dtl_RecID ' . 'LEFT JOIN Records src on src.rec_ID = dtl_Value ' . 'WHERE dty_Type = "resource" ' . 'AND dtl_Value IN (' . join(',', $qrec_ids) . ') ' . ($rtyIDs && count($rtyIDs) > 0 ? 'AND trg.rec_RecTypeID in (' . join(',', $rtyIDs) . ') ' : '') . ($dtyIDs && count($dtyIDs) > 0 ? 'AND dty_ID in (' . join(',', $dtyIDs) . ') ' : '') . "AND trg.rec_RecTypeID != $relRT AND " . (count($ACCESSABLE_OWNER_IDS) > 0 && !$PUBONLY ? '(trg.rec_OwnerUGrpID in (' . join(',', $ACCESSABLE_OWNER_IDS) . ') OR ' : '(') . (is_logged_in() && !$PUBONLY ? 'NOT trg.rec_NonOwnerVisibility = "hidden")' : 'trg.rec_NonOwnerVisibility = "public")');
-    /*****DEBUG****/
-    //error_log("find  d $depth rev pointer q = $query");
+    /*****DEBUG****///error_log("find  d $depth rev pointer q = $query");
     $res = mysql_query($query);
     while ($res && $row = mysql_fetch_assoc($res)) {
         // if target is not in the result
@@ -607,11 +603,10 @@ $outputTerms = array();
  */
 function buildGraphStructure($rec_ids, &$recSet) {
     global $MAX_DEPTH, $REVERSE, $RECTYPE_FILTERS, $RELTYPE_FILTERS, $PTRTYPE_FILTERS, $EXPAND_REV_PTR, $OUTPUT_STUBS;
-    /*****DEBUG****/
-    //	error_log("max depth = ".print_r($MAX_DEPTH,true));
+    /*****DEBUG****///	error_log("max depth = ".print_r($MAX_DEPTH,true));
     $depth = 0;
-    $rtfilter = (array_key_exists($depth, $RECTYPE_FILTERS) ? $RECTYPE_FILTERS[$depth] : null);
-    if ($rtfilter) {
+    $rtfilter = ((@$RECTYPE_FILTERS && array_key_exists($depth, $RECTYPE_FILTERS)) ? $RECTYPE_FILTERS[$depth] : null);
+    if ($rtfilter) {//invoke rectype filtering
         $query = 'SELECT rec_ID from Records ' . 'WHERE rec_ID in (' . join(",", $rec_ids) . ') ' . 'AND rec_RecTypeID in (' . join(",", $rtfilter) . ')';
         $filteredIDs = array();
         $res = mysql_query($query);
@@ -619,6 +614,9 @@ function buildGraphStructure($rec_ids, &$recSet) {
             $filteredIDs[$row[0]] = 1;
         }
         $rec_ids = array_keys($filteredIDs);
+    }
+    foreach ($rec_ids as $recID) {
+        $recSet['relatedSet'][$recID] = array('depth' => 0);
     }
     if ($MAX_DEPTH == 0 && $OUTPUT_STUBS && count($rec_ids) > 0) {
         findPointers($rec_ids, $recSet, 1, null, null);
@@ -654,9 +652,6 @@ function outputRecords($result) {
     if (array_key_exists('expandColl', $_REQUEST)) {
         $rec_ids = expandCollections($rec_ids);
     }
-    foreach ($rec_ids as $recID) {
-        $recSet['relatedSet'][$recID] = array('depth' => 0);
-    }
     buildGraphStructure($rec_ids, $recSet);
     $recSet['count'] = count($recSet['relatedSet']);
     foreach ($recSet['relatedSet'] as $recID => $recInfo) {
@@ -686,7 +681,7 @@ function outputRecord($recordInfo, $recInfos, $outputStub = false, $parentID = n
             $relRT, $relTrgDT, $relTypDT, $relSrcDT, $selectedIDs, $outputRecTypes;
     $record = $recordInfo['record'];
     $depth = $recordInfo['depth'];
-    $filter = (array_key_exists($depth, $RECTYPE_FILTERS) ? $RECTYPE_FILTERS[$depth] : null);
+    $filter = ((@$RECTYPE_FILTERS && array_key_exists($depth, $RECTYPE_FILTERS)) ? $RECTYPE_FILTERS[$depth] : null);
     if (isset($filter) && !in_array($record['rec_RecTypeID'], $filter)) {
         if ($record['rec_RecTypeID'] != $relRT) { //not a relationship rectype
             if ($depth > 0) {
@@ -704,7 +699,7 @@ function outputRecord($recordInfo, $recInfos, $outputStub = false, $parentID = n
     }
     /*****DEBUG****/
     //if ($record['rec_ID'] == 45133) error_log(" depth = $depth  xlevel = $USEXINCLUDELEVEL rec = ".print_r($record,true));
-    openTag('record', array('depth' => $depth, 'visibility' => ($record['rec_NonOwnerVisibility'] ? $record['rec_NonOwnerVisibility'] : 'viewable'), 'selected' => (in_array($record['rec_ID'], $selectedIDs) ? 'yes' : 'no')));
+    openTag('record', array('depth' => $depth, 'visibility' => ($record['rec_NonOwnerVisibility'] ? $record['rec_NonOwnerVisibility'] : 'viewable'), 'selected' => ((@$selectedIDs && in_array($record['rec_ID'], $selectedIDs)) ? 'yes' : 'no')));
     if (array_key_exists('error', $record)) {
         makeTag('error', null, $record['error']);
         closeTag('record');
@@ -969,10 +964,10 @@ function outputDetail($dt, $value, $rt, $recInfos, $depth = 0, $outputStub, $par
     $attrs = array('id' => $dt, 'conceptID' => getDetailTypeConceptID($dt));
     //save detailtype for schema output
     $outputDetailTypes[$dt] = 1;
-    if (array_key_exists($dt, $DTN)) {
+    if ($DTN && array_key_exists($dt, $DTN)) {
         $attrs['type'] = $DTN[$dt];
     }
-    if (array_key_exists($rt, $RQS) && array_key_exists($dt, $RQS[$rt])) {
+    if ($RQS && array_key_exists($rt, $RQS) && array_key_exists($dt, $RQS[$rt])) {
         $attrs['name'] = $RQS[$rt][$dt];
     }
     if ($dt === $relTypDT && array_key_exists($value, $INV) && $INV[$value] && array_key_exists($INV[$value], $TL)) { //saw Enum change
@@ -1419,6 +1414,7 @@ function outputFields($rtyID) {
 function outputTermSet($termSet, $nonSelectTerms, $isSubTree = false) {
   GLOBAL $outputTerms, $TL;
   foreach ($termSet as $termID => $subtree) {
+    if (!array_key_exists($termID,$TL)) continue;//invalid term todo errorlog this
     $outputTerms[$termID] = 1;
     if (@$TL[$termID]['trm_ParentTermID']){
       $outputTerms[$TL[$termID]['trm_ParentTermID']] = 1;
@@ -1661,7 +1657,7 @@ if (@$_REQUEST['mode'] != '1') { //not include
 //  Output
 //----------------------------------------------------------------------------//
 //echo "request = ".print_r($_REQUEST,true)."\n";
-//error_log("flathml pubonly = ".print_r($PUBONLY,true));
+//error_log("flathml pubonly = ".($PUBONLY ? "true":"false"));
 $result = loadSearch($_REQUEST, false, true, $PUBONLY);
 /*****DEBUG****///error_log("$result = ".print_r($result,true)."\n");
 $hmlAttrs = array();
@@ -1682,8 +1678,7 @@ openTag('hml', array(
 	'xsi:schemaLocation' => 'http://heuristscholar.org/heurist/hml http://heuristscholar.org/heurist/schemas/hml.xsd')
 );
 */
-/*****DEBUG****/
-//error_log("selids".print_r($_REQUEST['selids'],true));
+/*****DEBUG****///error_log("selids".print_r($_REQUEST['selids'],true));
 $query_attrs = array_intersect_key($_REQUEST, array('q' => 1, 'w' => 1, 'pubonly' => 1, 'fullSchema' => 1, 'hinclude' => 1, 'depth' => 1, 'sid' => 1, 'label' => 1, 'f' => 1, 'limit' => 1, 'offset' => 1, 'db' => 1, 'expandColl' => 1, 'recID' => 1, 'stub' => 1, 'woot' => 1, 'fc' => 1, 'slb' => 1, 'fc' => 1, 'slb' => 1, 'selids' => 1, 'layout' => 1, 'rtfilters' => 1, 'relfilters' => 1, 'ptrfilters' => 1));
 makeTag('database', array('id' => HEURIST_DBID), HEURIST_DBNAME);
 makeTag('query', $query_attrs);

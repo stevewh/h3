@@ -176,7 +176,7 @@ if ($num_rows <= SEARCH_SET_SAVE_LIMIT) {
 $resDepth = 0; // the result records depth with respect to the query
 
 $current_stable_version = "";
-if (HEURIST_INDEX_BASE_URL!=HEURIST_BASE_URL){
+/*if (HEURIST_INDEX_BASE_URL!=HEURIST_BASE_URL){
 
     $current_stable_version = checkVersionOnMainServer(@$_SESSION[HEURIST_SESSION_DB_PREFIX.'heurist']['current_stable_version']);
 
@@ -184,7 +184,7 @@ if (HEURIST_INDEX_BASE_URL!=HEURIST_BASE_URL){
             $_SESSION[HEURIST_SESSION_DB_PREFIX.'heurist']['current_stable_version'] = $current_stable_version;
     }
 }
-
+*/
 ?>
 <html>
  <head>
@@ -218,7 +218,7 @@ var results = {};
 results.sid = "<?= @$sid ?>";
 results.records = [];
 results.totalRecordCount = "<?= $num_rows ?>";
-results.current_stable_version = "<?=$current_stable_version ?>";
+//results.current_stable_version = "<?=$current_stable_version ?>";
 results.notified = false;
 
 if (top.HEURIST && top.HEURIST.firedEvents["heurist-search-html-loaded"] && top.HEURIST.firedEvents["heurist-search-js-loaded"] && top.HEURIST.firedEvents["heurist-obj-common-loaded"]) top.HEURIST.search.searchNotify(results);

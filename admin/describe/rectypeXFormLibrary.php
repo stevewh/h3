@@ -164,6 +164,7 @@ function buildform($rt_id) {
 		$termLookup = $terms['termsByDomainLookup']['enum'];
 		$relnLookup = $terms['termsByDomainLookup']['relation'];
 	}
+//  error_log("term fields " . print_r($ti, true));
 	if (!array_key_exists($rt_id, $rectypes['typedefs'])) {
 		error_log("rectypes " . print_r($rectypes['typedefs'][$rt_id], true));
 		return array(null, null, null, null, "Rectype# $rt_id not found");
@@ -357,6 +358,7 @@ function createTermSelect($termIDTree, $disabledTermIDsList, $termLocalLookup, $
   $termIDTree = preg_replace("/\:\{/", ",", $termIDTree); //change :{ sublist marker with comma
   $termIDTree = preg_replace("/[\}\{]/", "", $termIDTree); //remove remaining braces
 	$termIDTree = explode(",", $termIDTree);
+  error_log("term tree list = ".print_r($termIDTree,true));
 	if (count($termIDTree) == 1) { //term set parent term, so expand to direct children
 		$childTerms = getTermOffspringList($termIDTree[0], false);
 		if (count($childTerms) > 0) {
@@ -371,6 +373,7 @@ function createTermSelect($termIDTree, $disabledTermIDsList, $termLocalLookup, $
 		}
 		if (array_key_exists($idTerm, $termLocalLookup)) {
 			$termName = $termLocalLookup[$idTerm][$ti['trm_Label']];
+//  error_log("term name calc $idTerm " . print_r( $termLocalLookup[$idTerm], true)); break;
 			$termCode = $termLocalLookup[$idTerm][$ti['trm_ConceptID']];
 			if (!$termCode) {
 				$termCode = (HEURIST_DBID ? HEURIST_DBID : HEURIST_DBNAME) . "-" . $idTerm;

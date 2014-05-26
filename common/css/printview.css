@@ -246,3 +246,43 @@ div.annotationList H2{padding:5px}
 /* TEI specific styles */
 lg {display:block;}
 lg l {display:block; padding-left:20px}
+div.indent2 {
+text-align: left;
+margin-left: 10px;
+color: navy;
+}
+div.indent3 {
+text-align: left;
+margin-left: 20px;
+color: green;
+}
+div.indent4 {
+text-align: left;
+margin-left: 30px;
+color: red;
+}
+div.indent5 {
+text-align: left;
+margin-left: 40px;
+color: blue;
+}
+div.indent6 {
+text-align: left;
+margin-left: 50px;
+color:teal
+}
+div.indent7 {
+text-align: left;
+margin-left: 60px;
+color: maroon;
+}
+div.indent8 {
+text-align: left;
+margin-left: 70px;
+color: darkcyan;
+}
+div.indent9 {
+text-align: left;
+margin-left: 80px;
+color: purple;
+}

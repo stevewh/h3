@@ -403,6 +403,7 @@
       }
 
       var FlatHMLQuery = {'filter':"",'query':"",'maxDepth':0,'selectIDs':""};
+
       function onSelectionChange(eventType, argList) {
         if (parent.document.getElementById("p").className == "yui-hidden") { //if tab not current ignore event
           return false;
@@ -489,6 +490,11 @@
           $('div#'+selectedIds[selectedIds.length-1],$('iframe[id=viewer-frame]',top.document).get(0).contentDocument).get(0).scrollIntoView();
           }
           */
+          var resultDiv =document.getElementById("displayResult");
+          setTimeout(function(){
+              //kick frame to redisplay docfragment
+              resultDiv.innerHTML += "<div></div>";
+              },1000);
         }
       }
 
@@ -529,6 +535,10 @@
         }
         top.HEURIST.util.setDisplayPreference("defaultPrintView",curStyle);
         displayResultDoc(curStyle,xml);
+        setTimeout(function(){
+            //kick frame to redisplay docfragment
+            resultDiv.innerHTML += "<div></div>";
+            },1000);
       }
 
       function displayResultDoc(style,xmlDoc){

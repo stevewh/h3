@@ -101,10 +101,10 @@
         //	$log = " saving record ($recordID) ";
         $recordID = intval($recordID);
         $wg = intval($wg);
-        if ($wg || !is_logged_in()) {// non-member saves are not allowed
+        if (($wg && $wg != get_user_id()) || !is_logged_in()) {// non-member saves are not allowed
             $res = mysql_query("select * from ".USERS_DATABASE.".sysUsrGrpLinks where ugl_UserID=" . get_user_id() . " and ugl_GroupID=" . $wg);
             if (mysql_num_rows($res) < 1) {
-                errSaveRec("invalid workgroup, record save aborted");
+                errSaveRec("invalid workgroup $wg for user ".get_user_id().", record save aborted");
                 return $msgInfoSaveRec;
             }
         }
@@ -121,7 +121,7 @@
         $now = date('Y-m-d H:i:s');
 
         // public records data
-        if (! $recordID) {
+        if (! $recordID) {//no record ID signals an insert of a new record
             //		$log .= "- inserting record ";
             mysql__insert("Records", array(
                     "rec_RecTypeID" => $rectype,
@@ -142,13 +142,13 @@
         }else{
             $res = mysql_query("select * from Records left join ".USERS_DATABASE.".sysUsrGrpLinks on ugl_GroupID=rec_OwnerUGrpID and ugl_UserID=".get_user_id()." where rec_ID=$recordID");
             $record = mysql_fetch_assoc($res);
-            if ($wg != $record["rec_OwnerUGrpID"] && $record["rec_OwnerUGrpID"] != get_user_id() ) {
+            if ($wg != null && $wg != $record["rec_OwnerUGrpID"] && $record["rec_OwnerUGrpID"] != get_user_id() ) {
                 if ($record["rec_OwnerUGrpID"] > 0  &&  $record["ugl_Role"] != "admin") {
                     // user is trying to change the workgroup when they are not an admin
                     errSaveRec("user is not a workgroup admin");
                     return $msgInfoSaveRec;
                 } else if (! is_admin()) {
-                    // you must be an database admin to change a public record into a workgroup record
+                    // you must be a database admin to change a public record into a workgroup record
                     errSaveRec("user does not have sufficient authority to change public record to workgroup record");
                     return $msgInfoSaveRec;
                 }

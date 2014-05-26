@@ -491,9 +491,9 @@
 			$filedata['ext'] = "xml";
 		}
 //*****DEBUG****/// error_log("reg remote file data ".print_r($filedata,true));
-		$fileparameters = @$filedata['params'] ? $filedata['params'] : "mediatype=".$filedata['mediaType'];
+		$fileparameters = @$filedata['params'] ? $filedata['params'] : (@$filedata['mediaType'] ? "mediatype=".$filedata['mediaType']:NULL);
 		if(@$filedata['remoteSource'] && $filedata['remoteSource']!='heurist'){ // && $filedata['remoteSource']!='generic'){
-			$fileparameters	= $fileparameters."|source=".$filedata['remoteSource'];
+			$fileparameters = ($fileparameters ? $fileparameters."|":"")."source=".$filedata['remoteSource'];
 		}
 
 		//if id is defined
@@ -546,7 +546,7 @@
 					'ulf_UploaderUGrpID' => get_user_id(),
 					'ulf_Added' => date('Y-m-d H:i:s'),
 					'ulf_MimeExt ' => array_key_exists('ext', $filedata)?$filedata['ext']:NULL,
-					'ulf_FileSizeKB' => 0,
+					'ulf_FileSizeKB' => array_key_exists('sizeKB', $filedata)?$filedata['sizeKB']:0,
 					'ulf_Description' => NULL,
 					'ulf_ExternalFileReference' => array_key_exists('remoteURL', $filedata)?$filedata['remoteURL']:NULL,
 					'ulf_Parameters' => $fileparameters)

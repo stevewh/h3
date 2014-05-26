@@ -106,7 +106,7 @@ require_once (dirname(__FILE__) . "/../php/dbMySqlWrappers.php");
 define('HEURIST_VERSION', "3.1.0"); // need to change this in common/js/utilLoad.js
 define('HEURIST_MIN_DBVERSION', "1.1.0");
 // a pipe delimited list of the top level directories in the heurist code base root. Only change if new ones are added.
-define('HEURIST_TOP_DIRS', "admin|common|export|external|hapi|help|import|records|search|viewers");
+define('HEURIST_TOP_DIRS', "admin|common|export|external|hapi|help|submission|xforms|import|records|search|viewers");
 if (!$serverName) {
 	$serverName = $_SERVER["SERVER_NAME"] . ((is_numeric(@$_SERVER["SERVER_PORT"]) && $_SERVER["SERVER_PORT"] != "80") ? ":" . $_SERVER["SERVER_PORT"] : "");
 }
@@ -145,7 +145,7 @@ define('READONLY_DBUSERNAME', $dbReadonlyUsername); //readonly user for access t
 define('READONLY_DBUSERPSWD', $dbReadonlyPassword);
 define('HEURIST_DB_PREFIX', (@$_REQUEST['prefix'] ? $_REQUEST['prefix'] : $dbPrefix)); //database name prefix which is added to db=name to compose the mysql dbname used in queries, normally hdb_
 define('HEURIST_REFERENCE_BASE_URL', "http://heuristscholar.org/h3/"); // Heurist Installation which contains reference structure definitions (registered DB # 3)
-define('HEURIST_INDEX_BASE_URL', "http://heuristscholar.org/h3-dev/"); //@todo: CHANGE TP h3 back!!!! Heurist Installation which contains index of registered Heurist databases (registered DB # 1)
+define('HEURIST_INDEX_BASE_URL', "http://heuristscholar.org/h3-sw/"); //@todo: CHANGE TP h3 back!!!! Heurist Installation which contains index of registered Heurist databases (registered DB # 1)
 define('HEURIST_SYS_GROUP_ID', 1); // ID of Heurist System User Group which has special privileges - deprecated, although more generally group 1 on every database is the Database Managers group
 /*****DEBUG****///error_log("in initialise dbHost = $dbHost");
 //test db connect valid db
@@ -348,9 +348,6 @@ if ($path) {
 		$path = "/" . $path; // prepend leading /
 
 	}
-	//		if (strpos($path,HEURIST_DOCUMENT_ROOT) === false) {
-	//			$path = HEURIST_DOCUMENT_ROOT.$path;
-	//		}
 	if (!testDirWriteableAndDefine('HEURIST_HML_PUBPATH', $path, false, true)) {
 		error_log("HML directory $path is not a writable directory, trying default");
 	}
@@ -361,6 +358,12 @@ if (!defined('HEURIST_HML_PUBPATH') && defined('HEURIST_UPLOAD_DIR')) {
 }
 if (!defined('HEURIST_HML_PUBPATH')) {
 	error_log('No upload HML directory defined that is a writable directory');
+}
+if (defined('HEURIST_HML_PUBPATH') && strpos(HEURIST_HML_PUBPATH,HEURIST_DOCUMENT_ROOT) !== false) {
+  testDirWriteableAndDefine('HEURIST_XFORM_PUBPATH', HEURIST_HML_PUBPATH . "xforms/", false, true);
+}
+if (!defined('HEURIST_XFORM_PUBPATH') && strpos(HEURIST_UPLOAD_DIR,HEURIST_DOCUMENT_ROOT) !== false) {
+  testDirWriteableAndDefine('HEURIST_XFORM_PUBPATH', (strpos(HEURIST_UPLOAD_DIR,HEURIST_DBNAME) === false ? HEURIST_UPLOAD_DIR.HEURIST_DBNAME."/":HEURIST_UPLOAD_DIR) . "xforms/" , false, true);
 }
 $path = $sysValues['sys_htmlOutputDirectory'];
 if ($path) {

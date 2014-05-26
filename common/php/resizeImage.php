@@ -75,8 +75,7 @@ $img = null;
 mysql_connection_overwrite(DATABASE);
 mysql_query('set character set binary');
 
-if (array_key_exists('ulf_ID', $_REQUEST))
-{
+if (array_key_exists('ulf_ID', $_REQUEST)){
 	$thumbnail_file = HEURIST_THUMB_DIR."ulf_".$_REQUEST['ulf_ID'].".png";
 	/* if we here we create file. See uploadFile, there we check the existence of file
 	if($standard_thumb && file_exists($thumbnail_file)){
@@ -86,10 +85,18 @@ if (array_key_exists('ulf_ID', $_REQUEST))
 
 
 	$res = mysql_query('select * from recUploadedFiles where ulf_ObfuscatedFileID = "' . addslashes($_REQUEST['ulf_ID']) . '"');
-	if (mysql_num_rows($res) != 1) return;
+  if (mysql_num_rows($res) != 1) {
+/*****DEBUG****/ // error_log("unable to load file data for ".$_REQUEST['ulf_ID']);
+    return;
+  }
+/*****DEBUG****/ // error_log("load file data for ".$_REQUEST['ulf_ID']);
 	$file = mysql_fetch_assoc($res);
 
+
+/*****DEBUG****/ // error_log("file data ".print_r($file,true));
+
 	if ($standard_thumb  &&  $file['ulf_Thumbnail']) {
+/*****DEBUG****/ // error_log("using thumbnail ".$file['ulf_Thumbnail']);
 
 		//save as file
 		$img = imagecreatefromstring($file['ulf_Thumbnail']);
@@ -103,15 +110,17 @@ if (array_key_exists('ulf_ID', $_REQUEST))
 	$fileparams = parseParameters($file['ulf_Parameters']); //from uploadFile.php
 	$type_media	 = (array_key_exists('mediatype', $fileparams)) ?$fileparams['mediatype']:null;
 	$type_source = (array_key_exists('source', $fileparams)) ?$fileparams['source']:null;
+/*****DEBUG****///error_log(">>>>>>>>> parsed media $type_media  and src $type_source");
 
 	if($type_source==null || $type_source=='heurist') {
 		if ($file['ulf_FileName']) {
 			$filename = $file['ulf_FilePath'].$file['ulf_FileName']; // post 18/11/11 proper file path and name
-		} else {
+		} else if ($file['ulf_OrigFileName'] && $file['ulf_OrigFileName'] != "_remote" && $file['ulf_FileName']) {
 			$filename = HEURIST_UPLOAD_DIR . $file['ulf_ID']; // pre 18/11/11 - bare numbers as names, just use file ID
 		}
-		$filename = str_replace('/../', '/', $filename);
+		if (@$filename) $filename = str_replace('/../', '/', $filename);
 	}
+  /*****DEBUG****///error_log("filename = $filename and mime = $mimeExt");
 
 	if (isset($filename) && file_exists($filename)){
 
@@ -154,7 +163,7 @@ if (array_key_exists('ulf_ID', $_REQUEST))
 
 	}else if($file['ulf_ExternalFileReference']){
 
-		 if($type_media=='image'){ //$type_source=='generic' &&
+		 if($type_media=='image' || $file['ulf_OrigFileName'] == "_remote" && $file['ulf_ExternalFileReference'] ){ //$type_source=='generic' &&
 		 		//@todo for image services (panoramio, flikr) take thumbnails directly
 		 		$img = get_remote_image($file['ulf_ExternalFileReference']);
 		}else if($type_source=='youtube'){
@@ -164,9 +173,7 @@ if (array_key_exists('ulf_ID', $_REQUEST))
 		}
 	}
 
-}
-else if (array_key_exists('file_url', $_REQUEST))   //get thumbnail for any URL
-{
+}else if (array_key_exists('file_url', $_REQUEST)) {  //get thumbnail for any URL
 
 	$img = get_remote_image($_REQUEST['file_url']);
 

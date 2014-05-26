@@ -62,6 +62,7 @@ if ($transformID) {
 	}
 }
 //error_log("made it to here 2");
+  $qDirect = false;
 
 //error_log("styleFilename - ".print_r($styleFilename,true));
 if (@$_REQUEST['inputFilename']){// get a saved XML file
@@ -75,27 +76,45 @@ if (@$_REQUEST['inputFilename']){// get a saved XML file
 			returnXMLErrorMsgPage("unable to find input file '$inputFilename'");
 		}
 	}
+}else if (@$_REQUEST['qdirect']==1) {//making service call through include setup $REQUEST if needed
+  $inputFilename = "";
+  $qDirect = true;
+  if (!array_key_exists("ver",$_REQUEST)){
+    $_REQUEST["ver"]=1;
+  }
+  if (!array_key_exists("f",$_REQUEST)){
+    $_REQUEST["f"]=1;
+  }
+  if (!array_key_exists("w",$_REQUEST)){
+    $_REQUEST["w"]='all';
+  }
+  $_REQUEST["mode"] = '1';
+  ob_start();
+  include_once(dirname(__FILE__).'/../../export/xml/flathml.php');
+  $flatHML = ob_get_contents();
+  ob_end_clean();
 }else if (@$_REQUEST['q']) {//get input file from service call for query.
-	$inputFilename = HEURIST_BASE_URL."export/xml/flathml.php?ver=1&f=1".
-								(@$_REQUEST['depth'] ? "&depth=".$_REQUEST['depth']:"").
-								(@$_REQUEST['hinclude'] ? "&hinclude=".$_REQUEST['hinclude']:"").
-								(@$_REQUEST['layout'] ? "&layout=".$_REQUEST['layout']:"").
-								(@$_REQUEST['prtfilters'] ? "&prtfilters=".$_REQUEST['prtfilters']:"").
-								(@$_REQUEST['rtfilters'] ? "&rtfilters=".$_REQUEST['rtfilters']:"").
-								(@$_REQUEST['relfilters'] ? "&relfilters=".$_REQUEST['relfilters']:"").
-								(@$_REQUEST['selids'] ? "&selids=".$_REQUEST['selids']:"").
-								"&w=all&pubonly=1&q=".$_REQUEST['q']."&db=".HEURIST_DBNAME.
-								(@$_REQUEST['outputFilename'] ? "&filename=".$_REQUEST['outputFilename'] :"").
-								(@$outFullName && $_REQUEST['debug']? "&pathfilename=".$outFullName :"");
+  $inputFilename = HEURIST_BASE_URL."export/xml/flathml.php?ver=1&f=1&w=all".
+                "&q=".$_REQUEST['q']."&db=".HEURIST_DBNAME.
+                (@$_REQUEST['depth'] ? "&depth=".$_REQUEST['depth']:"").
+                (@$_REQUEST['hinclude'] ? "&hinclude=".$_REQUEST['hinclude']:"").
+                (@$_REQUEST['layout'] ? "&layout=".$_REQUEST['layout']:"").
+                (@$_REQUEST['prtfilters'] ? "&prtfilters=".$_REQUEST['prtfilters']:"").
+                (@$_REQUEST['rtfilters'] ? "&rtfilters=".$_REQUEST['rtfilters']:"").
+                (@$_REQUEST['relfilters'] ? "&relfilters=".$_REQUEST['relfilters']:"").
+                (@$_REQUEST['selids'] ? "&selids=".$_REQUEST['selids']:"").
+                (@$_REQUEST['pubonly'] ? "&pubonly=".$_REQUEST['pubonly']:"").
+                (@$_REQUEST['outputFilename'] ? "&filename=".$_REQUEST['outputFilename'] :"").
+                (@$outFullName && $_REQUEST['debug']? "&pathfilename=".$outFullName :"");
 }else if (@$_REQUEST['recID']){//recID so assume that the file has been prepublished to the HML Publish directory
 	$inputFilename = "".HEURIST_HML_PUBPATH.HEURIST_DBID."-".$_REQUEST['recID'].".hml";
 	if ( !file_exists($inputFilename)) {
 		returnXMLErrorMsgPage("unable to find input file '$inputFilename'");
 	}
 }
-//error_log("input file name = $inputFilename");
+error_log("input file name = $inputFilename");
 
-if (!$inputFilename ) {
+if (!$inputFilename && !@$qDirect) {
 	returnXMLErrorMsgPage("cannot determine input file. Please sepecify 'inputFilename' or 'recID' or query 'q='");
 }
 
@@ -119,7 +138,7 @@ if ($pos !== false || file_exists(HEURIST_DOCUMENT_ROOT.HEURIST_HTML_PUBPATH)){
 }
 //error_log("output UIR = $outputURI");
 
-saveTransformOutput($inputFilename,$styleFilename,@$outputFilename);
+saveTransformOutput(@$inputFilename,$styleFilename,@$outputFilename);
 
 function loadRemoteFile($filename){
 
@@ -127,14 +146,17 @@ function loadRemoteFile($filename){
 	if(!$file_content){
 		returnXMLErrorMsgPage("Error loading remote file '$filename'");
 	}
-
 	return $file_content;
 }
 
 function saveTransformOutput($recHMLFilename, $styleFilename, $outputFilename = null){
-global $outputURI;
+global $outputURI, $qDirect,$flatHML;
 	$recHmlDoc = new DOMDocument();
-	if (preg_match("/http/",$recHMLFilename)) {
+//error_log("HML name = $recHMLFilename");
+  if ($qDirect){
+//error_log("call direct with = ". print_r($_REQUEST,true));
+    $suc = $recHmlDoc->loadXML($flatHML);
+  }else if (preg_match("/http/",$recHMLFilename)) {
 //error_log("hml = ".loadRemoteFile($recHMLFilename));
 		$suc = $recHmlDoc->loadXML( loadRemoteFile($recHMLFilename));
 	}else{

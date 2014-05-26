@@ -113,7 +113,7 @@ function getSelectionAddress (root) {
 	// handle selection in elements that have already been split
 	// by existing references: count back and add words in preceding siblings
 	startWord += offsetCorrection(range.startContainer);
-	if (!top.jQuery.contains(range.endContainer,range.startContainer)){//added  SAW  for miscount when end contains
+	if (top.jQuery.contains && !top.jQuery.contains(range.endContainer,range.startContainer)){//added  SAW  for miscount when end contains
 		endWord += offsetCorrection(range.endContainer);
 	}
 

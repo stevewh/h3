@@ -1190,7 +1190,7 @@ if (! top.HEURIST.util) top.HEURIST.util = {
     },
 
     getDisplayPreference: function(prefName) {
-        return top.HEURIST.displayPreferences[prefName];
+        return top.HEURIST.displayPreferences ? top.HEURIST.displayPreferences[prefName]:null;
     },
 
 /**

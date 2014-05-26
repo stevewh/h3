@@ -126,7 +126,7 @@ top.HEURIST.search = {
 
 	searchNotify: function(results) {
 
-        top.HEURIST.search.processVersionStableCode(results.current_stable_version);
+//        top.HEURIST.search.processVersionStableCode(results.current_stable_version);
 
 		top.HEURIST.search.results = {
 			recSet: {},
@@ -4649,7 +4649,7 @@ top.HEURIST.search = {
 		   top.HEURIST.rectypes.names[top.HEURIST.magicNumbers['RT_TOOL']]))
 		{
 			if(!top.HEURIST.util.isnull(_tabView)){
-				_tabView.removeTab(_tabView.getTab(_TAB_TRANSFORM)); //Bug# 232
+//				_tabView.removeTab(_tabView.getTab(_TAB_TRANSFORM)); //Bug# 232
 			}
 		}
 
@@ -4939,7 +4939,7 @@ top.HEURIST.fireEvent(window, "heurist-search-js-loaded");
 		layout;
 
 	var viewerTabIndex = top.HEURIST.util.getDisplayPreference("viewerTab");
-
+  viewerTabIndex = viewerTabIndex?viewerTabIndex:_TAB_RECORDVIEW;
 // open/close sidebar panel
 function layoutNavPanel(isToggle,newWidth){
 	var status = top.HEURIST.util.getDisplayPreference("sidebarPanel");
@@ -5210,13 +5210,7 @@ function layoutAppPanel(isToggle,newWidth){
 	});
 
 
-	_tabView = new YAHOO.widget.TabView('applications', { activeIndex: viewerTabIndex });
-	//if (viewerTabIndex == _TAB_MAP){top.HEURIST.search.mapSelected()} //initialises map
-	/*
-	if (Number(viewerTabIndex) === _TAB_MAP){top.HEURIST.search.mapSelected3()} //initialises new map
-	else if (Number(viewerTabIndex) === 3){top.HEURIST.search.smartySelected()}; //initialises smarty repsystem
-	*/
-
+	_tabView = new YAHOO.widget.TabView('applications', { activeIndex: (viewerTabIndex && viewerTabIndex != 'null'?viewerTabIndex:0) });
 	var handleActiveTabChange = function(e) {
 		var currentTab = _tabView.getTabIndex(_tabView.get('activeTab'));
 		top.HEURIST.util.setDisplayPreference("viewerTab", currentTab,null,null,true,true);

@@ -186,6 +186,7 @@ function upload_termsfile($parent_id, $domain, $has_codes, $has_descr) {
 	if($handle){
    		fclose($handle);
 	}
+//error_log("import term parsed output = ".print_r($parsed,true));
 
 	if($row==0) return array('error'=>'No one appropriate line found');
 

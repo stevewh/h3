@@ -221,6 +221,7 @@ function startMySession(){
 	if (@$_COOKIE['heurist-sessionid']) {
 		session_id($_COOKIE['heurist-sessionid']);
 	} else {
+error_log("changing session");
 		session_id(sha1(rand()));
 		setcookie('heurist-sessionid', session_id(), 0, '/', HEURIST_SERVER_NAME);
 	}

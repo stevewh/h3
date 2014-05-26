@@ -50,13 +50,13 @@
     }
 
     if (defined("HEURIST_HTTP_PROXY")) {
-      curl_setopt($ch, CURLOPT_PROXY, HEURIST_HTTP_PROXY);
+//      curl_setopt($ch, CURLOPT_PROXY, HEURIST_HTTP_PROXY);
     }
-    //error_log(" url = ". $url);
+/*****DEBUG****/ //    error_log(" url = ". $url);
 
     curl_setopt($ch, CURLOPT_URL, $url);
     $data = curl_exec($ch);
-     //error_log(" data = ". $data);
+/*****DEBUG****/ //     error_log(" data = ". $data);
 
     $error = curl_error($ch);
     if ($error) {
