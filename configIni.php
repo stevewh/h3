@@ -39,20 +39,20 @@ $serverName = null; // override default taken from request header SERVER_NAME
 // [database]
 // enter the host name or IP address of your MySQL server, blank --> localhost
 // for example $dbHost = "heuristscholar.org";  will cause the code to use mysql on the server at heuristscholar.org
-$dbHost = ""; // required
+$dbHost = "zag-db-pro-1.ucc.usyd.edu.au"; // required
 
 // MySQL user with full write (create) access on this database server
 // The default installation of MySql gives you "root" as the master user with whatever password you set up for this,
 // but you can specify another user and password with full access if preferred
-$dbAdminUsername = "rwH3"; // required
-$dbAdminPassword = "rwZAP4zagora"; //required
+$dbAdminUsername = "rwZAGDB"; // required
+$dbAdminPassword = "rwZAG4zagora"; //required
 
 // MySQL user with readonly access on this database server
 // For example, if there is a user account "readonly" with a password "readonlypwd", then you would use:
 // $dbReadonlyUsername = "readonly";
 // $dbAReadonlyPassword = "readonlypwd";
-$dbReadonlyUsername = "roH3"; // required
-$dbReadonlyPassword = "roZAP4zagora"; //required
+$dbReadonlyUsername = "roZAGDB"; // required
+$dbReadonlyPassword = "roZAG4zagora"; //required
 
 // dbPrefix will be prepended to all database names so that you can easily distinguish Heurist databases on your database server
 // from other MySQL databases. Some Admin tools such as PHPMyAdmin will group databases with common prefixes ending in underscore

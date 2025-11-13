@@ -585,6 +585,7 @@ M.map.maps.googlev3.maxZoom = 24
 					onlyTimeline: (M.mapdata.count_mapobjects<1),
 					infoTemplate: template,
 					theme: customTheme,
+          mapType: mxn.Mapstraction.ROAD,
 					/*
 					mapZoom: 1, //default zoom
 					centerMapOnItems: bounds ? false : true,

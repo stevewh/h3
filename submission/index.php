@@ -4,10 +4,14 @@
   $date = date("D, M j G:i:s T Y");
   header("HTTP_DATE: $date");
   header("X-OpenRosa-Accept-Content-Length:1000000");
+//error_log(print_r($_SERVER,true));
+  $reqURL = (((array_key_exists("HTTPS", $_SERVER) && $_SERVER["HTTPS"] == "on")||
+                     (array_key_exists("HTTP_X_FORWARDED_PROTO", $_SERVER) &&
+                       strpos($_SERVER["HTTP_X_FORWARDED_PROTO"],"https")!== false)) ?
+                "https://" : "http://") . @$_SERVER["SERVER_NAME"].@$_SERVER["REQUEST_URI"];
 
   if (@$_SERVER['REQUEST_METHOD'] == "HEAD"){
-//error_log("server =  ". print_r($_SERVER,true));
-    header("Location: http://".@$_SERVER["SERVER_NAME"].@$_SERVER["REQUEST_URI"],true,"204");
+    header("Location: $reqURL",true,"204");
     exit;
   }
 
@@ -21,7 +25,7 @@
   500    Internal Server Error    Something went awry on the server and we're not sure what it was
 */
 
-  //error_log(" processing - files ".print_r($_FILES,true));
+  error_log(" processing - files ".print_r($_FILES,true));
 
   //check valid files
   $message = array();
@@ -75,7 +79,7 @@
 
 //  error_log(" made it - log ".print_r($message,true));
 
-  header("Location: http://".HEURIST_SERVER_NAME.@$_SERVER["REQUEST_URI"],true,$statusCode);
+  header("Location: $reqURL",true,$statusCode);
   print '<OpenRosaResponse xmlns="http://openrosa.org/http/response">
   <message nature="0">';
   print print_r($message,true)."</message>
@@ -249,7 +253,7 @@
     }
     // insert the fhml record
     $fileInfo = $_FILES['xml_submission_file'];
-//error_log("fhml fileinfo  " . print_r($fileInfo,true));
+error_log("fhml fileinfo  " . print_r($fileInfo,true));
     $filename = $fileInfo['name'];
     $fullpath = $fileInfo['fullpath'];
     $path_parts = pathinfo($fullpath);

@@ -291,17 +291,22 @@ function getBaseProperties($recID, $bkmID) {
  * @return    object array of details index by local detailID
  * @uses      get_uploaded_file_info() to get the file info
  */
-function getAllRecordDetails($recID) {
+function getAllRecordDetails($recID,$isOwner = false,$rtyID) {
     $res = mysql_query("select dtl_ID, dtl_DetailTypeID, dtl_Value, rec_Title, dtl_UploadedFileID, trm_Label,
-	                           if(dtl_Geo is not null, astext(envelope(dtl_Geo)), null) as envelope,
-	                           if(dtl_Geo is not null, astext(dtl_Geo), null) as dtl_Geo
-	                      from recDetails
-	                 left join defDetailTypes on dty_ID=dtl_DetailTypeID
-	                 left join Records on rec_ID=dtl_Value and dty_Type='resource'
-	                 left join defTerms on trm_ID = dtl_Value
-	                     where dtl_RecID = $recID order by dtl_DetailTypeID, dtl_ID");
+                             if(dtl_Geo is not null, astext(envelope(dtl_Geo)), null) as envelope,
+                             if(dtl_Geo is not null, astext(dtl_Geo), null) as dtl_Geo,
+                             rst_NonOwnerVisibility as visibility
+                        from recDetails
+                   left join defDetailTypes on dty_ID=dtl_DetailTypeID
+                   left join defRecStructure on rst_RecTypeID = $rtyID and rst_DetailTypeID = dty_ID
+                   left join Records on rec_ID=dtl_Value and dty_Type='resource'
+                   left join defTerms on trm_ID = dtl_Value
+                       where dtl_RecID = $recID order by dtl_DetailTypeID, dtl_ID");
     $recDetails = array();
     while ($row = mysql_fetch_assoc($res)) {
+        if (!$isOwner && ($row["visibility"] == 'hidden')) {
+          continue;
+        }
         $detail = array();
         $detail["id"] = $row["dtl_ID"];
         $detail["value"] = $row["dtl_Value"];

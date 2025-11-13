@@ -266,7 +266,8 @@ function print_header_line($bib) {
 //this  function displays private info if there is any.
 function print_private_details($bib) {
 
-	$res = mysql_query('select grp.ugr_Name,grp.ugr_Type,concat(grp.ugr_FirstName," ",grp.ugr_LastName) from Records, '.USERS_DATABASE.'.sysUGrps grp where grp.ugr_ID=rec_OwnerUGrpID and rec_ID='.$bib['rec_ID']);
+	$res = mysql_query('select grp.ugr_Name,grp.ugr_Type,concat(grp.ugr_FirstName," ",grp.ugr_LastName) from Records, '
+                      .USERS_DATABASE.'.sysUGrps grp where grp.ugr_ID=rec_OwnerUGrpID and rec_ID='.$bib['rec_ID']);
 	$workgroup_name = NULL;
 	// check to see if this record is owned by a workgroup
 	if (mysql_num_rows($res) > 0) {
@@ -382,7 +383,7 @@ function print_private_details($bib) {
 
 	function print_public_details($bib) {
 
-		global $terms;
+		global $terms, $ACCESSABLE_OWNER_IDS;
 
 		$bds_res = mysql_query('select dty_ID,
 		                               ifnull(rdr.rst_DisplayName, dty_Name) as name,
@@ -392,11 +393,12 @@ function print_private_details($bib) {
 		                               if(dtl_Geo is not null, astext(dtl_Geo), null) as dtl_Geo,
 		                               if(dtl_Geo is not null, astext(envelope(dtl_Geo)), null) as bd_geo_envelope
 		                          from recDetails
-		                     left join defDetailTypes on dty_ID = dtl_DetailTypeID
-		                     left join defRecStructure rdr on rdr.rst_DetailTypeID = dtl_DetailTypeID
+		                            left join defDetailTypes on dty_ID = dtl_DetailTypeID
+		                            left join defRecStructure rdr on rdr.rst_DetailTypeID = dtl_DetailTypeID
 		                                                          and rdr.rst_RecTypeID = '.$bib['rec_RecTypeID'].'
-		                         where dtl_RecID = ' . $bib['rec_ID'] .'
-		                      order by rdr.rst_DisplayOrder is null,
+		                          where dtl_RecID = ' . $bib['rec_ID'] .'
+                                and (rdr.rst_NonOwnerVisibility != "hidden" or '.$bib['rec_OwnerUGrpID'].' in ('.join(",",$ACCESSABLE_OWNER_IDS).'))
+		                          order by rdr.rst_DisplayOrder is null,
 		                               rdr.rst_DisplayOrder,
 		                               dty_ID,
 		                               dtl_ID');

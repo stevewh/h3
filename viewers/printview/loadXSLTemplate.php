@@ -28,15 +28,17 @@
 
 
 require_once (dirname(__FILE__) . '/../../common/connect/applyCredentials.php');
+require_once (dirname(__FILE__) . '/../../records/files/fileUtils.php');
 
 $style = @$_REQUEST['style'];
 define("SAVE_URI", "disabled");
-if (preg_match("/(http:\/\/|\/)/", $style)) {
+if (preg_match("/(https?:\/\/|\/)/", $style)) {
     /*****DEBUG****/
-    //error_log("style is ".print_r($style,true));
-    $handle = fopen($style, "rb");
-    $contents = stream_get_contents($handle);
-    fclose($handle);
+    error_log("style is ".print_r($style,true));
+//    $handle = fopen($style, "rb");
+//    $contents = stream_get_contents($handle);
+//    fclose($handle);
+    $contents = loadRemoteURLContent($style,true);
     header('Content-type: text/xml; charset=utf-8');
     echo $contents;
     return;

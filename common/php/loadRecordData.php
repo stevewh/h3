@@ -126,7 +126,11 @@ if (! $rec_id) {
 		$record = array();
 		$record["denied"] = true;
 	} else {
-		$record["bdValuesByType"] = getAllRecordDetails($rec_id);
+    $isOwner = @$record["workgroupID"] && $record["workgroupID"] == get_user_id() ||
+               $_SESSION[HEURIST_SESSION_DB_PREFIX.'heurist']["user_access"][$record["workgroupID"]] ||
+               @$record["workgroupID"] == 0 && is_logged_in();
+
+    $record["bdValuesByType"] = getAllRecordDetails($rec_id, $isOwner, $record["rectypeID"]);
 		$record["reminders"] = getAllReminders($rec_id);
 		$record["comments"] = getAllComments($rec_id);
 		$record["workgroupTags"] = getAllworkgroupTags($rec_id);

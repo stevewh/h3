@@ -108,7 +108,7 @@ if (preg_match('/\\b_COLLECTED_\\b/', $_REQUEST['q'])) {
 	$_REQUEST['q'] = preg_replace('/\\b_COLLECTED_\\b/', '', $_REQUEST['q']);
 }
 
-$query = REQUEST_to_query($query, $search_type);
+$query = REQUEST_to_query($query, $search_type, null, null, !is_logged_in || get_user_id() == 0);
 
 if (@$broken) {
 	$query = str_replace(' where ', ' where (to_days(now()) - to_days(rec_URLLastVerified) >= 8) and ', $query);

@@ -114,7 +114,7 @@
 
 		<script src="../common/php/getMagicNumbers.php"></script>
 		<script>
-			var hBase = (top.HEURIST && top.HEURIST.basePath ? "http://" + window.location.host +  top.HEURIST.basePath :
+			var hBase = (top.HEURIST && top.HEURIST.basePath ? "https://" + window.location.host +  top.HEURIST.basePath :
 			( HeuristBaseURL ? HeuristBaseURL : ""));
 			var database = location.search.match(/db=([^&]+)/) ? location.search.match(/db=([^&]+)/)[1]:"";
 
@@ -406,7 +406,7 @@
 									<optgroup label="Detail fields"></optgroup>
 								</select>
 								<label for="sortAsc">Sort Ascending:</label>
-								<input type="checkbox" id="sortAsc" checked/>
+								<input type="checkbox" id="sortAsc" checked />
 							</div>
 							<div class="simple-search-row" style="text-align:center;">
 								<a href="#" title="Search only records which have been bookmarked by you" onClick="top.HEURIST.search.quickSearchSubmit('bookmark');" class="button">search my bookmarks</a>

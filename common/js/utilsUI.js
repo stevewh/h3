@@ -1207,7 +1207,7 @@ if (! top.HEURIST.util) top.HEURIST.util = {
 */
     sendRequest: function(url,callback,postData) {
         // if we don't have a fully formed or root URL then prepend the base path
-        if (! url.match(/^http:/)  &&  ! url.match(/^\//))
+        if (! url.match(/^https?:/)  &&  ! url.match(/^\//))
             url = top.HEURIST.basePath + url;
         var file = url;
         var req = top.HEURIST.util.createXMLHTTPObject();
