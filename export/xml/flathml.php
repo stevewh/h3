@@ -102,7 +102,7 @@ require_once (dirname(__FILE__) . '/../../search/getSearchResults.php');
 require_once (dirname(__FILE__) . '/../../common/php/getRecordInfoLibrary.php');
 require_once (dirname(__FILE__) . '/../../records/woot/woot.php');
 require_once (dirname(__FILE__) . '/../../records/files/fileUtils.php');
-mysql_connection_select(DATABASE);
+$mysqli = mysqli_connection_select(DATABASE);
 $relRT = (defined('RT_RELATION') ? RT_RELATION : 0);
 $relTypDT = (defined('DT_RELATION_TYPE') ? DT_RELATION_TYPE : 0);
 $relSrcDT = (defined('DT_PRIMARY_RESOURCE') ? DT_PRIMARY_RESOURCE : 0);
@@ -223,8 +223,8 @@ $TL = array(); //term lookup
 $TLV = array(); //term lookup by value
 // record type labels
 $query = 'SELECT rty_ID, rty_Name FROM defRecTypes';
-$res = mysql_query($query);
-while ($row = mysql_fetch_assoc($res)) {
+$res = $mysqli->query($query);
+while ($row = $res->fetch_assoc()) {
     $RTN[$row['rty_ID']] = $row['rty_Name'];
     foreach (getRectypeFields($row['rty_ID']) as $rst_DetailTypeID => $rdr) {
         // type-specific names for detail types
@@ -234,27 +234,27 @@ while ($row = mysql_fetch_assoc($res)) {
 /*****DEBUG****///error_log(print_r($RQS,true));
 // base names, varieties for detail types
 $query = 'SELECT dty_ID, dty_Name, dty_Type FROM defDetailTypes';
-$res = mysql_query($query);
-while ($row = mysql_fetch_assoc($res)) {
+$res = $mysqli->query($query);
+while ($row = $res->fetch_assoc()) {
     $DTN[$row['dty_ID']] = $row['dty_Name'];
     $DTT[$row['dty_ID']] = $row['dty_Type'];
 }
 //error_log("DTT count = ".count($DTT)."DTN count = ".count($DTN));
-$INV = mysql__select_assoc('defTerms', //saw Enum change just assoc id to related id
+$INV = mysqli__select_assoc($mysqli, 'defTerms', //saw Enum change just assoc id to related id
 'trm_ID', 'trm_InverseTermID', '1');
 // lookup detail type enum values
 //$query = 'SELECT trm_ID, trm_Label, trm_ParentTermID, trm_OntID, trm_Code FROM defTerms';
 $query = 'SELECT * FROM defTerms';
-$res = mysql_query($query);
-while ($row = mysql_fetch_assoc($res)) {
+$res = $mysqli->query($query);
+while ($row = $res->fetch_assoc()) {
     $TL[$row['trm_ID']] = $row;
     $TLV[$row['trm_Label']] = $row;
 }
 /// group names
-mysql_connection_select(USERS_DATABASE) or die(mysql_error());
-$WGN = mysql__select_assoc('sysUGrps grp', 'grp.ugr_ID', 'grp.ugr_Name', "ugr_Type ='workgroup'");
-$UGN = mysql__select_assoc('sysUGrps grp', 'grp.ugr_ID', 'grp.ugr_Name', "ugr_Type ='user'");
-mysql_connection_select(DATABASE) or die(mysql_error());
+$mysqli = mysqli_connection_select(USERS_DATABASE) or die($mysqli->error);
+$WGN = mysqli__select_assoc($mysqli, 'sysUGrps grp', 'grp.ugr_ID', 'grp.ugr_Name', "ugr_Type ='workgroup'");
+$UGN = mysqli__select_assoc($mysqli, 'sysUGrps grp', 'grp.ugr_ID', 'grp.ugr_Name', "ugr_Type ='user'");
+$mysqli = mysqli_connection_select(DATABASE) or die($mysqli->error);
 $GEO_TYPES = array('r' => 'bounds', 'c' => 'circle', 'pl' => 'polygon', 'l' => 'path', 'p' => 'point');
 // set parameter defaults
 $REVERSE = @$_REQUEST['rev'] === 'no' ? false : true; //default to including reverse pointers
@@ -356,7 +356,7 @@ if (@$ARGV) { // commandline actuation
     $ss_id = 0;
     require_once (dirname(__FILE__) . '/../../common/connect/applyCredentials.php');
 }
-$ACCESSABLE_OWNER_IDS = mysql__select_array('sysUsrGrpLinks left join sysUGrps grp on grp.ugr_ID=ugl_GroupID', 'ugl_GroupID', 'ugl_UserID=' . get_user_id() . ' and grp.ugr_Type != "user" order by ugl_GroupID');
+$ACCESSABLE_OWNER_IDS = mysqli__select_array($mysqli, 'sysUsrGrpLinks left join sysUGrps grp on grp.ugr_ID=ugl_GroupID', 'ugl_GroupID', 'ugl_UserID=' . get_user_id() . ' and grp.ugr_Type != "user" order by ugl_GroupID');
 if (is_logged_in()) {
     array_push($ACCESSABLE_OWNER_IDS, get_user_id());
     if (!in_array(0, $ACCESSABLE_OWNER_IDS)) {
@@ -392,10 +392,10 @@ function findPointers($qrec_ids, &$recSet, $depth, $rtyIDs, $dtyIDs) {
     /*****DEBUG****/
     //error_log("find d $depth pointer q = $query");
     //echo "\n $query\n";
-    $res = mysql_query($query);
+    $res = $mysqli->query($query);
     /*****DEBUG****/
     //error_log("mysql error = ".mysql_error($res));
-    while ($res && $row = mysql_fetch_assoc($res)) {
+    while ($res && $row = $res->fetch_assoc()) {
         // if target is not in the result
         /*****DEBUG****/
         //echo "\n".print_r($row);
@@ -459,8 +459,8 @@ function findReversePointers($qrec_ids, &$recSet, $depth, $rtyIDs, $dtyIDs) {
     $nlrIDs = array(); // new linked record IDs
     $query = 'SELECT dtl_Value as srcRecID, src.rec_RecTypeID as srcType, ' . 'dtl_RecID as trgRecID, dty_ID as ptrDetailTypeID ' . ', trg.* ' . ', trg.rec_NonOwnerVisibility ' . 'FROM recDetails ' . 'LEFT JOIN defDetailTypes ON dtl_DetailTypeID = dty_ID ' . 'LEFT JOIN Records trg on trg.rec_ID = dtl_RecID ' . 'LEFT JOIN Records src on src.rec_ID = dtl_Value ' . 'WHERE dty_Type = "resource" ' . 'AND dtl_Value IN (' . join(',', $qrec_ids) . ') ' . ($rtyIDs && count($rtyIDs) > 0 ? 'AND trg.rec_RecTypeID in (' . join(',', $rtyIDs) . ') ' : '') . ($dtyIDs && count($dtyIDs) > 0 ? 'AND dty_ID in (' . join(',', $dtyIDs) . ') ' : '') . "AND trg.rec_RecTypeID != $relRT AND " . (count($ACCESSABLE_OWNER_IDS) > 0 && !$PUBONLY ? '(trg.rec_OwnerUGrpID in (' . join(',', $ACCESSABLE_OWNER_IDS) . ') OR ' : '(') . (is_logged_in() && !$PUBONLY ? 'NOT trg.rec_NonOwnerVisibility = "hidden")' : 'trg.rec_NonOwnerVisibility = "public")');
     /*****DEBUG****///error_log("find  d $depth rev pointer q = $query");
-    $res = mysql_query($query);
-    while ($res && $row = mysql_fetch_assoc($res)) {
+    $res = $mysqli->query($query);
+    while ($res && $row = $res->fetch_assoc()) {
         // if target is not in the result
         $nlrIDs[$row['trgRecID']] = 1; //save it for next level query
         if (!array_key_exists($row['trgRecID'], $recSet['relatedSet'])) {
@@ -524,8 +524,8 @@ function findRelatedRecords($qrec_ids, &$recSet, $depth, $rtyIDs, $relTermIDs) {
     /*****DEBUG****/
     //error_log("find  d $depth related q = $query");
     //echo $query;
-    $res = mysql_query($query);
-    while ($res && $row = mysql_fetch_assoc($res)) {
+    $res = $mysqli->query($query);
+    while ($res && $row = $res->fetch_assoc()) {
         if (!$row['relType'] && !$row['invRelType']) { // no type information invalid relationship
             continue;
         }
@@ -609,8 +609,8 @@ function buildGraphStructure($rec_ids, &$recSet) {
     if ($rtfilter) {//invoke rectype filtering
         $query = 'SELECT rec_ID from Records ' . 'WHERE rec_ID in (' . join(",", $rec_ids) . ') ' . 'AND rec_RecTypeID in (' . join(",", $rtfilter) . ')';
         $filteredIDs = array();
-        $res = mysql_query($query);
-        while ($res && $row = mysql_fetch_row($res)) {
+        $res = $mysqli->query($query);
+        while ($res && $row = $res->fetch_row()) {
             $filteredIDs[$row[0]] = 1;
         }
         $rec_ids = array_keys($filteredIDs);
@@ -1270,8 +1270,8 @@ function outputSchema() {
   // record type labels
   openTag('rectypes',null);
   $query = 'SELECT * FROM defRecTypes';
-  $res = mysql_query($query);
-  while ($row = mysql_fetch_assoc($res)) {
+  $res = $mysqli->query($query);
+  while ($row = $res->fetch_assoc()) {
       $rtyID = $row['rty_ID'];
       if (!$fullSchema && !array_key_exists($rtyID,$outputRecTypes)){
         continue;
@@ -1333,8 +1333,8 @@ function outputSchema() {
 function outputFields($rtyID) {
   GLOBAL $outputRecTypes, $outputDetailTypes, $outputTerms,$DTN, $TL;
   $query = "SELECT * FROM defRecStructure where rst_RecTypeID = $rtyID";
-  $res = mysql_query($query);
-  while ($row = mysql_fetch_assoc($res)) {
+  $res = $mysqli->query($query);
+  while ($row = $res->fetch_assoc()) {
       openTag('field',null);
       if ($row["rst_DisplayName"]) {
         makeTag('name', null, $row["rst_DisplayName"]);
@@ -1452,8 +1452,8 @@ function outputDetailtypes() {
   // record type labels
   openTag('detailtypes',null);
   $query = 'SELECT * FROM defDetailTypes';
-  $res = mysql_query($query);
-  while ($row = mysql_fetch_assoc($res)) {
+  $res = $mysqli->query($query);
+  while ($row = $res->fetch_assoc()) {
       $dtyID = $row['dty_ID'];
       if (!$fullSchema && !array_key_exists($dtyID,$outputDetailTypes)){
         continue;

@@ -84,9 +84,9 @@
 	<body class="popup">
 		<?php
 
-			mysql_connection_select(DATABASE);
+			$mysqli = mysqli_connection_select(DATABASE);
 
-			$res = mysql_query('select dtl_RecID, dty_Name, dty_PtrTargetRectypeIDs, rec_ID, rec_Title, rty_Name
+			$res = $mysqli->query('select dtl_RecID, dty_Name, dty_PtrTargetRectypeIDs, rec_ID, rec_Title, rty_Name
 			from defDetailTypes
 			left join recDetails on dty_ID = dtl_DetailTypeID
 			left join Records on rec_ID = dtl_Value
@@ -95,7 +95,7 @@
 			and dty_PtrTargetRectypeIDs > 0
 			and rec_RecTypeID not in (dty_PtrTargetRectypeIDs)');
 			$bibs = array();
-			while ($row = mysql_fetch_assoc($res))
+			while ($row = $res->fetch_assoc())
 			$bibs[$row['dtl_RecID']] = $row;
 
 		?>
@@ -133,7 +133,7 @@
 			<hr>
 
 			<?php
-				$res = mysql_query('select dtl_RecID, dty_Name, a.rec_Title
+				$res = $mysqli->query('select dtl_RecID, dty_Name, a.rec_Title
 				from recDetails
 				left join defDetailTypes on dty_ID = dtl_DetailTypeID
 				left join Records a on a.rec_ID = dtl_RecID
@@ -142,7 +142,7 @@
 				and a.rec_ID is not null
 				and b.rec_ID is null');
 				$bibs = array();
-				while ($row = mysql_fetch_assoc($res))
+				while ($row = $res->fetch_assoc())
 				$bibs[$row['dtl_RecID']] = $row;
 
 			?>

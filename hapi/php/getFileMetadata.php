@@ -51,7 +51,7 @@ define('RESULT_COUNT_LIMIT', 20);
 
 require_once(dirname(__FILE__)."/../../common/php/dbMySqlWrappers.php");
 
-mysql_connection_select(DATABASE);
+$mysqli = mysqli_connection_select(DATABASE);
 
 
 /* Accept input data via either POST or GET.
@@ -139,9 +139,9 @@ else {
 	$query = "select * from recUploadedFiles where 1 $fileNameQuery $fileDescriptionQuery $fileTypeQuery limit " . RESULT_COUNT_LIMIT;
 }
 
-$res = mysql_query($query);
+$res = $mysqli->query($query);
 $files = array();
-while ($file = mysql_fetch_assoc($res)) {
+while ($file = $res->fetch_assoc()) {
 //	$thumbnailURL = "http://".HEURIST_SESSION_DB_PREFIX."heuristscholar.org/heurist/php/resizeImage.php?ulf_ID=" . $file["ulf_ObfuscatedFileID"];
 	$thumbnailURL = HEURIST_BASE_URL."common/php/resizeImage.php?db=".HEURIST_DBNAME."&ulf_ID=" . $file["ulf_ObfuscatedFileID"];
 //	$URL = "http://".HEURIST_SESSION_DB_PREFIX."heuristscholar.org/heurist/php/downloadFile.php/" . urlencode($file["ulf_OrigFileName"]) . "?ulf_ID=" . $file["ulf_ObfuscatedFileID"];

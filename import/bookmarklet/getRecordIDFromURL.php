@@ -51,7 +51,7 @@ ini_set("zlib.output_compression_level", 5);
 require_once(dirname(__FILE__)."/../../common/connect/applyCredentials.php");
 require_once(dirname(__FILE__)."/../../common/php/dbMySqlWrappers.php");
 
-mysql_connection_select(DATABASE);
+$mysqli = mysqli_connection_select(DATABASE);
 
 header("Content-type: text/javascript");
 
@@ -64,9 +64,9 @@ if (substr($url, -1) == "/") $url = substr($url, 0, strlen($url)-1);
 $query = "select rec_id from Records left join usrBookmarks on bkm_recID = rec_id where (rec_URL='".addslashes($url)."' or rec_URL='".addslashes($url)."/') ".
             "group by bkm_ID  order by count(bkm_ID), rec_id limit 1";
 
-$res = mysql_query($query);
+$res = $mysqli->query($query);
 
-if ($row = mysql_fetch_assoc($res)) {
+if ($row = $res->fetch_assoc()) {
 	print "HEURIST_url_bib_id = ".$row["rec_id"].";\n\n";
 } else {
 	print "HEURIST_url_bib_id = null;\n\n";
@@ -75,8 +75,8 @@ if ($row = mysql_fetch_assoc($res)) {
 $query = "select bkm_ID from usrBookmarks left join Records on rec_id = bkm_recID where bkm_UGrpID=".get_user_id().
         " and (rec_URL='".addslashes($url)."' or rec_URL='".addslashes($url)."/') limit 1";
 
-$res = mysql_query($query);
-if ($res && $row = mysql_fetch_assoc($res)) {
+$res = $mysqli->query($query);
+if ($res && $row = $res->fetch_assoc()) {
 	print "HEURIST_url_bkmk_id = ".$row["bkm_ID"].";\n\n";
 } else {
 	print "HEURIST_url_bkmk_id = null;\n\n";

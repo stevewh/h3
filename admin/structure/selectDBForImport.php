@@ -114,7 +114,7 @@ Click the database icon on the left to view available record types in that datab
 
 				require_once(dirname(__FILE__).'/../../common/php/dbMySqlWrappers.php');
 				require_once(dirname(__FILE__)."/../../common/config/initialise.php");
-				mysql_connection_insert(DATABASE); // Connect to the current database
+				$mysqli = mysqli_connection_insert(DATABASE); // Connect to the current database
 
 				// Send request to getRegisteredDBs on the master Heurist index server, to get all registered databases and their URLs
 				$reg_url =  HEURIST_INDEX_BASE_URL . "admin/structure/getRegisteredDBs.php?t=11"; //HEURIST_INDEX_BASE_URL POINTS TO HEURISTSCHOLAR.ORG
@@ -122,9 +122,9 @@ Click the database icon on the left to view available record types in that datab
 
 				if($data) {
 					// If data has been successfully received, write it to a javascript array, leave out own DB if found
-					$res = mysql_query("select sys_dbRegisteredID from sysIdentification where `sys_ID`='1'");
+					$res = $mysqli->query("select sys_dbRegisteredID from sysIdentification where `sys_ID`='1'");
 					if($res) {
-						$row = mysql_fetch_row($res);
+						$row = $res->fetch_row();
 						$ownDBID = $row[0];
 						echo 'var ownDBname = "'.$ownDBID.'";' . "\n";
 					} else {
@@ -158,8 +158,8 @@ Click the database icon on the left to view available record types in that datab
 
 							//find version of database. ARTEM - not sure about prefix!
 							/*$query = 'select sys_dbVersion, sys_dbSubVersion, sys_dbSubSubVersion from '.($dbPrefix?$dbPrefix:HEURIST_DB_PREFIX).$dbName.'.sysIdentification';
-							$res = mysql_query($query);
-							$sysValues = mysql_fetch_assoc($res);
+							$res = $mysqli->query($query);
+							$sysValues = $res->fetch_assoc();
 							$version = $sysValues['sys_dbVersion'].".".$sysValues['sys_dbSubVersion'].".".$sysValues['sys_dbSubSubVersion'];
 							if ( HEURIST_DBVERSION>$version ) {
 								continue;

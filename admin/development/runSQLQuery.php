@@ -83,7 +83,7 @@ require_once(dirname(__FILE__).'/../../common/t1000/.ht_stdefs');
 
 // Deals with all the database connections stuff
 
-    mysql_connection_select(DATABASE);
+    $mysqli = mysqli_connection_select(DATABASE);
 
 // Page headers to explain what the listing represents, includes query for backtraqcking
 
@@ -108,8 +108,8 @@ require_once(dirname(__FILE__).'/../../common/t1000/.ht_stdefs');
     $query = @$_REQUEST['q'];
     print $query; print "<p>";
 
-    $res = mysql_query($query);
-    while ($row = mysql_fetch_assoc($res)) {
+    $res = $mysqli->query($query);
+    while ($row = $res->fetch_assoc()) {
     	print_row($row);
 	}
 ?>

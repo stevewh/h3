@@ -58,13 +58,13 @@ require_once(dirname(__FILE__)."/../../common/connect/applyCredentials.php");
 require_once(dirname(__FILE__)."/../../common/php/dbMySqlWrappers.php");
 require_once(dirname(__FILE__)."/../../common/php/getRecordInfoLibrary.php");
 
-mysql_connection_select(DATABASE);
+$mysqli = mysqli_connection_select(DATABASE);
 
 header("Content-type: text/javascript");
 
 
-$res = mysql_query("select tlu_DateStamp from sysTableLastUpdated where tlu_TableName = 'defRecTypes'");
-$lastModified = mysql_fetch_row($res);
+$res = $mysqli->query("select tlu_DateStamp from sysTableLastUpdated where tlu_TableName = 'defRecTypes'");
+$lastModified = $res->fetch_row();
 $lastModified = strtotime($lastModified[0]);
 
 if (strtotime(@$_SERVER["HTTP_IF_MODIFIED_SINCE"]) > $lastModified) {
@@ -75,15 +75,15 @@ if (strtotime(@$_SERVER["HTTP_IF_MODIFIED_SINCE"]) > $lastModified) {
 print "HEURIST_rectypes = {};\n\n";
 
 $names = array();
-$res = mysql_query("select rty_ID, rty_Name from defRecTypes order by rty_Name");
-while ($row = mysql_fetch_assoc($res)) {
+$res = $mysqli->query("select rty_ID, rty_Name from defRecTypes order by rty_Name");
+while ($row = $res->fetch_assoc()) {
 	$names[$row["rty_ID"]] = $row["rty_Name"];
 }
 print "top.HEURIST_rectypes.names = " . json_format($names) . ";\n\n";
 
 $plurals = array();
-$res = mysql_query("select rty_ID, rty_Plural from defRecTypes where rty_ID");
-while ($row = mysql_fetch_assoc($res)) {
+$res = $mysqli->query("select rty_ID, rty_Plural from defRecTypes where rty_ID");
+while ($row = $res->fetch_assoc()) {
 	$plurals[$row["rty_ID"]] = $row["rty_Plural"];
 }
 print "top.HEURIST_rectypes.pluralNames = " . json_format($plurals) . ";\n\n";

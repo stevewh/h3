@@ -35,7 +35,7 @@ require_once(dirname(__FILE__).'/../../search/parseQueryToSQL.php');
 require_once(dirname(__FILE__)."/../../records/files/uploadFile.php");
 include_once('../../external/geoPHP/geoPHP.inc');
 
-mysql_connection_select(DATABASE);
+$mysqli = mysqli_connection_select(DATABASE);
 
 $isAtom = (array_key_exists("feed", $_REQUEST) && $_REQUEST['feed'] == "atom");
 
@@ -116,25 +116,25 @@ if($isAtom){
 
 /*****DEBUG****///error_log("1.>>>>".$squery);
 
-		$res = mysql_query($squery);
-		$reccount = mysql_num_rows($res);
+		$res = $mysqli->query($squery);
+		$reccount = $res->num_rows;
 		$uniq_id = 1;
 
 		if ($reccount>0)
 		{
 
-				while ($row = mysql_fetch_row($res)) {
+				while ($row = $res->fetch_row()) {
 
 	//find rectitle for creator
 	if($row[8]){
-		$creator = mysql__select_array("Records","rec_Title", "rec_ID=".$row[8]);
+		$creator = mysqli__select_array($mysqli, "Records","rec_Title", "rec_ID=".$row[8]);
 		$creator = count($creator)>0?$creator[0]:null;
 	}else{
 		$creator = null;
 	}
 
 	// grab the user tags, as a single comma-delimited string
-	$kwds = mysql__select_array("usrRecTagLinks left join usrTags on tag_ID=rtl_TagID", "tag_Text",
+	$kwds = mysqli__select_array($mysqli, "usrRecTagLinks left join usrTags on tag_ID=rtl_TagID", "tag_Text",
 							"rtl_RecID=".$row[0]." and tag_UGrpID=".get_user_id() . " order by rtl_Order, rtl_ID");
 	$tagString = join(",", $kwds);
 
@@ -192,7 +192,7 @@ print "\n	<media:thumbnail url=\"".htmlspecialchars($thubURL)."\"/>";
 	}
 
 //geo rss
-	$geos = mysql__select_array("recDetails", "if(a.dtl_Geo is null, null, asText(a.dtl_Geo)) as dtl_Geo",
+	$geos = mysqli__select_array($mysqli, "recDetails", "if(a.dtl_Geo is null, null, asText(a.dtl_Geo)) as dtl_Geo",
 	 						"a.dtl_RecID=".$row[0]." and a.dtl_Geo is not null");
 
 					if(count($geos)>0){
@@ -224,7 +224,7 @@ print '</rss>';
 // the same in kml.php
 function prepareQuery($squery, $search_type, $joinTable, $where, $limit)
 {
-			$squery = REQUEST_to_query($squery, $search_type, '', null, false); //public only
+			$squery = REQUEST_to_query($mysqli, $squery, $search_type, '', null, false); //public only
 			//remove order by
 			$pos = strpos($squery," order by ");
 			if($pos>0){

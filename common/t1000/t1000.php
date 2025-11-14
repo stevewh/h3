@@ -204,8 +204,8 @@ function add_vars($type, $name, &$src_vars, &$dst_vars, $suppress_rv=false) {
 if (defined('T1000_DEBUG')) error_log($stmt);
 
 	// Populate the environment with unqualified <var-name> and fully qualified <scope-name>.<var-name> lookups
-	$res = mysql_query($stmt) or fatal(mysql_error());
-	if (mysql_num_rows($res) == 0) {
+	$res = $mysqli->query($stmt) or fatal($mysqli->error);
+	if ($res->num_rows == 0) {
 		$not_found = 1;
 	} else {
 
@@ -213,15 +213,15 @@ if (defined('T1000_DEBUG')) error_log($stmt);
 		while ($field = mysql_fetch_field($res))
 			array_push($field_names, $field->name);
 
-		$cols = mysql_fetch_row($res);
+		$cols = $res->fetch_row();
 		foreach ($cols as $value) {
 			$key = array_shift($field_names);
 			$dst_vars[$key] = $dst_vars["$name.$key"] = $value;
 			if (! array_key_exists("-nodups-$name.$key", $dst_vars)) $dst_vars["-nodups-$name.$key"] = $value;
 		}
 
-/* old code: mysql_fetch_assoc can only fetch one column with a given name
-		$cols = mysql_fetch_assoc($res);
+/* old code: mysqli_fetch_assoc can only fetch one column with a given name
+		$cols = $res->fetch_assoc();
 		foreach ($cols as $key => $value) {
 			$dst_vars[$key] = $dst_vars["$name.$key"] = $value;
 			if (! array_key_exists("-nodups-$name.$key", $dst_vars)) $dst_vars["-nodups-$name.$key"] = $value;
@@ -325,10 +325,10 @@ function get_iter_statement($type, $vars) {
 function get_lvalues($type) {
 	global $MAINTABLES, $TABLE_TYPE_TO_KEY;
 
-	$res = mysql_query('describe '.$MAINTABLES[$type]);
+	$res = $mysqli->query('describe '.$MAINTABLES[$type]);
 
 	$fields = array();
-	while (($row = mysql_fetch_assoc($res))) {
+	while (($row = $res->fetch_assoc())) {
 		// insert a value for each field: true for all but the primary key (which can't be used as an lvalue)
 		$field = $row['Field'];
 		$fields[$field] = ($field != $TABLE_TYPE_TO_KEY[$type]);
@@ -351,15 +351,15 @@ function get_fields($type) {
 
 	global $MAINTABLES, $LOOKUPS;
 
-	$res = mysql_query('describe '.$MAINTABLES[$type]);
+	$res = $mysqli->query('describe '.$MAINTABLES[$type]);
 
 	$fields = array();
-	while (($row = mysql_fetch_assoc($res)))
+	while (($row = $res->fetch_assoc()))
 		$fields[$row['Field']] = true;
 
 	if (@$LOOKUPS[$type]) foreach ($LOOKUPS[$type] as $table => $ignored) {
-		$res = mysql_query('describe '.$table);
-		while (($row = mysql_fetch_assoc($res)))
+		$res = $mysqli->query('describe '.$table);
+		while (($row = $res->fetch_assoc()))
 			$fields[$row['Field']] = true;
 	}
 
@@ -390,11 +390,11 @@ function do_update($updates, $name, $type, $vars) {
 	if (@$OWNER_FIELD[$type]) $updates[$OWNER_FIELD[$type]] = get_user_id();
 	if (@$MODDATE_FIELD[$type]) $updates[$MODDATE_FIELD[$type]] = date('Y-m-d H:i:s');
 
-	if ($rval = mysql__update($MAINTABLES[$type], $condition, $updates)) {
+	if ($rval = mysqli__update($mysqli, $MAINTABLES[$type], $condition, $updates)) {
 		$pkey = addslashes($vars["$type-ID"]);
 		if (@$file) do_file_update($file, $type, ($TABLE_TYPE_TO_KEY[$type].'="'.$pkey.'"'), $type . '/' . $pkey);
 	} else {
-		array_push($MYSQL_ERRORS, mysql_error());
+		array_push($MYSQL_ERRORS, $mysqli->error);
 	}
 
 	return $rval;
@@ -431,14 +431,14 @@ function do_update_resource($updates, $name, $vars) {
 
 	$pkey = addslashes($vars['RESOURCE-ID']);
 
-	if ($rval = mysql__update($MAINTABLES['RESOURCE'], $PKEY['RESOURCE'].'="'.$pkey.'"', $res_fields)) {
-		$rval = mysql__insert($MAINTABLES['RESOURCE_VERSION'], $ver_fields);
+	if ($rval = mysqli__update($mysqli, $MAINTABLES['RESOURCE'], $PKEY['RESOURCE'].'="'.$pkey.'"', $res_fields)) {
+		$rval = mysqli__insert($mysqli, $MAINTABLES['RESOURCE_VERSION'], $ver_fields);
 		if ($rval)
-			$ver = mysql_insert_id();
+			$ver = $mysqli->insert_id;
 		else
-			array_push($MYSQL_ERRORS, mysql_error());
+			array_push($MYSQL_ERRORS, $mysqli->error);
 	} else {
-		array_push($MYSQL_ERRORS, mysql_error());
+		array_push($MYSQL_ERRORS, $mysqli->error);
 	}
 
 	if ($file and $rval)
@@ -470,17 +470,17 @@ function do_insert($inserts, $name, $type, $vars) {
 		$query = 'delete from '.$MAINTABLES[$type].' where 1 ';
 		foreach ($LINK_KEYS[$type] as $varname => $field)
 			$query .= ' and '. $varname .' = "'.addslashes($inserts[$field]).'"';
-		mysql_query($query);
+		$mysqli->query($query);
 	}
 
 	if (@$OWNER_FIELD[$type]) $inserts[$OWNER_FIELD[$type]] = get_user_id();
 	if (@$MODDATE_FIELD[$type]) $inserts[$MODDATE_FIELD[$type]] = date('Y-m-d H:i:s');
 	if (@$INIDATE_FIELD[$type]) $inserts[$INIDATE_FIELD[$type]] = date('Y-m-d H:i:s');
 
-	if (! mysql__insert($MAINTABLES[$type], $inserts))
-		array_push($MYSQL_ERRORS, mysql_error());
+	if (! mysqli__insert($mysqli, $MAINTABLES[$type], $inserts))
+		array_push($MYSQL_ERRORS, $mysqli->error);
 	else {
-		$pkey = mysql_insert_id();
+		$pkey = $mysqli->insert_id;
 		if ($file) do_file_update($file, $type, ($TABLE_TYPE_TO_KEY[$type].'="'.$pkey.'"'), $type . '/' . $pkey);
 	}
 
@@ -514,20 +514,20 @@ function do_insert_resource($inserts, $name, $vars) {
 		// this is necessary: there could be resources that are entirely in their versions
 		$res_fields[RESOURCE_KEY] = NULL;
 	}
-	if (mysql__insert($MAINTABLES['RESOURCE'], $res_fields))
-		$pkey = mysql_insert_id();
+	if (mysqli__insert($mysqli, $MAINTABLES['RESOURCE'], $res_fields))
+		$pkey = $mysqli->insert_id;
 	else
-		array_push($MYSQL_ERRORS, mysql_error());
+		array_push($MYSQL_ERRORS, $mysqli->error);
 
 	$ver_fields[RESOURCE_VERSION_RESOURCEKEY] = $pkey;
 	if (@$INIDATE_FIELD['RESOURCE_VERSION']) $ver_fields[$INIDATE_FIELD['RESOURCE_VERSION']] = date('Y-m-d H:i:s');
 	if (@$MODDATE_FIELD['RESOURCE_VERSION']) $ver_fields[$MODDATE_FIELD['RESOURCE_VERSION']] = date('Y-m-d H:i:s');
 	if (@$OWNER_FIELD['RESOURCE_VERSION']) $ver_fields[$OWNER_FIELD['RESOURCE_VERSION']] = get_user_id();
 
-	if (mysql__insert($MAINTABLES['RESOURCE_VERSION'], $ver_fields))
-		$ver = mysql_insert_id();
+	if (mysqli__insert($mysqli, $MAINTABLES['RESOURCE_VERSION'], $ver_fields))
+		$ver = $mysqli->insert_id;
 	else
-		array_push($MYSQL_ERRORS, mysql_error());
+		array_push($MYSQL_ERRORS, $mysqli->error);
 
 	if ($file  &&  $pkey  &&  $ver)
 		do_file_update($file, 'RESOURCE_VERSION', (RESOURCE_VERSION_RESOURCEKEY.'="'.$pkey.'" and '
@@ -558,8 +558,8 @@ function do_file_update(&$file, $type, $condition, $new_filename) {
 	if (! move_uploaded_file($file['localpath'], HEURIST_UPLOAD_DIR . '/' . $new_filename))
 		fatal("desperate failure while handling uploaded file");
 
-	if (! mysql__update($MAINTABLES[$type], $condition, $updates))
-		array_push($MYSQL_ERRORS, mysql_error());
+	if (! mysqli__update($mysqli, $MAINTABLES[$type], $condition, $updates))
+		array_push($MYSQL_ERRORS, $mysqli->error);
 }
 
 /* END non-OO stuff */
@@ -1441,11 +1441,11 @@ if (defined('T1000_DEBUG')) print("<!-- QUERY: $query -->");
 		if ($this->order_col) $query .= ' order by ' . $this->order_col;
 		// grab all the results, and only keep the ones that will appear on this page
 if (defined('T1000_DEBUG')) print "<!-- final query: $query -->";
-		$res = mysql_query($query);
+		$res = $mysqli->query($query);
 		$matches = array();
-		$vars['result-count'] = mysql_num_rows($res);
+		$vars['result-count'] = $res->num_rows;
 		$res_num = 0;
-		while (($row = mysql_fetch_row($res))) {
+		while (($row = $res->fetch_row())) {
 			if ($res_num++ >= $this->offset  &&  $res_num <= $this->offset+$RESULTS_PER_PAGE)
 				array_push($matches, "'" . addslashes($row[0]) . "'");
 		}
@@ -1595,9 +1595,9 @@ if (defined('T1000_DEBUG')) print "<!-- final query: $query -->";
 		if ($this->order_col) $query .= ' order by ' . $this->order_col;
 
 
-		$res = mysql_query($query);
+		$res = $mysqli->query($query);
 		$results = array();
-		while ($row = mysql_fetch_row($res)) array_push($results, $row[0]);
+		while ($row = $res->fetch_row()) array_push($results, $row[0]);
 
 		return $results;
 	}
@@ -1953,7 +1953,7 @@ class DeleteScope extends Scope {
 		// only made it here if ALL child values are non-false
 		$pkey = addslashes($vars[$this->type."-ID"]);
 		if (defined('T1000_DEBUG')) print('<!-- delete from '.$MAINTABLES[$this->type].' where '.$TABLE_TYPE_TO_KEY[$this->type].'="'.$pkey.'" -->');
-		mysql_query('delete from '.$MAINTABLES[$this->type].' where '.$TABLE_TYPE_TO_KEY[$this->type].'="'.$pkey.'"');
+		$mysqli->query('delete from '.$MAINTABLES[$this->type].' where '.$TABLE_TYPE_TO_KEY[$this->type].'="'.$pkey.'"');
 	}
 
 
@@ -2025,9 +2025,9 @@ class ForeachScope extends Scope {
 		$any_children_satisfied = false;
 
 		$result_number = @$vars['result-first']? $vars['result-first'] : 1;
-		$res = mysql_query($stmt)  or  fatal(mysql_error());
-		if (mysql_num_rows($res) > 0) {
-			while (($cols = mysql_fetch_assoc($res))) {
+		$res = $mysqli->query($stmt)  or  fatal($mysqli->error);
+		if ($res->num_rows > 0) {
+			while (($cols = $res->fetch_assoc())) {
 				$vars = $parent_vars;
 //				foreach ($cols as $key => $value) $vars[$key] = $vars[$this->name . ".$key"] = $value;
 
@@ -2082,9 +2082,9 @@ class ForeachScope extends Scope {
 
 		$rval = true;
 		$result_number = @$vars['result-first']? $vars['result-first'] : 1;
-		$res = mysql_query($stmt)  or  fatal(mysql_error());
-		if (mysql_num_rows($res) > 0) {
-			while (($cols = mysql_fetch_assoc($res))) {
+		$res = $mysqli->query($stmt)  or  fatal($mysqli->error);
+		if ($res->num_rows > 0) {
+			while (($cols = $res->fetch_assoc())) {
 				$vars = $parent_vars;
 		//		foreach ($cols as $key => $value) $vars[$key] = $vars[$this->name . ".$key"] = $value;
 
@@ -2130,11 +2130,11 @@ class ForeachScope extends Scope {
 
 if (defined('T1000_DEBUG')) print "<!-- foreach: $stmt -->";
 		$result_number = @$vars['result-first']? $vars['result-first'] : 1;
-		$res = mysql_query($stmt)  or  fatal(mysql_error());
-		if (mysql_num_rows($res) > 0) {
+		$res = $mysqli->query($stmt)  or  fatal($mysqli->error);
+		if ($res->num_rows > 0) {
 			$not_found = false;
 
-			while (($cols = mysql_fetch_assoc($res))) {
+			while (($cols = $res->fetch_assoc())) {
 				$vars = $parent_vars;
 //				foreach ($cols as $key => $value) $vars[$key] = $vars[$this->name . ".$key"] = $value;
 
@@ -2842,8 +2842,8 @@ class Dropdown extends InputComponent {
 		$options = array();
 		$have_nontrue = false;
 		if ($this->select_stmt) {
-			$res = mysql_query($this->select_stmt)  or  fatal(mysql_error());
-			while (($row = mysql_fetch_row($res))) {
+			$res = $mysqli->query($this->select_stmt)  or  fatal($mysqli->error);
+			while (($row = $res->fetch_row())) {
 				$options[$row[0]] = $row[1];
 				if (! @$row[0]) $have_nontrue = true;
 			}
@@ -3327,10 +3327,10 @@ class Evaluate extends Component {
 
 		list($stmt, $dummy) = get_iter_statement($this->type, $vars);
 		$stmt = preg_replace('/^select (.+) from /', 'select '.$this->text.' from ', $stmt);
-		$res = mysql_query($stmt);
+		$res = $mysqli->query($stmt);
 		if (! $res)
-			fatal($this->component_description() . " not executable: " . mysql_error());
-		if (mysql_num_rows($res) != 1)
+			fatal($this->component_description() . " not executable: " . $mysqli->error);
+		if ($res->num_rows != 1)
 			error_log('warning: ' . $this->component_description() . ' should return a single result');
 	}
 
@@ -3341,8 +3341,8 @@ class Evaluate extends Component {
 	function render($vars) {
 		list($stmt, $dummy) = get_iter_statement($this->type, $vars);
 		$stmt = preg_replace('/^select (\S+) from /', 'select '.$this->text.' from ', $stmt);
-		$res = mysql_query($stmt);
-		$row = mysql_fetch_row($res);
+		$res = $mysqli->query($stmt);
+		$row = $res->fetch_row();
 		print htmlspecialchars($row[0]);
 	}
 }
@@ -3353,8 +3353,8 @@ function decode_extension($filename) {
 	// return a best guess of the MIME type associated with this file, based on its extension
 
 	$extension = substr(strtolower(strrchr($filename, '.')), 1);
-	$res = mysql_query('select * from ' . MIMETYPE_TABLE . ' where ' . MIMETYPE_EXTENSION_FIELD . ' = "'.addslashes($extension).'"');
-	$filetype = mysql_fetch_assoc($res);
+	$res = $mysqli->query('select * from ' . MIMETYPE_TABLE . ' where ' . MIMETYPE_EXTENSION_FIELD . ' = "'.addslashes($extension).'"');
+	$filetype = $res->fetch_assoc();
 	if (! @$filetype[MIMETYPE_TYPE_FIELD])
 		return 'application/octet-stream';
 	else

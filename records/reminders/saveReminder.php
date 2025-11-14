@@ -52,15 +52,15 @@ require_once(dirname(__FILE__)."/../../common/php/dbMySqlWrappers.php");
 
 if (! is_logged_in()) return;
 
-mysql_connection_overwrite(DATABASE);
+$mysqli = mysqli_connection_overwrite(DATABASE);
 
 
 $rec_id = intval($_POST["recID"]);
 $rem_id = intval($_POST["rem_ID"]);
 if ($rec_id  &&  $_POST["save-mode"] == "add") {
 	if ($_POST["reminder-user"]) {
-		$res = mysql_query("select usr.ugr_ID from ".USERS_DATABASE.".sysUGrps usr where concat(usr.ugr_FirstName, ' ', usr.ugr_LastName) = '" . addslashes($_POST["reminder-user"]) . "'");
-		$user = mysql_fetch_row($res);
+		$res = $mysqli->query("select usr.ugr_ID from ".USERS_DATABASE.".sysUGrps usr where concat(usr.ugr_FirstName, ' ', usr.ugr_LastName) = '" . addslashes($_POST["reminder-user"]) . "'");
+		$user = $res->fetch_row();
 		if ($user) {
 			$_POST["reminder-user"] = intval($user[0]);
 		}
@@ -87,15 +87,15 @@ if ($rec_id  &&  $_POST["save-mode"] == "add") {
 		require_once("sendReminder.php");
 		print sendReminderEmail($rem);
 	} else {
-		mysql__insert("usrReminders", $rem);
-		if (mysql_error()) {
-			print "({ error: \"Internal database error - " . mysql_error() . "\" })";
+		mysqli__insert($mysqli, "usrReminders", $rem);
+		if ($mysqli->error) {
+			print "({ error: \"Internal database error - " . $mysqli->error . "\" })";
 			return;
 		}
 
-		$rem_id = mysql_insert_id();
-		$res = mysql_query("select * from usrReminders where rem_ID = $rem_id");
-		$rem = mysql_fetch_assoc($res);
+		$rem_id = $mysqli->insert_id;
+		$res = $mysqli->query("select * from usrReminders where rem_ID = $rem_id");
+		$rem = $res->fetch_assoc();
 ?>
 ({ reminder: {
      id: <?= $rem["rem_ID"] ?>,
@@ -111,11 +111,11 @@ if ($rec_id  &&  $_POST["save-mode"] == "add") {
 	}
 
 } else if ($rec_id  &&  $rem_id  &&  $_POST["save-mode"] == "delete") {
-	$res = mysql_query("delete from usrReminders where rem_ID=$rem_id and rem_RecID=$rec_id and rem_OwnerUGrpID=".get_user_id());
-	if (! mysql_error()) {
+	$res = $mysqli->query("delete from usrReminders where rem_ID=$rem_id and rem_RecID=$rec_id and rem_OwnerUGrpID=".get_user_id());
+	if (! $mysqli->error) {
 		print "1";
 	} else {
-		print "({ error: \"Internal database error - " . mysql_error() . "\" })";
+		print "({ error: \"Internal database error - " . $mysqli->error . "\" })";
 	}
 }
 

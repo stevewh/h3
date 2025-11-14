@@ -116,7 +116,7 @@ function save_image3($inPath, $outPath){
 //
 //
 function getError($message) {
-	//mysql_query("rollback");
+	//$mysqli->query("rollback");
 	return array("error" => addslashes($message));
 }
 ?>

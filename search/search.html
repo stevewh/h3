@@ -29,25 +29,14 @@
 * @package     Heurist academic knowledge management system
 * @subpackage  !!!subpackagename for file such as Administration, Search, Edit, Application, Library
 */
-
 -->
-<!--
-<!--
-
-/**
-* search.html, the main Heursit search page, effectively the home page for Heurist
-* @copyright (C) 2005-2010 University of Sydney Digital Innovation Unit.
-* @link: http://HeuristScholar.org
-* @license http://www.gnu.org/licenses/gpl-3.0.txt
-* @package Heurist academic knowledge management system
-* @todo
-**/
-
--->
-<html>
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
 
 <head>
+<meta charset="utf-8"/>
 <title>Heurist Reference Database - &copy; 2005-2010 The University of Sydney</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="stylesheet" media="screen and (max-device-width: 800px)" href="../common/css/smallscreen.css"/>
 <link rel=icon href="../favicon.ico" type="image/x-icon">
 <link rel="shortcut icon" href="../favicon.ico" type="image/x-icon">
@@ -86,7 +75,7 @@
 <script type="text/javascript" src="../external/js/sf/supersubs.js"></script>
 
 
-<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta content="text/html">
 <style>
 /* Hack for IE7 betas -- :hover etc in external CSS not respected without these rules */
 			a:hover {
@@ -114,7 +103,7 @@
 
 		<script src="../common/php/getMagicNumbers.php"></script>
 		<script>
-			var hBase = (top.HEURIST && top.HEURIST.basePath ? "https://" + window.location.host +  top.HEURIST.basePath :
+			var hBase = (top.HEURIST && top.HEURIST.basePath ? "http://" + window.location.host +  top.HEURIST.basePath :
 			( HeuristBaseURL ? HeuristBaseURL : ""));
 			var database = location.search.match(/db=([^&]+)/) ? location.search.match(/db=([^&]+)/)[1]:"";
 
@@ -220,7 +209,7 @@
 				<ul id=quicklink-cell>
 					<li class="admin-only" id="reportBug"><a href="#"
 									onClick="top.HEURIST.util.popupURL(top, bugReportURL,{'close-on-blur': false,'no-resize': false, height: 450,width: 740,callback: _bugReportCallback});return false;"
-									title="Click to send a bug report" ><img src="../common/images/16x16.gif"></a></li>
+									title="Click to send a bug report" ><img src="../common/images/16x16.gif" alt="16x16.gif"></a></li>
 					<li class="logged-in-only"> <span id=my-heurist-menu-link class=logged-in-only><b>My Profile</b></span>
 						<ul id="my-heurist-menu">
 
@@ -350,14 +339,14 @@
 					<!-- We need a better way of placing a link to the Project home page and to Help- probably a small logo
 					<li> <a href="../index.html" target=_blank title="The Heurist project plus comprehensive detailed help"><b>Project</b></a> </li>
 					-->
-					<li> <a href="../../help/index.html" target=_blank title="Online help for Heurist"><b>Help</b></a></li>
+					<li> <a href="../help/index.html" target=_blank title="Online help for Heurist"><b>Help</b></a></li>
 					<li style="display:none">
 						<a id=contact-link title="Send us an email with bug information or feature requests" href="mailto:info@heuristscholar.org"><b>Contact us</b></a>
 					</li>
 
 					<li>
 						<a href="#" id="rss_feed_link" title="Data feed, drag to bookmarks or a feed reader" target="_blank">
-							<img src="../common/images/logo_rss_feed.png"/></a>
+							<img src="../common/images/logo_rss_feed.png" alt="RSS Feed"/></a>
 					</li>
 
 				</ul>
@@ -375,7 +364,7 @@
 					<!-- SEARCH:  it's obvious it's a search, one less bit of clutter -->
 					<div style="position:relative">
 						<div class="searchInput" id="searchInput2">
-							<input id=q name=q type=text style="width:300px; clear:both;padding-right:25px;padding-bottom:2px;" onKeyPress="if (event.keyCode == 13) {top.HEURIST.search.submitSearchForm();}">
+							<input id=q name=q placeholder='search input' style="width:300px; clear:both;padding-right:25px;padding-bottom:2px;" onKeyPress="if (event.keyCode == 13) {top.HEURIST.search.submitSearchForm();}">
 
 						<div id="btnSimpleSearch" class="simplesearch" title="Click to show Quick Search builder panel"></div>
 
@@ -456,7 +445,7 @@
 							<div class=search-type title="Personal Saved searches which search only the records you have bookmarked (your collection)" onClick="top.HEURIST.search.toggleSavedSearches(this.parentNode);">My bookmarks
 								<div class="saved-search-edit">
 									<a id="my-blog-link" target="_blank" href="#">
-										<img height="11" src="../common/images/blog-icon-box-rev-lightgrey16.png" />
+										<img height="11" alt="blog link" src="../common/images/blog-icon-box-rev-lightgrey16.png" />
 									</a>
 								</div>
 							</div>
@@ -578,7 +567,7 @@ style="position:absolute;left:0;right:0;top:0;height:20px;"
 								<ul>
 									<li style="padding-top: 10px"><a href="#" title="Quick Search panel provides assistance in building a search" onClick="{top.HEURIST.search.launchAssistedSearch(event);}">Quick search</a></li>
 									<li><a href="#" title="Advanced search function builds complex search strings through a form-based interface" onClick="{top.HEURIST.search.launchAdvancedSearch(event);}">Advanced search</a></li>
-									<li class="separator"><a href="../help/advanced_search.html" title="Detailed description of the syntax for advanced search strings" target=_blank>Search help (syntax)</a></li>
+									<li class="separator"><a href="../help/AdvancedSearch.html" title="Detailed description of the syntax for advanced search strings" target=_blank>Search help (syntax)</a></li>
 									<li>--------------------------</li>
 									<li class="separator"><a href="#" title="Save current results set as a Saved Search, either personal or shared with workgroup members"
 												onClick="{top.HEURIST.search.savedSearchEdit(0); return false;}">Save search as ...</a></li>
@@ -684,7 +673,7 @@ style="position:absolute;left:0;right:0;top:0;height:20px;"
 							<br>
 							<p>We strongly recommend that you click <a target="_blank" href="../help/tour.html">Take the Tour</a> to get oriented. Please also visit <a target="_blank" href="../help/webhelp">Help</a> (link at top right) - don't ignore it until you have a problem, as users generally find it quite approachable and very, very helpful.</p>
 							<br>
-							<p>You may also wish to visit some <a target="_blank" href="http://heuristscholar.org/?ver=1&amp;w=all&amp;q=tag:%22Heurist+System\Featured+Subsets%22&amp;label=Featured+subsets&amp;description=The+links+below+retrieve+curated+subsets+of+Heurist+records+of+general+interest+assembled+by+special+bibliographic+and+data+collection+projects.+If+you+would+like+to+add+a+collection+here,+email+admin@heuristscholar.org+for+instructions">Example collections on the HeuristScholar.org server</a> </p>
+							<p>You may also wish to visit some <a target="_blank" rel="noopener" href="http://heuristscholar.org/?ver=1&amp;w=all&amp;q=tag:%22Heurist+System\Featured+Subsets%22&amp;label=Featured+subsets&amp;description=The+links+below+retrieve+curated+subsets+of+Heurist+records+of+general+interest+assembled+by+special+bibliographic+and+data+collection+projects.+If+you+would+like+to+add+a+collection+here,+email+admin@heuristscholar.org+for+instructions">Example collections on the HeuristScholar.org server</a> </p>
 							<br>
 							<p>Heurist is a stable system running several major web sites (see Example Collections once you've logged in). It is also a system in rapid development, so if you have suggestions we want to hear them. You may be surprised how quickly your suggestions pop up in the software. </p>
 							<br>

@@ -71,22 +71,22 @@ else
 	$search_type = BOTH;	// all records
 
 
-mysql_connection_select(DATABASE);
+$mysqli = mysqli_connection_select(DATABASE);
 
 if (preg_match('/\\b_BROKEN_\\b/', $_REQUEST['q'])) {
 	$broken = 1;
 	$_REQUEST['q'] = preg_replace('/\\b_BROKEN_\\b/', '', $_REQUEST['q']);
 }
 
-$query = REQUEST_to_query("select rec_ID, bkm_ID ", $search_type);
+$query = REQUEST_to_query($mysqli, "select rec_ID, bkm_ID ", $search_type);
 
 if (@$broken) {
 	$query = str_replace(' where ', ' where (to_days(now()) - to_days(rec_URLLastVerified) >= 8) and ', $query);
 }
 
-$res = mysql_query($query);
+$res = $mysqli->query($query);
 $ids = array();
-while ($row = mysql_fetch_assoc($res)) {
+while ($row = $res->fetch_assoc()) {
 	array_push($ids, array("recID" => $row["rec_ID"], "bkmk_id" => $row["bkm_ID"]));
 }
 

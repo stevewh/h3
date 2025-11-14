@@ -86,35 +86,44 @@
 */
 require_once (dirname(__FILE__) . '/imageLibrary.php');
 require_once (dirname(__FILE__) . '/../../records/files/uploadFile.php');
+require_once (dirname(__FILE__) . '/../../common/connect/applyCredentials.php');
+require_once (dirname(__FILE__) . '/../../common/php/dbMySqlWrappers.php');
+require_once (dirname(__FILE__) . '/../../common/php/getRecordInfoLibrary.php');
 if (!defined('MEMCACHED_PORT')) define('MEMCACHED_PORT', 11211);
-$memcache = null;
+if (!defined('MEMCACHED_SERVER')) define('MEMCACHED_SERVER', 'mcachesrv');
+$memcached = null;
 $lastModified = null;
 $dbID = intval(HEURIST_DBID);
+
+$mysqliro = mysqli_connection_select(DATABASE);
+$mysqli = mysqli_connection_overwrite(DATABASE);
+
 /**
  * description
  * @global    int $lastModified represents the last modified datetime
  */
 function setLastModified() {
     global $lastModified;
-
-    $res = mysql_query("select max(tlu_DateStamp) from sysTableLastUpdated where tlu_CommonObj = 1");
-    $lastModified = mysql_fetch_row($res);
+    global $mysqliro;
+    $res = $mysqliro->query("select max(tlu_DateStamp) from sysTableLastUpdated where tlu_CommonObj = 1");
+    $lastModified = $res->fetch_row();
     $lastModified = strtotime($lastModified[0]);
 }
 /**
  * get cached object
- * @global    object $memcache
+ * @global    object $memcached
  * @global    int $lastModified represents the last modified date
  * @param     string [$key] key for data to retrieve
  * @return    cached data for $key or null if not in cache
  * @uses      MEMCACHED_PORT
  */
 function getCachedData($key) {
-    global $memcache, $lastModified;
+    global $memcached, $lastModified;
 
-    if (!$memcache) {
-        $memcache = new Memcache;
-        if (!$memcache->connect('127.0.0.1', MEMCACHED_PORT)) {
+    if (!$memcached) {
+        $memcached = new Memcached();
+        $memcached->addServer(MEMCACHED_SERVER, MEMCACHED_PORT);
+        if (empty($memcached->getServerList())) {	//saw Decision: error or just load raw???
             error_log("couldn't connect to memcached - running directly from DB");
             return null;
         }
@@ -123,16 +132,16 @@ function getCachedData($key) {
     setLastModified();
 
     // check the cached lastupdate value and return false on not equal meaning recreate data
-    if (!$memcache || $lastModified > $memcache->get('lastUpdate:' . $key)) {
+    if (!$memcached || $lastModified > $memcached->get('lastUpdate:' . $key)) {
         error_log("returning null from cache for key = $key");
         return null;
     }
 
-    return $memcache->get($key);
+    return $memcached->get($key);
 }
 /**
  * store object in cache
- * @global    object $memcache
+ * @global    object $memcached
  * @global    int $lastModified represents the last modified date
  * @param     string [$key] key for data to store
  * @param     mixed [$var] variable with data to store
@@ -140,16 +149,17 @@ function getCachedData($key) {
  * @uses      MEMCACHED_PORT
  */
 function setCachedData($key, $var) {
-    global $memcache, $lastModified;
-    if (!$memcache) {
-        $memcache = new Memcache;
-        if (!$memcache->connect('127.0.0.1', MEMCACHED_PORT)) { //saw Decision: error or just load raw???
+    global $memcached, $lastModified;
+    if (!$memcached) {
+        $memcached = new Memcached();
+        $memcached->addServer(MEMCACHED_SERVER, MEMCACHED_PORT);
+        if (empty($memcached->getServerList())) {	//saw Decision: error or just load raw???
             error_log("couldn't connect to memcached - not caching DB queries");
         }
     }
     setLastModified();
-    $memcache->set('lastUpdate:' . $key, $lastModified);
-    return $memcache->set($key, $var);
+    $memcached->set('lastUpdate:' . $key, $lastModified);
+    return $memcached->set($key, $var);
 }
 /**
  * resolves a recID to any forwarded value and returns resolved recID with any bmkID for user and indicates
@@ -163,18 +173,18 @@ function setCachedData($key, $var) {
 function getResolvedIDs($recID, $bmkID) {
     // Look at the request parameters rec_ID and bkm_ID,
     // return the actual rec_ID and bkm_ID as the user has access to them
-
+    global $mysqliro;
     /* chase down replaced-by-bib-id references */
     $replaced = false;
     if (intval(@$recID)) {
-        $res = mysql_query("select rfw_NewRecID from recForwarding where rfw_OldRecID=$recID");
+        $res = $mysqliro->query("select rfw_NewRecID from recForwarding where rfw_OldRecID=$recID");
         $recurseLimit = 10;
         $resolvedRecID = 0;
-        while (mysql_num_rows($res) > 0) {
-            $row = mysql_fetch_row($res);
+        while ($res->num_rows > 0) {
+            $row = $res->fetch_row();
             $resolvedRecID = $row[0];
             $replaced = true;
-            $res = mysql_query("select rfw_NewRecID from recForwarding where rfw_OldRecID=$resolvedRecID");
+            $res = $mysqliro->query("select rfw_NewRecID from recForwarding where rfw_OldRecID=$resolvedRecID");
             if ($recurseLimit-- === 0) {
                 return array();
             }
@@ -188,9 +198,9 @@ function getResolvedIDs($recID, $bmkID) {
     $bkm_ID = 0;
     if (intval(@$recID)) {
         $rec_id = intval($recID);
-        $res = mysql_query('select rec_ID, bkm_ID from Records'.
+        $res = $mysqliro->query('select rec_ID, bkm_ID from Records'.
                              ' left join usrBookmarks on bkm_recID=rec_ID and bkm_UGrpID=' . get_user_id() . ' where rec_ID=' . $rec_id);
-        $row = mysql_fetch_assoc($res);
+        $row = $res->fetch_assoc();
         /*****DEBUG****///error_log("row ".print_r($row,true));
         $rec_id = intval($row['rec_ID']);
         $bkm_ID = intval($row['bkm_ID']);
@@ -198,9 +208,9 @@ function getResolvedIDs($recID, $bmkID) {
     /*****DEBUG****///error_log("after recID bmk lookup ".print_r($rec_id,true));
     if (!$rec_id && intval(@$bmkID)) {
         $bkm_ID = intval($bmkID);
-        $res = mysql_query('select bkm_ID, rec_ID from usrBookmarks'.
+        $res = $mysqliro->query('select bkm_ID, rec_ID from usrBookmarks'.
         					' left join Records on bkm_recID=rec_ID where bkm_ID=' . $bkm_ID . ' and bkm_UGrpID=' . get_user_id());
-        $row = mysql_fetch_assoc($res);
+        $row = $res->fetch_assoc();
         $bkm_ID = intval($row['bkm_ID']);
         $rec_id = intval($row['rec_ID']);
     }
@@ -217,12 +227,13 @@ function getResolvedIDs($recID, $bmkID) {
  * @todo      add code to get personal woots
  */
 function getBaseProperties($recID, $bkmID) {
+    global $mysqliro;
     if (!$recID && !$bkmID) {
         return array("error" => "invalid parameters passed to getBaseProperties");
     }
 
     if ($bkmID) {
-        $res = mysql_query('select rec_ID, rec_Title as title, rty_Name as rectype,
+        $res = $mysqliro->query('select rec_ID, rec_Title as title, rty_Name as rectype,
 									rty_ID as rectypeID, rec_URL as url, grp.ugr_ID as workgroupID,
 									concat(grp.ugr_FirstName,\' \',grp.ugr_LastName) as name,
 									grp.ugr_Name as workgroup, rec_ScratchPad as notes,
@@ -233,7 +244,7 @@ function getBaseProperties($recID, $bkmID) {
 												left join ' . USERS_DATABASE . '.sysUGrps grp on grp.ugr_ID=rec_OwnerUGrpID
 								where bkm_ID=' . $bkmID);
     } else if ($recID) {
-        $res = mysql_query('select rec_ID, rec_Title as title, rty_Name as rectype, rty_ID as rectypeID,
+        $res = $mysqliro->query('select rec_ID, rec_Title as title, rty_Name as rectype, rty_ID as rectypeID,
 									rec_URL as url, grp.ugr_ID as workgroupID, grp.ugr_Name as workgroup,
 									concat(grp.ugr_FirstName,\' \',grp.ugr_LastName) as name,
 									rec_ScratchPad as notes, rec_NonOwnerVisibility as visibility, rec_Modified,
@@ -243,7 +254,7 @@ function getBaseProperties($recID, $bkmID) {
 											left join ' . USERS_DATABASE . '.sysUGrps grp on grp.ugr_ID=rec_OwnerUGrpID
 								where rec_ID=' . $recID);
     }
-    $row = mysql_fetch_assoc($res);
+    $row = $res->fetch_assoc();
     $recID = $row["rec_ID"];
     $props = array();
     if ($recID) $props["bibID"] = $recID;
@@ -270,7 +281,7 @@ function getBaseProperties($recID, $bkmID) {
     $props['notes'] = $row['notes']; // saw TODO: add code to get personal woots
     if ($bkmID) {
         // grab the user tags for this bookmark, as a single comma-delimited string
-        $kwds = mysql__select_array("usrRecTagLinks left join usrTags on tag_ID=rtl_TagID", "tag_Text", "rtl_RecID=$recID and tag_UGrpID=" . get_user_id() . " order by rtl_Order, rtl_ID");
+        $kwds = mysqli__select_array($mysqliro, "usrRecTagLinks left join usrTags on tag_ID=rtl_TagID", "tag_Text", "rtl_RecID=$recID and tag_UGrpID=" . get_user_id() . " order by rtl_Order, rtl_ID");
         $props["tagString"] = join(",", $kwds);
     }
     return $props;
@@ -291,8 +302,9 @@ function getBaseProperties($recID, $bkmID) {
  * @return    object array of details index by local detailID
  * @uses      get_uploaded_file_info() to get the file info
  */
-function getAllRecordDetails($recID,$isOwner = false,$rtyID) {
-    $res = mysql_query("select dtl_ID, dtl_DetailTypeID, dtl_Value, rec_Title, dtl_UploadedFileID, trm_Label,
+function getAllRecordDetails($recID,$rtyID,$isOwner = false) {
+    global $mysqliro;
+    $res = $mysqliro->query("select dtl_ID, dtl_DetailTypeID, dtl_Value, rec_Title, dtl_UploadedFileID, trm_Label,
                              if(dtl_Geo is not null, astext(envelope(dtl_Geo)), null) as envelope,
                              if(dtl_Geo is not null, astext(dtl_Geo), null) as dtl_Geo,
                              rst_NonOwnerVisibility as visibility
@@ -303,7 +315,7 @@ function getAllRecordDetails($recID,$isOwner = false,$rtyID) {
                    left join defTerms on trm_ID = dtl_Value
                        where dtl_RecID = $recID order by dtl_DetailTypeID, dtl_ID");
     $recDetails = array();
-    while ($row = mysql_fetch_assoc($res)) {
+    while ($row = $res->fetch_assoc()) {
         if (!$isOwner && ($row["visibility"] == 'hidden')) {
           continue;
         }
@@ -361,13 +373,14 @@ function getAllRecordDetails($recID,$isOwner = false,$rtyID) {
  * @return    array of reminder structures
  */
 function getAllReminders($recID) {
+    global $mysqliro;
     // Get any reminders as an array
     if (!$recID) return array();
     // ... MYSTIFYINGLY these are stored by rec_ID+user_id, not bkm_ID
-    $res = mysql_query("select * from usrReminders where rem_RecID=$recID and rem_OwnerUGrpID=" . get_user_id() . " order by rem_StartDate");
+    $res = $mysqliro->query("select * from usrReminders where rem_RecID=$recID and rem_OwnerUGrpID=" . get_user_id() . " order by rem_StartDate");
     $reminders = array();
-    if (mysql_num_rows($res) > 0) {
-        while ($rem = mysql_fetch_assoc($res)) {
+    if ($res->num_rows > 0) {
+        while ($rem = $res->fetch_assoc()) {
             array_push($reminders, array("id" => $rem["rem_ID"],
                                         "user" => $rem["rem_ToUserID"],
                                         "group" => $rem["rem_ToWorkGroupID"],
@@ -386,9 +399,10 @@ function getAllReminders($recID) {
  * @return    array of comment structures index by comment ID
  */
 function getAllComments($recID) {
-    $res = mysql_query("select cmt_ID, cmt_Deleted, cmt_Text, cmt_ParentCmtID, cmt_Added, cmt_Modified, cmt_OwnerUGrpID, concat(usr.ugr_FirstName,' ',usr.ugr_LastName) as Realname from recThreadedComments left join " . USERS_DATABASE . ".sysUGrps usr on cmt_OwnerUGrpID=usr.ugr_ID where cmt_RecID = $recID order by cmt_Added");
+    global $mysqliro;
+    $res = $mysqliro->query("select cmt_ID, cmt_Deleted, cmt_Text, cmt_ParentCmtID, cmt_Added, cmt_Modified, cmt_OwnerUGrpID, concat(usr.ugr_FirstName,' ',usr.ugr_LastName) as Realname from recThreadedComments left join " . USERS_DATABASE . ".sysUGrps usr on cmt_OwnerUGrpID=usr.ugr_ID where cmt_RecID = $recID order by cmt_Added");
     $comments = array();
-    while ($cmt = mysql_fetch_assoc($res)) {
+    while ($cmt = $res->fetch_assoc()) {
         if ($cmt["cmt_Deleted"]) {
             /* indicate that the comments exists but has been deleted */
             $comments[$cmt["cmt_ID"]] = array("id" => $cmt["cmt_ID"],
@@ -415,9 +429,10 @@ function getAllComments($recID) {
  * @todo      should limit this just to workgroups that the user is in? keeps from viewing others tags
  */
 function getAllworkgroupTags($recID) {
-    $res = mysql_query("select tag_ID from usrRecTagLinks, usrTags where rtl_TagID=tag_ID and rtl_RecID=$recID");
+    global $mysqliro;
+    $res = $mysqliro->query("select tag_ID from usrRecTagLinks, usrTags where rtl_TagID=tag_ID and rtl_RecID=$recID");
     $wgTagIDs = array();
-    while ($row = mysql_fetch_row($res)) {
+    while ($row = $res->fetch_row()) {
         array_push($wgTagIDs, $row[0]);
     }
     return $wgTagIDs;
@@ -430,7 +445,8 @@ function getAllworkgroupTags($recID) {
  * @return    object $terms
  */
 function attachChild($parentIndex, $childIndex, $terms) {
-    if (!@count($terms[$childIndex]) || $parentIndex == $childIndex) {//recursion termination
+    global $mysqliro;
+    if (is_integer($childIndex) && array_key_exists($childIndex, $terms) && !@count($terms[$childIndex]) || $parentIndex == $childIndex) {//recursion termination
         return $terms;
     }
     /*****DEBUG****///error_log(" enter attach $contIndex, $childIndex, ".print_r($terms,true));
@@ -461,16 +477,17 @@ function attachChild($parentIndex, $childIndex, $terms) {
  * @uses      attachChild()
  */
  function getTermTree($termDomain, $matching = 'exact') { // termDomain can be empty, 'reltype' or 'enum' or any future term use domain defined in the trm_Domain enum
+    global $mysqliro;
     $whereClause = "a.trm_Domain " . ($matching == 'prefix' ? " like '" . $termDomain . "%' " : ($matching == 'postfix' ? " like '%" . $termDomain . "' " : "='" . $termDomain . "'"));
     $query = "select a.trm_ID as pID, b.trm_ID as cID
 				from defTerms a
 					left join defTerms b on a.trm_ID = b.trm_ParentTermID
 				where $whereClause
 				order by a.trm_Label, b.trm_Label";
-    $res = mysql_query($query);
+    $res = $mysqliro->query($query);
     $terms = array();
     // create array of parent => child arrays
-    while ($row = mysql_fetch_assoc($res)) {
+    while ($row = $res->fetch_assoc()) {
         if (!@$terms[$row["pID"]]) {
             $terms[$row["pID"]] = array();
         }
@@ -496,31 +513,34 @@ function attachChild($parentIndex, $childIndex, $terms) {
  * calculate depth and child count for each term
  */
 function updateTermData() {
-    //mysql_query("start transaction");
+    global $mysqli;
+    //$mysqliro->query("start transaction");
     // set al child counts to zero
     // and set all depths to zero
-    mysql_query("update defTerms set trm_ChildCount = 0, trm_Depth = 0");
+    $mysqli->query("update defTerms set trm_ChildCount = 0, trm_Depth = 0");
     // update  all child counts
-    mysql_query("update defTerms c " . "join (select distinct a.trm_ID as ID, count(b.trm_ID) as cnt " . "from defTerms b left join defTerms a on b.trm_ParentTermID = a.trm_ID " . "where a.trm_ID is not null and not b.trm_ID = a.trm_ID " . "group by a.trm_ID) temp on temp.ID = c.trm_ID " . "set c.trm_ChildCount = temp.cnt");
+    $mysqli->query("update defTerms c " . "join (select distinct a.trm_ID as ID, count(b.trm_ID) as cnt " . "from defTerms b left join defTerms a on b.trm_ParentTermID = a.trm_ID " . "where a.trm_ID is not null and not b.trm_ID = a.trm_ID " . "group by a.trm_ID) temp on temp.ID = c.trm_ID " . "set c.trm_ChildCount = temp.cnt");
     function getChildTerms($parentID) {
+        global $mysqliro;
         $children = array();
         if ($parentID == "top") {
             $whereClause = "trm_ParentTermID is null or trm_ParentTermID = 0";
         } else {
             $whereClause = "trm_ParentTermID = " . $parentID;
         }
-        $res = mysql_query("select trm_ID,trm_ChildCount from defTerms where $whereClause");
+        $res = $mysqliro->query("select trm_ID,trm_ChildCount from defTerms where $whereClause");
         // if we have an error or found nothing return null
-        if (!mysql_num_rows($res)) {
+        if (!$res->num_rows) {
             return null;
         }
-        while ($row = mysql_fetch_row($res)) {
+        while ($row = $res->fetch_row()) {
             $children[$row[0]] = $row[1];
         }
         return $children;
     }
     function setChildDepth($parentID, $parentDepth) {
-        /*****DEBUG****///error_log(" parentID = $parentID and parentDepth = $parentDepth");
+      global $mysqli;
+      /*****DEBUG****///error_log(" parentID = $parentID and parentDepth = $parentDepth");
         $children = getChildTerms($parentID);
         /*****DEBUG****///error_log(" $parentID - children = ". print_r($children,true));
         if (!$children) {// if no children nothing to do so return
@@ -531,8 +551,8 @@ function updateTermData() {
         $depth = $parentDepth + 1;
         // set every childs depth
         $query = "update defTerms set trm_Depth = " . $depth . " where trm_ID in(" . $childIDList . ")";
-        mysql_query($query);
-        /*****DEBUG****///error_log("query = $query and errors ".mysql_error());
+        $mysqli->query($query);
+        /*****DEBUG****///error_log("query = $query and errors ".$mysqliro->error);
         foreach ($children as $childID => $childCount) {
             if ($childCount) {
                 setChildDepth($childID, $depth);
@@ -547,7 +567,7 @@ function updateTermData() {
             setChildDepth($rootID, 0);
         }
     }
-    //mysql_query("commit");
+    //$mysqliro->query("commit");
 
 }
 /**
@@ -585,6 +605,7 @@ function getTermColNames() {
  */
 function getTerms($useCachedData = false) {
     global $dbID;
+    global $mysqliro;
     $cacheKey = DATABASE . ":getTerms";
     if ($useCachedData) {
         $terms = getCachedData($cacheKey);
@@ -600,9 +621,9 @@ function getTerms($useCachedData = false) {
         $query.= " if(trm_OriginatingDBID, concat(cast(trm_OriginatingDBID as char(5)),'-',cast(trm_IDInOriginatingDB as char(5))), '') as trm_ConceptID";
     }
     $query.= " from defTerms order by trm_Domain, trm_Label";
-    $res = mysql_query($query);
+    $res = $mysqliro->query($query);
     $terms = array('termsByDomainLookup' => array('relation' => array(), 'enum' => array()), 'commonFieldNames' => array_slice(getTermColNames(), 1), 'fieldNamesToIndex' => getColumnNameToIndex(array_slice(getTermColNames(), 1)));
-    while ($row = mysql_fetch_row($res)) {
+    while ($row = $res->fetch_row()) {
         $terms['termsByDomainLookup'][$row[9]][$row[0]] = array_slice($row, 1);
     }
     $terms['treesByDomain'] = array('relation' => getTermTree("relation", "prefix"), 'enum' => getTermTree("enum", "prefix"));
@@ -618,10 +639,11 @@ function getTerms($useCachedData = false) {
  * @uses      HEURIST_DBID
  */
  function getConceptID($lclID, $tableName, $fieldNamePrefix) {
+    global $mysqliro;
     $query = "select " . $fieldNamePrefix . "OriginatingDBID," . $fieldNamePrefix . "IDInOriginatingDB from $tableName where " . $fieldNamePrefix . "ID = $lclID";
     /*****DEBUG****///error_log("SQL=".$query);
-    $res = mysql_query($query);
-    $ids = mysql_fetch_array($res);
+    $res = $mysqliro->query($query);
+    $ids = $res->fetch_array();
     /*****DEBUG****///error_log(print_r($ids, true));
     /*****DEBUG****///error_log("RES=".count($ids)."    ".$ids[0]."    ".$ids[1]);
     //return "".$ids[0]."-".$ids[1];
@@ -680,6 +702,7 @@ function getOntologyConceptID($lclOntID) {
  * @uses      HEURIST_DBID
  */
 function getLocalID($conceptID, $tableName, $fieldNamePrefix) {
+    global $mysqliro;
     $ids = split("-", $conceptID);
     $res_id = null;
     if ($ids && (count($ids) == 1 && is_numeric($ids[0])) || (count($ids) == 2 && is_numeric($ids[1]) && $ids[0] == HEURIST_DBID)) {
@@ -688,8 +711,8 @@ function getLocalID($conceptID, $tableName, $fieldNamePrefix) {
         } else {
             $res_id = $ids[0];
         }
-        $res = mysql_query("select " . $fieldNamePrefix . "ID from $tableName where " . $fieldNamePrefix . "ID=" . $res_id);
-        $id = mysql_fetch_array($res);
+        $res = $mysqliro->query("select " . $fieldNamePrefix . "ID from $tableName where " . $fieldNamePrefix . "ID=" . $res_id);
+        $id = $res->fetch_array();
         if ($id && count($id) > 0 && is_numeric($id[0])) {
             $res_id = $id[0];
         } else {
@@ -697,8 +720,8 @@ function getLocalID($conceptID, $tableName, $fieldNamePrefix) {
         }
     } else if ($ids && count($ids) == 2 && is_numeric($ids[0]) && is_numeric($ids[1])) {
         $query = "select " . $fieldNamePrefix . "ID from $tableName where " . $fieldNamePrefix . "OriginatingDBID=" . $ids[0] . " and " . $fieldNamePrefix . "IDInOriginatingDB=" . $ids[1];
-        $res = mysql_query($query);
-        $id = mysql_fetch_array($res);
+        $res = $mysqliro->query($query);
+        $id = $res->fetch_array();
         if ($id && count($id) > 0 && is_numeric($id[0])) {
             $res_id = $id[0];
         }
@@ -747,6 +770,7 @@ function getOntologyLocalID($ontConceptID) {
  * @return    array constraint array indexed by srcID then trgID then by trmID with max values
  */
 function getRectypeConstraints($rectypeID) {
+    global $mysqliro;
     $query = "select rcs_SourceRectypeID as srcID,
 					rcs_TermID as trmID,
 					rcs_TargetRectypeID as trgID,
@@ -762,9 +786,9 @@ function getRectypeConstraints($rectypeID) {
 					rcs_TermID,
 					rcs_TargetRectypeID is null,
 					rcs_TargetRectypeID";
-    $res = mysql_query($query);
+    $res = $mysqliro->query($query);
     $cnstrnts = array();
-    while ($row = mysql_fetch_assoc($res)) {
+    while ($row = $res->fetch_assoc()) {
         $srcID = (@$row['srcID'] === null ? "" . '0' : $row['srcID']);
         $trmID = (@$row['trmID'] === null ? "" . '0' : $row['trmID']);
         $trgID = (@$row['trgID'] === null ? "" . '0' : $row['trgID']);
@@ -800,6 +824,7 @@ function getRectypeConstraints($rectypeID) {
  * @uses      getTermOffspringList()
  */
 function getAllRectypeConstraint() {
+    global $mysqliro;
     $query = "select rcs_SourceRectypeID as srcID,
 					rcs_TermID as trmID,
 					rcs_TargetRectypeID as trgID,
@@ -816,9 +841,9 @@ function getAllRectypeConstraint() {
 					rcs_TermID,
 					rcs_TargetRectypeID is null,
 					rcs_TargetRectypeID";
-    $res = mysql_query($query);
+    $res = $mysqliro->query($query);
     $cnstrnts = array();
-    while ($row = mysql_fetch_assoc($res)) {
+    while ($row = $res->fetch_assoc()) {
         //		$srcID = (@$row['srcID'] === null ? "".'0' : $row['srcID']);
         //		$trmID = (@$row['trmID'] === null ? "".'0' : $row['trmID']);
         //		$trgID = (@$row['trgID'] === null ? "".'0' : $row['trgID']);
@@ -868,11 +893,12 @@ function getAllRectypeConstraint() {
  * @return    array  of term IDs
  */
 function getTermOffspringList($termID, $getAllDescentTerms = true) {
+    global $mysqliro;
     $offspring = array();
     if ($termID) {
-        $res = mysql_query("select * from defTerms where trm_ParentTermID = $termID");
-        if (mysql_num_rows($res)) { //child nodes exist
-            while ($row = mysql_fetch_assoc($res)) { // for each child node
+        $res = $mysqliro->query("select * from defTerms where trm_ParentTermID = $termID");
+        if ($res->num_rows) { //child nodes exist
+            while ($row = $res->fetch_assoc()) { // for each child node
                 $subTermID = $row['trm_ID'];
                 array_push($offspring, $subTermID);
                 if ($row['trm_ChildCount'] > 0 && $getAllDescentTerms) {
@@ -890,11 +916,12 @@ function getTermOffspringList($termID, $getAllDescentTerms = true) {
  * @return    tree of term IDs
  */
 function getTermSubTree($termID) {
+    global $mysqliro;
     $subtree = array();
     if ($termID) {
-        $res = mysql_query("select * from defTerms where trm_ParentTermID = $termID");
-        if (mysql_num_rows($res)) { //child nodes exist
-            while ($row = mysql_fetch_assoc($res)) { // for each child node
+        $res = $mysqliro->query("select * from defTerms where trm_ParentTermID = $termID");
+        if ($res->num_rows) { //child nodes exist
+            while ($row = $res->fetch_assoc()) { // for each child node
                 $subTermID = $row['trm_ID'];
                 $subtree[$subTermID] = $row['trm_ChildCount'] > 0 ? getTermOffspringList($subTermID): array();
             }
@@ -931,14 +958,15 @@ function getColumnNameToIndex($columns) {
  * @uses      getRectypeColNames()
  */
 function getRectypeDef($rtID) {
+    global $mysqliro;
     $rtDef = array();
     //
-    $res = mysql_query("select " . join(",", getRectypeColNames()) .
+    $res = $mysqliro->query("select " . join(",", getRectypeColNames()) .
                         " from defRecTypes".
                         " left join defRecTypeGroups on rtg_ID = rty_RecTypeGroupID".
                         " where rty_ID=$rtID".
                         " order by rtg_Order, rtg_Name, rty_OrderInGroup, rty_Name");
-    $rtDef = mysql_fetch_row($res);
+    $rtDef = $res->fetch_row();
     return $rtDef;
 }
 /**
@@ -957,6 +985,7 @@ function getRectypeStructureFieldColNames() {
  * @return    object index by detatilType array of field definitions ordered the same as getRectypeStructureFieldColNames()
  */
 function getRectypeFields($rtID) {
+    global $mysqliro;
     $rtFieldDefs = array();
     // NOTE: these are ordered to match the order of getRectypeStructureFieldColNames from DisplayName on
     $colNames = array("rst_DetailTypeID",
@@ -977,12 +1006,12 @@ function getRectypeFields($rtID) {
                       "rst_OrderForThumbnailGeneration", "rst_TermIDTreeNonSelectableIDs", "rst_Modified", "rst_LocallyModified", "dty_TermIDTreeNonSelectableIDs",
                       "dty_FieldSetRectypeID");
     // get rec Structure info ordered by the detailType Group order, then by recStruct display order and then by ID in recStruct incase 2 have the same order
-    $res = mysql_query("select " . join(",", $colNames) . " from defRecStructure
+    $res = $mysqliro->query("select " . join(",", $colNames) . " from defRecStructure
 															left join defDetailTypes on rst_DetailTypeID = dty_ID
 															left join defDetailTypeGroups on dtg_ID = if(rst_DisplayDetailTypeGroupID is not null,rst_DisplayDetailTypeGroupID,dty_DetailTypeGroupID)
 														where rst_RecTypeID=" . $rtID . "
 														order by rst_DisplayOrder, rst_ID");
-    while ($row = mysql_fetch_row($res)) {
+    while ($row = $res->fetch_row()) {
         //use first element as index
         $rtFieldDefs[$row[0]] = array_slice($row, 1);
     }
@@ -1051,6 +1080,7 @@ function getRectypeStructures($rtIDs) {
  */
 function getAllRectypeStructures($useCachedData = false) {
     global $dbID;
+    global $mysqliro;
     $cacheKey = DATABASE . ":AllRecTypeInfo";
     if ($useCachedData) {
         $rtStructs = getCachedData($cacheKey);
@@ -1081,7 +1111,7 @@ function getAllRectypeStructures($useCachedData = false) {
              " left join defDetailTypes on rst_DetailTypeID = dty_ID".
              " left join defDetailTypeGroups on dtg_ID = if(rst_DisplayDetailTypeGroupID is not null,rst_DisplayDetailTypeGroupID,dty_DetailTypeGroupID)".
              " order by rst_RecTypeID, rst_DisplayOrder, rst_ID";
-    $res = mysql_query($query);
+    $res = $mysqliro->query($query);
     $rtStructs = array('groups' => getRectypeGroups(),
                         'names' => array(),
                         'pluralNames' => array(),
@@ -1091,7 +1121,7 @@ function getAllRectypeStructures($useCachedData = false) {
                                     'commonNamesToIndex' => getColumnNameToIndex(getRectypeColNames()),
                                     'dtFieldNamesToIndex' => getColumnNameToIndex(getRectypeStructureFieldColNames()),
                                     'dtFieldNames' => getRectypeStructureFieldColNames());
-    while ($row = mysql_fetch_row($res)) {
+    while ($row = $res->fetch_row()) {
         if (!array_key_exists($row[0], $rtStructs['typedefs'])) {
             $rtStructs['typedefs'][$row[0]] = array('dtFields' => array($row[1] => array_slice($row, 2)));
             $rtStructs['dtDisplayOrder'][$row[0]] = array();
@@ -1109,8 +1139,8 @@ function getAllRectypeStructures($useCachedData = false) {
         $query.= " if(rty_OriginatingDBID, concat(cast(rty_OriginatingDBID as char(5)),'-',cast(rty_IDInOriginatingDB as char(5))), '') as rty_ConceptID";
     }
     $query.= " from defRecTypes left join defRecTypeGroups  on rtg_ID = rty_RecTypeGroupID" . " order by rtg_Order, rtg_Name, rty_OrderInGroup, rty_Name";
-    $res = mysql_query($query);
-    while ($row = mysql_fetch_row($res)) {
+    $res = $mysqliro->query($query);
+    while ($row = $res->fetch_row()) {
         array_push($rtStructs['groups'][$rtStructs['groups']['groupIDToIndex'][$row[1]]]['allTypes'], $row[0]);
         if ($row[14]) { //rty_ShowInList
             array_push($rtStructs['groups'][$rtStructs['groups']['groupIDToIndex'][$row[1]]]['showTypes'], $row[0]);
@@ -1157,10 +1187,11 @@ function updateRecTypeUsageCount() {
  * @return    array recTypeGroup definitions as array of prop:val pairs
  */
 function getRectypeGroups() {
+    global $mysqliro;
     $rtGroups = array('groupIDToIndex' => array());
     $index = 0;
-    $res = mysql_query("select * from defRecTypeGroups order by rtg_Order, rtg_Name");
-    while ($row = mysql_fetch_assoc($res)) {
+    $res = $mysqliro->query("select * from defRecTypeGroups order by rtg_Order, rtg_Name");
+    while ($row = $res->fetch_assoc()) {
         array_push($rtGroups, array('id' => $row["rtg_ID"], 'name' => $row["rtg_Name"], 'order' => $row["rtg_Order"], 'description' => $row["rtg_Description"], 'allTypes' => array(), 'showTypes' => array()));
         $rtGroups['groupIDToIndex'][$row["rtg_ID"]] = $index++;
     }
@@ -1172,12 +1203,13 @@ function getRectypeGroups() {
  * @return    object rtyIDs by rtgID lookup
  */
 function getRecTypesByGroup() {
+    global $mysqliro;
     $rectypesByGroup = array();
     // query assumes rty_RecTypeGroupID is ordered single functional group ID followed by zero or more model group ids
-    $res = mysql_query("select rtg_ID,rtg_Name,rty_ID, rty_ShowInLists
+    $res = $mysqliro->query("select rtg_ID,rtg_Name,rty_ID, rty_ShowInLists
 							from defRecTypes left join defRecTypeGroups  on rtg_ID = rty_RecTypeGroupID
 							where 1 order by rtg_Order, rtg_Name, rty_OrderInGroup, rty_Name");
-    while ($row = mysql_fetch_assoc($res)) {
+    while ($row = $res->fetch_assoc()) {
         if (!array_key_exists($row['rtg_ID'], $rectypesByGroup)) {
             $rectypesByGroup[$row['rtg_ID']] = array('name' => $row["rtg_Name"], 'types' => array());
         }
@@ -1191,10 +1223,11 @@ function getRecTypesByGroup() {
  * @return    object rtyIDs (array) using detailType indexed by dtyID
  */
 function getDetailTypeDefUsage() {
+    global $mysqliro;
     $rectypesByDetailType = array();
-    $res = mysql_query("select rst_DetailTypeID as dtID, rst_RecTypeID as rtID
+    $res = $mysqliro->query("select rst_DetailTypeID as dtID, rst_RecTypeID as rtID
 						from defRecStructure order by dtID, rtID");
-    while ($row = mysql_fetch_assoc($res)) {
+    while ($row = $res->fetch_assoc()) {
         if (!array_key_exists($row['dtID'], $rectypesByDetailType)) {
             $rectypesByDetailType[$row['dtID']] = array();
         }
@@ -1208,11 +1241,12 @@ function getDetailTypeDefUsage() {
  * @return    object non-zero usage counts indexed by rtyID
  */
 function getRecTypeUsageCount() {
+    global $mysqliro;
     $recCountByRecType = array();
-    $res = mysql_query("select rty_ID as rtID, count(rec_ID) as usageCnt
+    $res = $mysqliro->query("select rty_ID as rtID, count(rec_ID) as usageCnt
 						from Records left join defRecTypes on rty_ID = rec_RecTypeID
 						group by rec_RecTypeID");
-    while ($row = mysql_fetch_assoc($res)) {
+    while ($row = $res->fetch_assoc()) {
         $recCountByRecType[$row['rtID']] = $row["usageCnt"];
     }
     return $recCountByRecType;
@@ -1229,6 +1263,7 @@ function getRecTypeUsageCount() {
  * @uses      get_user_id()
  */
 function getTransformsByOwnerGroup() {
+    global $mysqliro;
     $transRT = (defined('RT_TRANSFORM') ? RT_TRANSFORM : 0);
     $transNameDT = (defined('DT_NAME') ? DT_NAME : 0);
     $transFileDT = (defined('DT_FILE_RESOURCE') ? DT_FILE_RESOURCE : 0);
@@ -1241,14 +1276,18 @@ function getTransformsByOwnerGroup() {
     $rectypeDT = (defined('DT_RECORD_TYPE') ? DT_RECORD_TYPE : 0);
     $detailTypeDT = (defined('DT_DETAIL_TYPE') ? DT_DETAIL_TYPE : 0);
     $commandDT = (defined('DT_COMMAND') ? DT_COMMAND : 0);
-    $ACCESSABLE_OWNER_IDS = mysql__select_array('sysUsrGrpLinks left join sysUGrps grp on grp.ugr_ID=ugl_GroupID', 'ugl_GroupID', 'ugl_UserID=' . get_user_id() . ' and grp.ugr_Type != "user" order by ugl_GroupID');
+    $ACCESSABLE_OWNER_IDS = mysqli__select_array($mysqliro, 'sysUsrGrpLinks left join sysUGrps grp on grp.ugr_ID=ugl_GroupID', 'ugl_GroupID', 'ugl_UserID=' . get_user_id() . ' and grp.ugr_Type != "user" order by ugl_GroupID');
     if (is_logged_in()) {
-        array_push($ACCESSABLE_OWNER_IDS, get_user_id());
+      error_log("accessable owner logged in");
+      array_push($ACCESSABLE_OWNER_IDS, get_user_id());
         if (!in_array(0, $ACCESSABLE_OWNER_IDS)) {
             array_push($ACCESSABLE_OWNER_IDS, 0);
         }
     }
     $transforms = array("groupOrder" => array(), "groups" => array(), "nameLookup" => array(), "byID" => array());
+    if (!is_array($ACCESSABLE_OWNER_IDS) || count($ACCESSABLE_OWNER_IDS) == 0) {
+      return $transforms;
+    }
     $query = 'select rec_ID,' .
                     ' if(ugr_Type="workgroup", ugr_Name,if(ugr_id = ' . get_user_id() . ',"personal",concat(ugr_FirstName," ",ugr_LastName))) as grpName,' .
                     ' if(ugr_id = ' . get_user_id() . ',0, if(ugr_id = 0,1,2)) as dispOrder,' .
@@ -1265,10 +1304,10 @@ function getTransformsByOwnerGroup() {
              ' where rec_RecTypeID=' . $transRT .
                 ' and (rec_OwnerUGrpID in (' . join(',', $ACCESSABLE_OWNER_IDS) . ') OR ' . 'NOT rec_NonOwnerVisibility = "hidden")' .
              ' order by dispOrder, grpName, lbl';
-    $res = mysql_query($query);
+    $res = $mysqliro->query($query);
     /*****DEBUG****///error_log("query ".print_r($query,true));
-    /*****DEBUG****///error_log("error ".print_r(mysql_error(),true));
-    while ($row = mysql_fetch_assoc($res)) {
+    /*****DEBUG****///error_log("error ".print_r($mysqliro->error,true));
+    while ($row = $res->fetch_assoc()) {
         $transRecID = $row['rec_ID'];
         $uri = (@$row['uri'] ? $row['uri'] : (@$row['fileID'] ? HEURIST_BASE_URL . "records/files/downloadFile.php?db=" . HEURIST_DBNAME . "&ulf_ID=" . $row['fileID'] : null));
         if (!$uri) {
@@ -1296,6 +1335,7 @@ function getTransformsByOwnerGroup() {
  * @uses      get_user_id()
  */
 function getToolsByTransform() {
+    global $mysqliro;
     $toolRT = (defined('RT_TOOL') ? RT_TOOL : 0);
     $toolNameDT = (defined('DT_NAME') ? DT_NAME : 0);
     $toolIconDT = (defined('DT_THUMBNAIL') ? DT_THUMBNAIL : 0);
@@ -1305,7 +1345,7 @@ function getToolsByTransform() {
     $detailTypeDT = (defined('DT_DETAIL_TYPE') ? DT_DETAIL_TYPE : 0);
     $toolDtValueDT = (defined('DT_TOOL_TYPE') ? DT_TOOL_TYPE : 0);
     $commandDT = (defined('DT_COMMAND') ? DT_COMMAND : 0);
-    $ACCESSABLE_OWNER_IDS = mysql__select_array('sysUsrGrpLinks left join sysUGrps grp on grp.ugr_ID=ugl_GroupID', 'ugl_GroupID', 'ugl_UserID=' . get_user_id() . ' and grp.ugr_Type != "user" order by ugl_GroupID');
+    $ACCESSABLE_OWNER_IDS = mysqli__select_array($mysqliro, 'sysUsrGrpLinks left join sysUGrps grp on grp.ugr_ID=ugl_GroupID', 'ugl_GroupID', 'ugl_UserID=' . get_user_id() . ' and grp.ugr_Type != "user" order by ugl_GroupID');
     if (is_logged_in()) {
         array_push($ACCESSABLE_OWNER_IDS, get_user_id());
         if (!in_array(0, $ACCESSABLE_OWNER_IDS)) {
@@ -1313,6 +1353,9 @@ function getToolsByTransform() {
         }
     }
     $tools = array("byTransform" => array(), "byId" => array());
+    if (!is_array($ACCESSABLE_OWNER_IDS) || count($ACCESSABLE_OWNER_IDS) == 0) {
+      return $tools;
+    }
     $query = 'select rec_ID, dtname.dtl_Value as name, ulf_ExternalFileReference as uri, ulf_ObfuscatedFileID as fileID,' .
                     ' clrTrm.trm_Label as colour, dttype.dtl_Value as dt, rttype.dtl_Value as rt, dtv.trm_Label as value,' .
                     ' cmd.dtl_Value as command' .
@@ -1330,10 +1373,10 @@ function getToolsByTransform() {
               ' where rec_RecTypeID=' . $toolRT .
                         ' and (rec_OwnerUGrpID in (' . join(',', $ACCESSABLE_OWNER_IDS) . ') OR ' . 'NOT rec_NonOwnerVisibility = "hidden")' .
               ' order by name';
-    $res = mysql_query($query);
+    $res = $mysqliro->query($query);
     /*****DEBUG****///error_log("query ".print_r($query,true));
-    /*****DEBUG****///error_log("error ".print_r(mysql_error(),true));
-    while ($row = mysql_fetch_assoc($res)) {
+    /*****DEBUG****///error_log("error ".print_r($mysqliro->error,true));
+    while ($row = $res->fetch_assoc()) {
         $toolRecID = $row['rec_ID'];
         $tools["byId"][$toolRecID] = array("name" => $row['name'],
                                         "recID" => $row['rec_ID'],
@@ -1343,7 +1386,7 @@ function getToolsByTransform() {
                                         "rt" => $row['rt'],
                                         "value" => $row['value'],
                                         "command" => $row['command'],
-                                        "trans" => mysql__select_array("recDetails", "dtl_Value", ("dtl_RecID=" . $row['rec_ID'] . " and dtl_DetailTypeID=" . $toolTransDT)));
+                                        "trans" => mysqli__select_array($mysqliro, "recDetails", "dtl_Value", ("dtl_RecID=" . $row['rec_ID'] . " and dtl_DetailTypeID=" . $toolTransDT)));
         foreach ($tools["byId"][$toolRecID]["trans"] as $transRecID) {
             if (!array_key_exists($transRecID, $tools["byTransform"])) {
                 $tools["byTransform"][$transRecID] = array($toolRecID);
@@ -1360,11 +1403,12 @@ function getToolsByTransform() {
  * @link      URL
  */
 function getDetailTypeUsageCount() {
+    global $mysqliro;
     $useCntByDetailTypeID = array();
-    $res = mysql_query("select dty_ID as dtID, count(dtl_ID) as usageCnt ".
+    $res = $mysqliro->query("select dty_ID as dtID, count(dtl_ID) as usageCnt ".
                         " from recDetails left join defDetailTypes on dty_ID = dtl_DetailTypeID".
                         " group by dtl_DetailTypeID");
-    while ($row = mysql_fetch_assoc($res)) {
+    while ($row = $res->fetch_assoc()) {
         $useCntByDetailTypeID[$row['dtID']] = $row["usageCnt"];
     }
     return $useCntByDetailTypeID;
@@ -1432,6 +1476,8 @@ function getDtLookups() {
  */
 function getAllDetailTypeStructures($useCachedData = false) {
     global $dbID;
+    global $mysqliro;
+    global $mysqli;
     $cacheKey = DATABASE . ":AllDetailTypeInfo";
     if ($useCachedData) {
         $dtStructs = getCachedData($cacheKey);
@@ -1456,9 +1502,9 @@ function getAllDetailTypeStructures($useCachedData = false) {
         $query.= " if(dty_OriginatingDBID, concat(cast(dty_OriginatingDBID as char(5)),'-',cast(dty_IDInOriginatingDB as char(5))), '') as dty_ConceptID";
     }
     $query.= " from defDetailTypes left join defDetailTypeGroups  on dtg_ID = dty_DetailTypeGroupID" . " order by dtg_Order, dtg_Name, dty_OrderInGroup, dty_Name";
-    $res = mysql_query($query);
-    $dtStructs['sortedNames'] = mysql__select_assoc('defDetailTypes', 'dty_Name', 'dty_ID', '1 order by dty_Name');
-    while ($row = mysql_fetch_row($res)) {
+    $res = $mysqliro->query($query);
+    $dtStructs['sortedNames'] = mysqli__select_assoc($mysqli, 'defDetailTypes', 'dty_Name', 'dty_ID', '1 order by dty_Name');
+    while ($row = $res->fetch_row()) {
         array_push($dtStructs['groups'][$dtG['groupIDToIndex'][$row[0]]]['allTypes'], $row[2]);
         if ($row[17]) {// dty_ShowInLists
             array_push($dtStructs['groups'][$dtG['groupIDToIndex'][$row[0]]]['showTypes'], $row[2]);
@@ -1477,10 +1523,11 @@ function getAllDetailTypeStructures($useCachedData = false) {
  * @return    object detailTypeGroup definitions as array of prop:val pairs indexed by dtgID
  */
 function getDetailTypeGroups() {
+    global $mysqliro;
     $dtGroups = array('groupIDToIndex' => array());
     $index = 0;
-    $res = mysql_query("select * from defDetailTypeGroups order by dtg_Order, dtg_Name");
-    while ($row = mysql_fetch_assoc($res)) {
+    $res = $mysqliro->query("select * from defDetailTypeGroups order by dtg_Order, dtg_Name");
+    while ($row = $res->fetch_assoc()) {
         array_push($dtGroups, array('id' => $row["dtg_ID"], 'name' => $row["dtg_Name"], 'order' => $row["dtg_Order"], 'description' => $row["dtg_Description"], 'allTypes' => array(), 'showTypes' => array()));
         $dtGroups['groupIDToIndex'][$row["dtg_ID"]] = $index++;
     }
@@ -1495,9 +1542,10 @@ function getDetailTypeGroups() {
  */
 function reltype_inverse($relTermID) { //saw Enum change - find inverse as an id instead of a string
     global $inverses;
+    global $mysqliro;
     if (!$relTermID) return;
     if (!$inverses) {
-        $inverses = mysql__select_assoc("defTerms A left join defTerms B on B.trm_ID=A.trm_InverseTermID", "A.trm_ID", "B.trm_ID", "A.trm_Label is not null and B.trm_Label is not null");
+        $inverses = mysqli__select_assoc($mysqliro, "defTerms A left join defTerms B on B.trm_ID=A.trm_InverseTermID", "A.trm_ID", "B.trm_ID", "A.trm_Label is not null and B.trm_Label is not null");
     }
     $inverse = @$inverses[$relTermID];
     if (!$inverse) $inverse = array_search($relTermID, $inverses);//do an inverse search and return key.
@@ -1541,10 +1589,11 @@ $titleDT = (defined('DT_NAME') ? DT_NAME : 0);
  */
 function fetch_relation_details($recID, $i_am_primary) {
     global $relTypDT, $relSrcDT, $relTrgDT, $intrpDT, $notesDT, $startDT, $endDT, $titleDT;
+    global $mysqliro;
     /* get recDetails for the given linked resource and extract all the necessary values */
-    $res = mysql_query('select * from recDetails where dtl_RecID = ' . $recID);
+    $res = $mysqliro->query('select * from recDetails where dtl_RecID = ' . $recID);
     $bd = array('recID' => $recID);
-    while ($row = mysql_fetch_assoc($res)) {
+    while ($row = $res->fetch_assoc()) {
         switch ($row['dtl_DetailTypeID']) {
             case $relTypDT: //saw Enum change - added RelationValue for UI
                 if ($i_am_primary) {
@@ -1553,28 +1602,39 @@ function fetch_relation_details($recID, $i_am_primary) {
                     $bd['RelTermID'] = reltype_inverse($row['dtl_Value']); // BUG: assumes reltype_inverse returns ID
 //TODO: saw this should have a -1 which is different than self inverse and the RelTerm should be "inverse of ". term label requires checking smarty/showReps
                 }
-                $relval = mysql_fetch_assoc(mysql_query('select trm_Label, trm_ParentTermID from defTerms where trm_ID = ' . intval($bd['RelTermID'])));
-                $bd['RelTerm'] = $relval['trm_Label'];
+                $inverse_of = '';
+                if ( (intval($bd['RelTermID'])>0)) {
+                  $relTermID = intval($bd['RelTermID']);
+                } else if( strpos($bd['RelTermID'], "Inverse of ") == 0) {
+                  $relTermID = intval(substr($bd['RelTermID'],10));
+                  $inverse_of = 'Inverse of ';
+                } else {
+                  $bd['RelTerm'] = "unknown";
+                  $bd['ParentTermID'] = "unknown";
+                  break;
+                }
+                $relval = mysqli_fetch_assoc($mysqliro->query('select trm_Label, trm_ParentTermID from defTerms where trm_ID = '. $relTermID));
+                $bd['RelTerm'] = $inverse_of.$relval['trm_Label'];
                 if ($relval['trm_ParentTermID']) {
                     $bd['ParentTermID'] = $relval['trm_ParentTermID'];
                 }
             break;
             case $relTrgDT: // linked resource
                 if (!$i_am_primary) break;
-                $r = mysql_query('select rec_ID, rec_Title, rec_RecTypeID, rec_URL'.
+                $r = $mysqliro->query('select rec_ID, rec_Title, rec_RecTypeID, rec_URL'.
                                  ' from Records where rec_ID = ' . intval($row['dtl_Value']));
-                $bd['RelatedRecID'] = mysql_fetch_assoc($r);
+                $bd['RelatedRecID'] = mysqli_fetch_assoc($r);
                 break;
             case $relSrcDT:
                 if ($i_am_primary) break;
-                $r = mysql_query('select rec_ID, rec_Title, rec_RecTypeID, rec_URL'.
+                $r = $mysqliro->query('select rec_ID, rec_Title, rec_RecTypeID, rec_URL'.
                                  ' from Records where rec_ID = ' . intval($row['dtl_Value']));
-                $bd['RelatedRecID'] = mysql_fetch_assoc($r);
+                $bd['RelatedRecID'] = mysqli_fetch_assoc($r);
                 break;
             case $intrpDT:
-                $r = mysql_query('select rec_ID, rec_Title, rec_RecTypeID, rec_URL'.
+                $r = $mysqliro->query('select rec_ID, rec_Title, rec_RecTypeID, rec_URL'.
                                  ' from Records where rec_ID = ' . intval($row['dtl_Value']));
-                $bd['InterpRecID'] = mysql_fetch_assoc($r);
+                $bd['InterpRecID'] = mysqli_fetch_assoc($r);
                 break;
             case $notesDT:
                 $bd['Notes'] = $row['dtl_Value'];
@@ -1625,6 +1685,7 @@ function fetch_relation_details($recID, $i_am_primary) {
  */
 function getAllRelatedRecords($recID, $relnRecID = 0) {
     global $relRT, $relTypDT, $relSrcDT, $relTrgDT, $intrpDT, $notesDT, $startDT, $endDT, $titleDT;
+    global $mysqliro;
     if (!$recID) return null;
     $query = "select relnID, src.dtl_Value as src, srcRec.rec_RecTypeID as srcRT, srcRec.rec_Title as srcTitle, srcRec.rec_URL as srcURL, trg.dtl_Value as trg," .
                     " if(srcRec.rec_ID = $recID, 'Primary', 'Non-Primary') as role, trgRec.rec_RecTypeID as trgRT, trgRec.rec_Title as trgTitle," .
@@ -1649,15 +1710,15 @@ function getAllRelatedRecords($recID, $relnRecID = 0) {
               " where (srcRec.rec_ID = $recID or trgRec.rec_ID = $recID)";
     if ($relnRecID) $query.= " and rels.relnID = $relnRecID";
     /*****DEBUG****/// error_log($query);
-    $res = mysql_query($query);
-    if (!mysql_num_rows(@$res)) {
+    $res = $mysqliro->query($query);
+    if (!mysqli_num_rows(@$res)) {
         return array();
     }
-    if (@$res && mysql_error(@$res)) {
-        return array("error" => mysql_error($res));
+    if (@$res && $mysqliro->error) {
+        return array("error" => $mysqliro->error);
     }
     $relations = array('relationshipRecs' => array());
-    while ($row = mysql_fetch_assoc($res)) {
+    while ($row = $res->fetch_assoc()) {
         $relnRecID = $row["relnID"];
         $relations['relationshipRecs'][$relnRecID] = array("relnID" => $relnRecID,
                                                             "title" => $row['title'],

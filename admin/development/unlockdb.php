@@ -38,7 +38,7 @@
 
 	// Deals with all the database connections stuff
 
-	mysql_connection_overwrite(DATABASE);
+	$mysqli = mysqli_connection_overwrite(DATABASE);
 	if (! is_logged_in()) {
 		header("Location: " . HEURIST_BASE_URL . "common/connect/login.php?db=".HEURIST_DBNAME);
 		return;
@@ -51,13 +51,13 @@
 		" target='_top'>Log out</a></p></div></div></body></html>";
 		return;
 	}
-mysql_query("delete from sysLocks where 1");
+$mysqli->query("delete from sysLocks where 1");
 /*****DEBUG****///error_log("in unlock ".print_r(HEURIST_DBNAME,true));
-if (!mysql_error()){
+if (!$mysqli->error){
 	returnXMLSuccessMsgPage(" Successfully unlocked '".HEURIST_DBNAME."'");
 }
 
-returnXMLErrorMsgPage("The was a problem unlocking '".HEURIST_DBNAME."' error - ".mysql_error());
+returnXMLErrorMsgPage("The was a problem unlocking '".HEURIST_DBNAME."' error - ".$mysqli->error);
 
 function returnXMLSuccessMsgPage($msg) {
 	die("<html><body><success>$msg</success></body></html>");

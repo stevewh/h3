@@ -46,7 +46,7 @@
     return;
   }
 
-  mysql_connection_select(DATABASE);
+  $mysqli = mysqli_connection_select(DATABASE);
 
   $base_url = str_replace('&site_hierarchy', '', $_SERVER['REQUEST_URI']);
   $use_site_hierarchy = array_key_exists('site_hierarchy', $_REQUEST);
@@ -117,11 +117,11 @@
                     $bkmk_url = $_REQUEST['bkmk_url'];
                     $bkmk_url_len = strlen($bkmk_url);
 
-                    $res = mysql_query('select * from Records where rec_ID in (' . join(',', $bib_ids) . ') '.
+                    $res = $mysqli->query('select * from Records where rec_ID in (' . join(',', $bib_ids) . ') '.
                       'and (rec_OwnerUGrpID in (0'.(get_user_id()?','.get_user_id():'').')'.
                       ' or not rec_NonOwnerVisibility="hidden")');
                     $all_bibs = array();
-                    while ($row = mysql_fetch_assoc($res))
+                    while ($row = $res->fetch_assoc())
                       $all_bibs[$row['rec_ID']] = $row;
 
                     foreach ($bib_ids as $bib_id) {

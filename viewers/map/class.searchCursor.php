@@ -60,7 +60,7 @@ class Search{
    *
    */
   function _dbConnect(){
-    mysql_connection_select(DATABASE);
+    $mysqli = mysqli_connection_select(DATABASE);
   }
 
 
@@ -71,7 +71,7 @@ class Search{
    *
    */
   function _getDBData(){
-    return mysql_query($this->querry);
+    return $mysqli->query($this->querry);
   }
 
   /**
@@ -80,7 +80,7 @@ class Search{
    * @return array [class.records.php]
    */
   function fetch() {
-      if($row = mysql_fetch_array($this->result)) {
+      if($row = mysqli_fetch_array($this->result)) {
         return new Biblio($row['rec_ID']);
       } else {
         return false;
@@ -93,7 +93,7 @@ class Search{
    * @return integer
    */
   function size() {
-        return mysql_num_rows($this->result);
+        return mysqli_num_rows($this->result);
   }
 
   /**

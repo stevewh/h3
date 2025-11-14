@@ -68,11 +68,43 @@ function mysql_connection_select($database = '', $server = HEURIST_DBSERVER_NAME
 		print "PLEASE SET USERNAME/PASSWORD for SELECT in configIni.php\n";
 		exit(2);
 	}
-	$db = mysql_connect($server, READONLY_DBUSERNAME, READONLY_DBUSERPSWD) or die(mysql_error());
-	if ($database != '') mysql_query("use $database") or die(mysql_error());
-	mysql_query('set character set "utf8"');
-	mysql_query('set names "utf8"');
-	return $db;
+	$conn = mysqli_connect($server, READONLY_DBUSERNAME, READONLY_DBUSERPSWD);
+  if (mysqli_connect_errno()){
+    die("Database connection failed!");
+  }
+	if ($database != '') {
+    if (!mysqli_query($conn,"use $database")) {
+      die(mysqli_error($conn));
+    }
+  }
+}
+/**
+* creates a readonly MySQLi connection object to the configured database server and use the database name if supplied.
+* @param    string [$database] the name of the database to use. Empty by default and no use execute.
+* @param    string [$server] name of the server running MySQL server to connect to
+* @return   mysqli/boolean a mysqli (connection) object on success, or FALSE on failure
+* @uses     HEURIST_DBSERVER_NAME defined in initialise.php as the default server name
+* @uses     READONLY_DBUSERNAME defined in initialise.php as the user name
+* @uses     READONLY_DBUSERPSWD defined in initialise.php as the user password
+*/
+function mysqli_connection_select($database = '', $server = HEURIST_DBSERVER_NAME) {
+	/* User name and password for Select access */
+	if (!READONLY_DBUSERNAME && !READONLY_DBUSERPSWD) {
+		print "PLEASE SET USERNAME/PASSWORD for SELECT in configIni.php\n";
+		exit(2);
+	}
+	$mysqli = new mysqli($server, READONLY_DBUSERNAME, READONLY_DBUSERPSWD, $database);
+	/* check connection */
+  if ($mysqli->connect_error) {
+    /* Use your preferred error logging method here */
+    //printf("Database connection error: %s\n", $mysqli->connect_error);
+    error_log('Database connection error: ' . $mysqli->connect_error);
+    die($mysqli->connect_error);
+  }
+	$mysqli->query('set character set "utf8"');
+	$mysqli->query('set names "utf8"');
+	if (function_exists('get_user_id')) $mysqli->query('set @logged_in_user_id = ' . get_user_id());
+	return $mysqli;
 }
 /**
 * creates a read/write connection to the configured database server and use the database name if supplied.
@@ -92,12 +124,53 @@ function mysql_connection_insert($database = '', $server = HEURIST_DBSERVER_NAME
 		exit(2);
 	}
 	//	if (defined('use_alt_db')  &&  $database == 'heuristdb') $database = 'heuristdb_alt';
-	$db = mysql_connect($server, ADMIN_DBUSERNAME, ADMIN_DBUSERPSWD) or die(mysql_error());
-	if ($database != '') mysql_query("use $database") or die(mysql_error());
-	mysql_query('set character set "utf8"');
-	mysql_query('set names "utf8"');
-	if (function_exists('get_user_id')) mysql_query('set @logged_in_user_id = ' . get_user_id());
-	return $db;
+	$conn = mysqli_connect($server, ADMIN_DBUSERNAME, ADMIN_DBUSERPSWD);
+  if (mysqli_connect_errno()){
+		printf("Connect failed: %s\n", mysqli_connect_error());
+		die(mysqli_connect_error());
+  }
+	if ($database != '') {
+    if (!mysqli_query($conn,"use $database")) {
+      die(mysqli_error($conn));
+    }
+	  mysqli_query($conn,'set character set "utf8"');
+	  mysqli_query($conn,'set names "utf8"');
+	  if (function_exists('get_user_id')){
+      mysqli_query($conn,'set @logged_in_user_id = ' . get_user_id());
+    }
+	  return $conn;
+  }
+}
+/**
+* creates a MySQLi connection object to the configured database server and use the database name if supplied.
+* It ensures that the character set is utf-8. This function will also set the MySQL @logged_in_user_id variable
+* to the logged in user if the user is logged in.
+* @param    string [$database] the name of the database to use. Empty by default and no use execute.
+* @param    string [$server] name of the server running MySQL server to connect to
+* @return   mysqli/boolean a mysqli (connection) object on success, or FALSE on failure
+* @uses     HEURIST_DBSERVER_NAME defined in initialise.php as the default server name
+* @uses     ADMIN_DBUSERNAME defined in initialise.php as the read/write user name
+* @uses     ADMIN_DBUSERPSWD defined in initialise.php as the read/write user password
+*/
+function mysqli_connection_insert($database = '', $server = HEURIST_DBSERVER_NAME) {
+	/* User name and password for insert access - must allow writing to database */
+	if (!ADMIN_DBUSERNAME && !ADMIN_DBUSERPSWD) {
+		print "PLEASE SET USERNAME/PASSWORD for INSERT in configIni.php\n";
+		exit(2);
+	}
+	//	if (defined('use_alt_db')  &&  $database == 'heuristdb') $database = 'heuristdb_alt';
+	$mysqli = new mysqli($server, ADMIN_DBUSERNAME, ADMIN_DBUSERPSWD, $database);
+	/* check connection */
+  if ($mysqli->connect_error) {
+    /* Use your preferred error logging method here */
+    //printf("Connect error: %s\n", $mysqli->connect_error);
+    error_log('Connection error: ' . $mysqli->connect_error);
+    die($mysqli->connect_error);
+  }
+	$mysqli->query('set character set "utf8"');
+	$mysqli->query('set names "utf8"');
+	if (function_exists('get_user_id')) $mysqli->query('set @logged_in_user_id = ' . get_user_id());
+	return $mysqli;
 }
 /**
 * creates a read/write connection to the configured database server and use the database name if supplied.
@@ -117,12 +190,22 @@ function mysql_connection_overwrite($database = '', $server = HEURIST_DBSERVER_N
 		exit(2);
 	}
 	//	if (defined('use_alt_db')  &&  $database == 'heuristdb') $database = 'heuristdb_alt';
-	$db = mysql_connect($server, ADMIN_DBUSERNAME, ADMIN_DBUSERPSWD) or die(mysql_error());
-	if ($database != '') mysql_query("use $database") or die(mysql_error());
-	mysql_query('set character set "utf8"');
-	mysql_query('set names "utf8"');
-	if (function_exists('get_user_id')) mysql_query('set @logged_in_user_id = ' . get_user_id());
-	return $db;
+  $conn = mysqli_connect($server, ADMIN_DBUSERNAME, ADMIN_DBUSERPSWD);
+  if (mysqli_connect_errno()){
+		printf("Connect failed: %s\n", mysqli_connect_error());
+		die(mysqli_connect_error());
+  }
+	if ($database != '') {
+    if (!mysqli_query($conn,"use $database")) {
+      die(mysqli_error($conn));
+    }
+	  mysqli_query($conn,'set character set "utf8"');
+	  mysqli_query($conn,'set names "utf8"');
+	  if (function_exists('get_user_id')){
+      mysqli_query($conn,'set @logged_in_user_id = ' . get_user_id());
+    }
+	  return $conn;
+  }
 }
 /**
 * creates a read/write mysqli connection object connected to the configured database server and use the database name if supplied.
@@ -130,7 +213,7 @@ function mysql_connection_overwrite($database = '', $server = HEURIST_DBSERVER_N
 * to the logged in user if the user is logged in.
 * @param    string [$database] the name of the database to use. Empty by default and no use execute.
 * @param    string [$server] name of the server running MySQL server to connect to
-* @return   mysqli a MySQL connection object
+* @return   mysqli/boolean a mysqli (connection) object on success, or FALSE on failure
 * @uses     HEURIST_DBSERVER_NAME defined in initialise.php as the default server name
 * @uses     ADMIN_DBUSERNAME defined in initialise.php as the read/write user name
 * @uses     ADMIN_DBUSERPSWD defined in initialise.php as the read/write user password
@@ -142,10 +225,12 @@ function mysqli_connection_overwrite($database = '', $server = HEURIST_DBSERVER_
 	}
 	$mysqli = new mysqli($server, ADMIN_DBUSERNAME, ADMIN_DBUSERPSWD, $database);
 	/* check connection */
-	if (mysqli_connect_errno()) {
-		printf("Connect failed: %s\n", mysqli_connect_error());
-		die(mysqli_connect_error());
-	}
+  if ($mysqli->connect_error) {
+    /* Use your preferred error logging method here */
+    //printf("Connect error: %s\n", $mysqli->connect_error);
+    error_log('Connection error: ' . $mysqli->connect_error);
+    die($mysqli->connect_error);
+  }
 	$mysqli->query('set character set "utf8"');
 	$mysqli->query('set names "utf8"');
 	if (function_exists('get_user_id')) $mysqli->query('set @logged_in_user_id = ' . get_user_id());
@@ -168,13 +253,14 @@ function sql_niceify($val) {
 * with a key/value pair for every entry in the associative array.
 * If a pairs_assoc entry is an array it is treated specially ({@see mysql__update()})
 * detailed desription
+* @param    mysqli [$mysqli] MySQLi connection object
 * @param    string [$table] name of target table
 * @param    mixed [$pairs_assoc] name of target table
 * @param    boolean [$ignoreDupes] determine if the IGNORE is placed into the query for ignore duplicates
 * @return   mixed returns 1 if no pairs are given or the result from mysql_query {@link http://php.net/manual/en/function.mysql-query.php}
 * @see      mysql__update()
 */
-function mysql__insert($table, $pairs_assoc, $ignoreDupes = false) {
+function mysqli__insert($mysqli, $table, $pairs_assoc, $ignoreDupes = false) {
 	// Prepare statement
 	$keys = array_keys($pairs_assoc);
 	$ignore = $ignoreDupes ? " ignore " : "";
@@ -193,7 +279,7 @@ function mysql__insert($table, $pairs_assoc, $ignoreDupes = false) {
 		$stmt.= ')';
 	}
 	if (defined("T1000_DEBUG")) error_log($stmt);
-	return mysql_query($stmt); // Maybe something bad, maybe something good!
+	return $mysqli->query($stmt); // Maybe something bad, maybe something good!
 
 }
 /**
@@ -212,12 +298,13 @@ function mysql__insert($table, $pairs_assoc, $ignoreDupes = false) {
 * This will set col1 to the string "col1", and col2 to the current date (according to SQL)
 *
 * Be careful: $table and $condition are passed un-modified to the query.
+* @param    mysqli [$mysqli] MySQLi connection object
 * @param    string [$table] name of target table
 * @param    string [$condition] condition used directly in the SQL statement
 * @param    mixed [$pairs_assoc] name of target table
 * @return   mixed returns 1 if no pairs are given or the result from mysql_query {@link http://php.net/manual/en/function.mysql-query.php}
 */
-function mysql__update($table, $condition, $pairs_assoc) {
+function mysqli__update($mysqli, $table, $condition, $pairs_assoc) {
 	// Prepare statement
 	if (count($pairs_assoc) == 0) return 1; // nothing to do
 	else {
@@ -235,24 +322,25 @@ function mysql__update($table, $condition, $pairs_assoc) {
 		$stmt.= " WHERE $condition";
 	}
 	if (defined('T1000_DEBUG')) error_log($stmt);
-	return mysql_query($stmt); // Up to the user to check for error.
+	return $mysqli->query($stmt); // Up to the user to check for error.
 
 }
 /**
 * Return an array containing all criteria matching values of a column.
 * $table, $column and $condition are passed un-modified to the query.
 * NULL is returned on failure.
+* @param    mysqli [$mysqliro] MySQLi readonly connection object
 * @param    string [$table] name of target table
 * @param    string [$column] column name of target table to return values from
 * @param    string [$condition] condition used directly in the SQL statement
 * @return   array of results from the $column column of $table or NULL on failure
 */
-function mysql__select_array($table, $column, $condition) {
+function mysqli__select_array($mysqliro, $table, $column, $condition) {
 	if (defined('T1000_DEBUG')) error_log("SELECT $column FROM $table WHERE $condition");
-	$res = mysql_query("SELECT $column FROM $table WHERE $condition");
+	$res = $mysqliro->query("SELECT $column FROM $table WHERE $condition");
 	if (!$res) return NULL;
 	$matches = array();
-	while (($row = mysql_fetch_array($res))) array_push($matches, $row[0]);
+	while (($row = $res->fetch_array())) array_push($matches, $row[0]);
 	return $matches;
 }
 /**
@@ -260,18 +348,19 @@ function mysql__select_array($table, $column, $condition) {
 * using the two columns to construct an associative array.
 * $table, $*column and $condition are passed un-modified to the query.
 * NULL is returned on failure.
+* @param    mysqli [$mysqliro] MySQLi readonly connection object
 * @param    string [$table] name of target table
 * @param    string [$key_column] key column name of target table to return keys from
 * @param    string [$val_column] value column name of target table to return values from
 * @param    string [$condition] condition used directly in the SQL statement
 * @return   array of key-value pairs from the $key_column and $val_column columns of $table or NULL on failure
 */
-function mysql__select_assoc($table, $key_column, $val_column, $condition) {
+function mysqli__select_assoc($mysqliro, $table, $key_column, $val_column, $condition) {
 	if (defined('T1000_DEBUG')) error_log("SELECT $key_column, $val_column FROM $table WHERE $condition");
-	$res = mysql_query("SELECT $key_column, $val_column FROM $table WHERE $condition");
+	$res = $mysqliro->query("SELECT $key_column, $val_column FROM $table WHERE $condition");
 	if (!$res) return NULL;
 	$matches = array();
-	while (($row = mysql_fetch_array($res))) $matches[$row[0]] = $row[1];
+	while (($row = $res->fetch_array())) $matches[$row[0]] = $row[1];
 	return $matches;
 }
 /**
@@ -279,18 +368,19 @@ function mysql__select_assoc($table, $key_column, $val_column, $condition) {
 * make a lookup table from the first column to an associative array of the remaining columns.
 * $query is passed un-modified to the query.
 * NULL is returned on failure.
+* @param    mysqli [$mysqli] MySQLi connection object
 * @param    string [$query] description
 * @return   mixed returns an associative array (lookup) on success or NULL on failure.
 */
-function mysql__lookup($query) {
+function mysqli__lookup($mysqli, $query) {
 	/*	*/
-	$res = mysql_query($query);
+	$res = $mysqli->query($query);
 	if (!$res) {
-		error_log('mysql__lookup: ' . mysql_error());
+		error_log('mysqli__lookup: ' . $mysqli->error);
 		return NULL;
 	}
 	$lookup = array();
-	while (($row = mysql_fetch_assoc($res))) {
+	while (($row = $res->fetch_assoc($res))) {
 		$pri = array_shift($row);
 		$lookup[$pri] = $row;
 	}
@@ -372,16 +462,17 @@ function json_format($obj, $purdy = false) {
 }
 /**
 * returns list of databases as array
+* @param    mysqli [$mysqli] MySQLi connection object
 * @param    mixed $with_prefix - if false it remove "hdb_" prefix
 * @param    mixed $email - current user email
 * @param    mixed $role - admin - returns database where current user is admin, user - where current user exists
 */
-function mysql__getdatabases($with_prefix = false, $email = null, $role = null, $prefix=HEURIST_DB_PREFIX) {
+function mysqli__getdatabases($mysqliro, $with_prefix = false, $email = null, $role = null, $prefix=HEURIST_DB_PREFIX) {
 	$query = "show databases";
-	$res = mysql_query($query);
+	$res = $mysqliro->query($query);
 	$result = array();
 	$isFilter = ($email != null && $role != null);
-	while ($row = mysql_fetch_array($res)) {
+	while ($row = $res->fetch_array()) {
 		$test = strpos($row[0], $prefix);
 		if (is_numeric($test) && ($test == 0)) {
 			if ($isFilter) {
@@ -393,8 +484,8 @@ function mysql__getdatabases($with_prefix = false, $email = null, $role = null, 
 							" where ugr_ID=ugl_UserID and ugl_Role='admin' and ugr_eMail='" . $email . "'";
 				}
 				if ($query) {
-					$res2 = mysql_query($query);
-					if (mysql_num_rows($res2) < 1) {
+					$res2 = $mysqliro->query($query);
+					if ($res2->num_rows() < 1) {
 						continue;
 					}
 				} else {
@@ -419,11 +510,11 @@ function mysql__getdatabases($with_prefix = false, $email = null, $role = null, 
 * put your comment there...
 *
 */
-function get_dbowner_email()
+function get_dbowner_email($mysqli)
 {
         $query = "select ugr_eMail from ".DATABASE.".sysUGrps where ugr_ID=2";
-        $res = mysql_query($query);
-        $row = mysql_fetch_array($res);
+        $res = $mysqli->query($query);
+        $row = $res->fetch_array();
         if($row){
                return $row[0];
         }

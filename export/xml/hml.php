@@ -70,7 +70,7 @@ require_once(dirname(__FILE__).'/../../search/getSearchResults.php');
 require_once(dirname(__FILE__).'/../../common/php/getRecordInfoLibrary.php');
 require_once(dirname(__FILE__).'/../../records/woot/woot.php');
 
-mysql_connection_select(DATABASE);
+$mysqli = mysqli_connection_select(DATABASE);
 
 //----------------------------------------------------------------------------//
 //  Tag construction helpers
@@ -125,9 +125,9 @@ function closeCDATA() {
 function single_record_retrieval($q) {
    if (preg_match ('/\bids?:([0-9]+)(?!,)\b/i', $q, $matches)) {
 		$query = 'select * from Records where rec_ID='.$matches[1];
-		$res = mysql_query($query);
-		if (mysql_num_rows($res) < 1) return false;
-		$rec = mysql_fetch_assoc($res);
+		$res = $mysqli->query($query);
+		if ($res->num_rows < 1) return false;
+		$rec = $res->fetch_assoc();
 		//saw FIXME need to compare against current user's UGrpID, need to say no user or group user belongs to and is HIDDEN
 		if ($rec['rec_OwnerUGrpID']  &&  $rec['rec_NonOwnerVisibility'] === 'hidden') {
 			return false;
@@ -153,8 +153,8 @@ $TL = array();	//term lookup
 $TLV = array();	//term lookup by value
 // record type labels
 $query = 'SELECT rty_ID, rty_Name FROM defRecTypes';
-$res = mysql_query($query);
-while ($row = mysql_fetch_assoc($res)) {
+$res = $mysqli->query($query);
+while ($row = $res->fetch_assoc()) {
 	$RTN[$row['rty_ID']] = $row['rty_Name'];
 	foreach (getRectypeFields($row['rty_ID']) as $rst_DetailTypeID => $rdr) {
 	// type-specific names for detail types
@@ -164,30 +164,30 @@ while ($row = mysql_fetch_assoc($res)) {
 /*****DEBUG****///error_log(print_r($RQS,true));
 // base names, varieties for detail types
 $query = 'SELECT dty_ID, dty_Name, dty_Type FROM defDetailTypes';
-$res = mysql_query($query);
-while ($row = mysql_fetch_assoc($res)) {
+$res = $mysqli->query($query);
+while ($row = $res->fetch_assoc()) {
 	$DTN[$row['dty_ID']] = $row['dty_Name'];
 	$DTT[$row['dty_ID']] = $row['dty_Type'];
 }
 
-$INV = mysql__select_assoc('defTerms',	//saw Enum change just assoc id to related id
+$INV = mysqli__select_assoc($mysqli, 'defTerms',	//saw Enum change just assoc id to related id
 							'trm_ID',
 							'trm_InverseTermID',
 							'1');
 
 // lookup detail type enum values
 $query = 'SELECT trm_ID, trm_Label, trm_ParentTermID, trm_OntID FROM defTerms';
-$res = mysql_query($query);
-while ($row = mysql_fetch_assoc($res)) {
+$res = $mysqli->query($query);
+while ($row = $res->fetch_assoc()) {
 	$TL[$row['trm_ID']] = $row;
 	$TLV[$row['trm_Label']] = $row;
 }
 
 /// group names
-mysql_connection_select(USERS_DATABASE) or die(mysql_error());
-$WGN = mysql__select_assoc('sysUGrps grp', 'grp.ugr_ID', 'grp.ugr_Name', "ugr_Type ='workgroup'");
-$UGN = mysql__select_assoc('sysUGrps grp', 'grp.ugr_ID', 'grp.ugr_Name', "ugr_Type ='user'");
-mysql_connection_select(DATABASE) or die(mysql_error());
+$mysqli = mysqli_connection_select(USERS_DATABASE) or die($mysqli->error);
+$WGN = mysqli__select_assoc($mysqli, 'sysUGrps grp', 'grp.ugr_ID', 'grp.ugr_Name', "ugr_Type ='workgroup'");
+$UGN = mysqli__select_assoc($mysqli, 'sysUGrps grp', 'grp.ugr_ID', 'grp.ugr_Name', "ugr_Type ='user'");
+$mysqli = mysqli_connection_select(DATABASE) or die($mysqli->error);
 
 
 $GEO_TYPES = array(
@@ -285,8 +285,8 @@ function findPointers($rec_ids, $rtyIDs) {
 			'WHERE dtl_RecID in (' . join(',', $rec_ids) .') '.
 				($rtyIDs && count($rtyIDs)>0 ? 'AND rec_RecTypeID in ('.join(',', $rtyIDs).') ' : '').
 				'AND dty_Type = "resource"';
-	$res = mysql_query($query);
-	while ($res && $row = mysql_fetch_assoc($res)) {
+	$res = $mysqli->query($query);
+	while ($res && $row = $res->fetch_assoc()) {
 		$rv[$row['dtl_Value']] = 1;
 	}
 	return array_keys($rv);
@@ -317,8 +317,8 @@ global $relRT;
 				'AND dtl_Value IN (' . join(',', $rec_ids) .') '.
 				($rtyIDs && count($rtyIDs)>0 ? 'AND rec_RecTypeID in ('.join(',', $rtyIDs).') ' : '').
 				'AND rec_RecTypeID != '.$relRT;
-	$res = mysql_query($query);
-	while ($res && $row = mysql_fetch_assoc($res)) {
+	$res = $mysqli->query($query);
+	while ($res && $row = $res->fetch_assoc()) {
 		if (! @$pointers[$row['dtl_Value']]) {
 			$pointers[$row['dtl_Value']] = array();
 		}
@@ -359,8 +359,8 @@ global $relSrcDT, $relTrgDT, $relTypDT, $relRT;
 				'AND f.dtl_Value IN (' . join(',', $rec_ids) . ') '.
 				($rtyIDs && count($rtyIDs)>0 ? 'AND c.rec_RecTypeID in ('.join(',', $rtyIDs).') ' : '').
 				"AND t.dtl_DetailTypeID = IF(f.dtl_DetailTypeID = $relSrcDT, $relTrgDT, $relSrcDT)";
-	$res = mysql_query($query);
-	while ($res && $row = mysql_fetch_row($res)) {
+	$res = $mysqli->query($query);
+	while ($res && $row = $res->fetch_row()) {
 		if (! @$relationships[$row[0]]) {
 			$relationships[$row[0]] = array();
 		}
@@ -394,8 +394,8 @@ function buildTree($rec_ids, &$reverse_pointers, &$relationships) {
 					'AND rec_RecTypeID in ('.join(",",$filter).')';
 //echo "query = $query <br/>";
 		$filteredIDs = array();
-		$res = mysql_query($query);
-		while ($res && $row = mysql_fetch_row($res)) {
+		$res = $mysqli->query($query);
+		while ($res && $row = $res->fetch_row()) {
 			$filteredIDs[$row[0]] =1;
 		}
 		$rec_ids = array_keys($filteredIDs);

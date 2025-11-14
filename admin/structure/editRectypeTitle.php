@@ -31,7 +31,7 @@
     require_once(dirname(__FILE__).'/../../common/php/dbMySqlWrappers.php');
     require_once(dirname(__FILE__).'/../../common/php/utilsTitleMask.php');
 
-    mysql_connection_select(DATABASE);
+    $mysqli = mysqli_connection_select(DATABASE);
 
     $rectypeID = @$_REQUEST['rty_id'];
     $mask = @$_REQUEST['mask'];

@@ -65,9 +65,9 @@
 
 		<?php
 
-			mysql_connection_overwrite(DATABASE);
-			if(mysql_error()) {
-				die("Sorry, could not connect to the database (mysql_connection_overwrite error)");
+			$mysqli = mysqli_connection_overwrite(DATABASE);
+			if($mysqli->error) {
+				die("Sorry, could not connect to the database ($mysqli = mysqli_connection_overwrite error)");
 			}
 
 			print "Imports a user record from another Heurist database on the system and adds the user to the current database. You will need to allocate imported users to groups.";
@@ -83,7 +83,7 @@
 				print "<input name='db' value='".HEURIST_DBNAME."' type='hidden'>";
 				print "<p>Choose source database: <select id='db' name='sourcedbname'>";
 
-				$list = mysql__getdatabases();
+				$list = mysqli__getdatabases($mysqli);
 				foreach ($list as $name) {
 						print "<option value='$name'>$name</option>";
 				}
@@ -106,19 +106,19 @@
 
 				print "<input name='sourcedbname' value='".$sourcedbname."' type='hidden'>";
 				print "<p>Source database: <b>$sourcedb</b> <br>";
-				$res=mysql_query("select * from $sourcedb.sysIdentification");
+				$res=$mysqli->query("select * from $sourcedb.sysIdentification");
 				if (!$res) {
 					die ("<p>Unable to open source database <b>$sourcedb</b>. Make sure you have included prefix");
 				}
 
 				$query1 = "SELECT * FROM $sourcedb.sysUGrps where ugr_Type='user'";
-				$res1 = mysql_query($query1);
-				if (mysql_num_rows($res1) == 0) {
+				$res1 = $mysqli->query($query1);
+				if ($res1->num_rows == 0) {
 					die ("<p><b>Sorry, unable to read users from this database</b></p>");
 				}
 
 				print "<p>Choose user: <select id='usr' name='usr'>";
-				while ($row1 = mysql_fetch_assoc($res1)) {
+				while ($row1 = $res1->fetch_assoc()) {
 					print "<option value=".$row1['ugr_ID'].">".$row1['ugr_Name']."</option>";
 				} // loop through users
 				print "</select>";
@@ -147,11 +147,11 @@
 						"<p><a href=".HEURIST_BASE_URL."admin/setup/getUserFromDB.php?db=".HEURIST_DBNAME."&sourcedbname=$sourcedbname&mode=2>Add another</a>";
 				} else {
 /* IJ: 19-Sep-12 Don't make imported users members of the Database Managers group - too risky.
-					$newUserID =  mysql_insert_id();
+					$newUserID =  $mysqli->insert_id;
 					$query1="INSERT INTO sysUsrGrpLinks (ugl_UserID,ugl_GroupID) VALUES ($newUserID,'1')"; // adds to 1 = 'Database Managers' as 'member'
 					// todo: should really offer choice of existing user groups to add the user to, as well as their role
-					$res1 = mysql_query($query1);
-					$err=mysql_error();
+					$res1 = $mysqli->query($query1);
+					$err=$mysqli->error;
 					if (!$res1) {
 						print "<p>MySQL returns: ".$err;
 						print "<p><b>Sorry, Unable to allocate the new user to a group - please set maually</b>".
@@ -183,19 +183,19 @@
 						"SELECT $fields ".
 						"FROM $sourcedb.sysUGrps where ugr_ID=$sourceuserid";
 
-			$res1 = mysql_query($query1);
-			$err = mysql_error();
+			$res1 = $mysqli->query($query1);
+			$err = $mysqli->error;
 			/*
 			if (!$err && $isowner) {
-					$newUserID =  mysql_insert_id();
+					$newUserID =  $mysqli->insert_id;
 
 					$query1 = "delete from $destdb.sysUGrps where ugr_ID=2";
-					mysql_query($query1);
-					$err = mysql_error();
+					$mysqli->query($query1);
+					$err = $mysqli->error;
 					if(!$err){
 						$query1 = "update $destdb.sysUGrps set ugr_ID=2 where ugr_ID=".$newUserID;
-						mysql_query($query1);
-						$err = mysql_error();
+						$mysqli->query($query1);
+						$err = $mysqli->error;
 					}
 			}*/
 			return $err;

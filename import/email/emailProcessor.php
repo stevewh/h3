@@ -77,14 +77,14 @@
 	} // returnErrorMsgPage2
 
 
-	mysql_connection_overwrite(DATABASE);
+	$mysqli = mysqli_connection_overwrite(DATABASE);
 
 	/*****DEBUG****///error_log(HEURIST_DBNAME."         ".HEURIST_BASE_URL.'            '.DATABASE);
 
 	// get mail server options from database
-	$res = mysql_query('select * from sysIdentification');
-	if (!$res) returnErrorMsgPage2("Unable to retrieve email configuration from sysIdentification record, MySQL error: ".mysql_error());
-	$sysValues = mysql_fetch_assoc($res);
+	$res = $mysqli->query('select * from sysIdentification');
+	if (!$res) returnErrorMsgPage2("Unable to retrieve email configuration from sysIdentification record, MySQL error: ".$mysqli->error);
+	$sysValues = $res->fetch_assoc();
 	$server   = $sysValues['sys_eMailImapServer'];
 	$port     = $sysValues['sys_eMailImapPort'];
 	$username = $sysValues['sys_eMailImapUsername'];
@@ -110,9 +110,9 @@
 	*/
 
 	// get list of emails addresses - messages from them will be processed
-	$res=mysql_query("select ugr_IncomingEmailAddresses from sysUGrps where ugr_ID=".get_user_id());
-	if (!$res) returnErrorMsgPage2("Unable to retrieve incoming email address information from user's sysUGrps record, MySQL error: ".mysql_error());
-	$email = mysql_fetch_assoc($res);
+	$res=$mysqli->query("select ugr_IncomingEmailAddresses from sysUGrps where ugr_ID=".get_user_id());
+	if (!$res) returnErrorMsgPage2("Unable to retrieve incoming email address information from user's sysUGrps record, MySQL error: ".$mysqli->error);
+	$email = $res->fetch_assoc();
 	if($email && $email['ugr_IncomingEmailAddresses'] && $email['ugr_IncomingEmailAddresses']!="undefined"){
 		if($senders){
 			$senders = $senders.',';

@@ -51,15 +51,15 @@ class Biblio {
 		$this->minX = null; $this->minY = null; $this->maxX = null; $this->maxY = null;
 
 		if ($rec_id) {
-			$res = mysql_query('select rec_ID, rec_Title, rec_URL, rec_RecTypeID from Records where rec_ID='.$rec_id);
-			$row = mysql_fetch_assoc($res);
+			$res = $mysqli->query('select rec_ID, rec_Title, rec_URL, rec_RecTypeID from Records where rec_ID='.$rec_id);
+			$row = $res->fetch_assoc();
 			if (!$row) return false;
 			$this->rec_id = $row['rec_ID'];
 			$this->rec_title = htmlentities($row['rec_Title']);
 			$this->rec_URL = htmlentities($row['rec_URL']);
 			$this->rec_RecTypeID = $row['rec_RecTypeID'];
 
-			$details = mysql__select_assoc('recDetails', 'dtl_DetailTypeID', 'dtl_Value', 'dtl_RecID='.$rec_id);
+			$details = mysqli__select_assoc($mysqli, 'recDetails', 'dtl_DetailTypeID', 'dtl_Value', 'dtl_RecID='.$rec_id);
 
 			if (DT_START_DATE && array_key_exists(DT_START_DATE, $details)) {
 				$this->start = $details[DT_START_DATE];
@@ -72,7 +72,7 @@ class Biblio {
 			// 223  Thumbnail
 			// 222  Logo image
 			// 224  Images
-			$res = mysql_query("select recUploadedFiles.*
+			$res = $mysqli->query("select recUploadedFiles.*
 								  from recDetails
 							 left join recUploadedFiles on ulf_ID = dtl_UploadedFileID
 								 where dtl_RecID = $rec_id
@@ -86,8 +86,8 @@ class Biblio {
 										(defined('DT_LOGO_IMAGE')?"dtl_DetailTypeID = ".DT_LOGO_IMAGE." desc, ":"").
 										(defined('DT_IMAGES')?"dtl_DetailTypeID = ".DT_IMAGES." desc, ":"").
 										"dtl_DetailTypeID limit 1");
-			if (mysql_num_rows($res) !== 1) {
-				$res = mysql_query("select recUploadedFiles.*
+			if ($res->num_rows !== 1) {
+				$res = $mysqli->query("select recUploadedFiles.*
 				                      from recDetails a, defDetailTypes, Records, recDetails b, recUploadedFiles
 				                     where a.dtl_RecID = $rec_id
 				                       and a.dtl_DetailTypeID = dty_ID
@@ -98,8 +98,8 @@ class Biblio {
 				                       and file_mimetype like 'image%'
 				                     limit 1;");
 			}
-			if (mysql_num_rows($res) == 1) {
-				$file = mysql_fetch_assoc($res);
+			if ($res->num_rows == 1) {
+				$file = $res->fetch_assoc();
 				$thumb_url = "../../common/php/resizeImage.php?ulf_ID=".$file['ulf_ObfuscatedFileID'];
 			}
 
@@ -112,18 +112,18 @@ class Biblio {
 				$this->description .= $details[$text];
 			}
 
-			$res = mysql_query('SELECT AsText(dtl_Geo) geo, dtl_Value, astext(envelope(dtl_Geo)) as rect
+			$res = $mysqli->query('SELECT AsText(dtl_Geo) geo, dtl_Value, astext(envelope(dtl_Geo)) as rect
 			                      FROM recDetails
 			                     WHERE NOT IsNULL(dtl_Geo)
 			                       AND dtl_RecID = ' . $rec_id);
 
-			if (mysql_num_rows($res) < 1  &&  (!defined('RT_RELATION') || $this->rec_RecTypeID != RT_RELATION)  &&  DT_START_DATE && $details[DT_START_DATE]) {
+			if ($res->num_rows < 1  &&  (!defined('RT_RELATION') || $this->rec_RecTypeID != RT_RELATION)  &&  DT_START_DATE && $details[DT_START_DATE]) {
 				// Special case behaviour!
 				// If a record has time data but not spatial data,
 				// and it points to record(s) with spatial data, use that.
 				// Although this is written in a general fashion it was
 				// created for Event records, which may point to Site records
-				$res = mysql_query('select astext(g.dtl_Geo) geo, g.dtl_Value, astext(envelope(g.dtl_Geo)) as rect
+				$res = $mysqli->query('select astext(g.dtl_Geo) geo, g.dtl_Value, astext(envelope(g.dtl_Geo)) as rect
 				                      from recDetails p
 				                 left join defDetailTypes on dty_ID = p.dtl_DetailTypeID
 				                 left join Records on rec_ID = p.dtl_Value
@@ -133,7 +133,7 @@ class Biblio {
 				                       and g.dtl_Geo is not null');
 			}
 
-			while ($row = mysql_fetch_assoc($res)) {
+			while ($row = $res->fetch_assoc()) {
 				$geometry = new Geometry($row['geo'], $row['dtl_Value'], $row['rect']);
 				if ($this->minX === null  ||  $geometry->minX < $this->minX) $this->minX = $geometry->minX;
 				if ($this->maxX === null  ||  $geometry->maxX > $this->maxX) $this->maxX = $geometry->maxX;

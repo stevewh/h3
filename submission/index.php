@@ -36,14 +36,14 @@
   require_once(dirname(__FILE__)."/../common/php/saveRecord.php");
   require_once(dirname(__FILE__)."/../records/files/uploadFile.php");
 
-  mysql_connection_overwrite(DATABASE);
+  $mysqli = mysqli_connection_overwrite(DATABASE);
   $uploadedTermID = null;
-  $uploadedTerm = mysql_fetch_assoc(mysql_query("SELECT trm_ID, trm_OriginatingDBID,trm_IDInOriginatingDB FROM defTerms where trm_Label = 'Uploaded'"));
+  $uploadedTerm = mysqli_fetch_assoc($mysqli->query("SELECT trm_ID, trm_OriginatingDBID,trm_IDInOriginatingDB FROM defTerms where trm_Label = 'Uploaded'"));
   if ($uploadedTerm && is_numeric($uploadedTerm['trm_ID'])){
     $uploadedTermID = $uploadedTerm['trm_ID']; //todo safeguard against multiple updated terms
   }
   function rtIDLookup($rtOrigID, $rtDBID) {
-    $res = mysql_fetch_assoc(mysql_query("select rty_ID as localID from defRecTypes where rty_OriginatingDBID = $rtDBID  and rty_IDInOriginatingDB = $rtOrigID "));
+    $res = mysqli_fetch_assoc($mysqli->query("select rty_ID as localID from defRecTypes where rty_OriginatingDBID = $rtDBID  and rty_IDInOriginatingDB = $rtOrigID "));
     if ( array_key_exists('localID', $res)) {
       return $res['localID'];
     }
@@ -51,7 +51,7 @@
   }
 
   function dtIDLookup($dtOrigID, $dtDBID) {
-    $res = mysql_fetch_assoc(mysql_query("select dty_ID as localID from defDetailTypes where dty_OriginatingDBID = $dtDBID  and dty_IDInOriginatingDB = $dtOrigID "));
+    $res = mysqli_fetch_assoc($mysqli->query("select dty_ID as localID from defDetailTypes where dty_OriginatingDBID = $dtDBID  and dty_IDInOriginatingDB = $dtOrigID "));
     if ( array_key_exists('localID', $res)) {
       return $res['localID'];
     }

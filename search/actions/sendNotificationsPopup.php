@@ -47,7 +47,7 @@
 
 	if (! is_logged_in()) return;
 
-	mysql_connection_select(DATABASE);
+	$mysqli = mysqli_connection_select(DATABASE);
 
 	/*****DEBUG****///error_log("request is ".print_r($_REQUEST,true)); //>>>>DEBUG
 
@@ -129,15 +129,15 @@
 			</div>
 			&nbsp;
 			<?php
-				$res = mysql_query('select usr.'.USERS_ID_FIELD.',concat(usr.'.USERS_FIRSTNAME_FIELD.'," ",usr.'.USERS_LASTNAME_FIELD.') as fullname
+				$res = $mysqli->query('select usr.'.USERS_ID_FIELD.',concat(usr.'.USERS_FIRSTNAME_FIELD.'," ",usr.'.USERS_LASTNAME_FIELD.') as fullname
 					from '.USERS_DATABASE.'.'.USERS_TABLE.' usr
 					where usr.'.USERS_ACTIVE_FIELD.'="Y" and usr.'.USERS_FIRSTNAME_FIELD.' is not null and usr.'.USERS_LASTNAME_FIELD.' is not null and !usr.ugr_IsModelUser
 				order by fullname');
-				if (mysql_num_rows($res)) {
+				if ($res->num_rows) {
 				?>
 				<select name="notify_person" id="notify_person" style="width: 120px;" onchange="reset_group(); reset_coll_grp(); reset_email();">
 					<option value="0">Person...</option>
-					<?php		while ($row = mysql_fetch_assoc($res)) { ?>
+					<?php		while ($row = $res->fetch_assoc()) { ?>
 						<option value="<?=$row[USERS_ID_FIELD]?>" <?=($row[USERS_ID_FIELD]==get_user_id())? 'selected' : ''?>><?=htmlspecialchars($row['fullname'])?></option>
 						<?php		} ?>
 				</select>
@@ -145,15 +145,15 @@
 			&nbsp;
 			or
 			<?php
-				$res = mysql_query('select '.GROUPS_ID_FIELD.','.GROUPS_NAME_FIELD.'
+				$res = $mysqli->query('select '.GROUPS_ID_FIELD.','.GROUPS_NAME_FIELD.'
 					from '.USERS_DATABASE.'.'.USER_GROUPS_TABLE.' left join '.USERS_DATABASE.'.'.GROUPS_TABLE.' on '.GROUPS_ID_FIELD.'='.USER_GROUPS_GROUP_ID_FIELD.'
 					where '.USER_GROUPS_USER_ID_FIELD.' = '.get_user_id().' and '.GROUPS_TYPE_FIELD.'="Workgroup"
 					order by '.GROUPS_NAME_FIELD);
-				if (mysql_num_rows($res)) {
+				if ($res->num_rows) {
 				?>
 				<select name="notify_group" id="notify_group" style="width: 120px;" onchange="reset_person(); reset_coll_grp(); reset_email(); document.getElementById('grp_members_link_div').style.display = ''; document.getElementById('grp_members_link').wg_id = this.value;">
 					<option value="0">Group...</option>
-					<?php		while ($row = mysql_fetch_assoc($res)) { ?>
+					<?php		while ($row = $res->fetch_assoc()) { ?>
 						<option value="<?=$row[GROUPS_ID_FIELD]?>"><?=htmlspecialchars($row[GROUPS_NAME_FIELD])?></option>
 						<?php		} ?>
 				</select>
@@ -192,7 +192,7 @@
 		$bibIDList = join(',', $bib_ids);
 		$notification_link = HEURIST_BASE_URL . 'search/search.html?db='.HEURIST_DBNAME.'&w=all&q=ids:' . $bibIDList;
 
-		$bib_titles = mysql__select_assoc('Records', 'rec_ID', 'rec_Title', 'rec_ID in (' . $bibIDList . ')');
+		$bib_titles = mysqli__select_assoc($mysqli, 'Records', 'rec_ID', 'rec_Title', 'rec_ID in (' . $bibIDList . ')');
 		$title_list = "Id      Title\n" . "------  ---------\n";
 		foreach ($bib_titles as $rec_id => $rec_title)
 			$title_list .= str_pad("$rec_id", 8) . $rec_title . "\n";
@@ -201,10 +201,10 @@
 		if ($_REQUEST['notify_message']  &&  $_REQUEST['notify_message'] != '(enter message here)')
 			$msg = '"' . $_REQUEST['notify_message'] . '"' . "\n\n";
 
-		$res = mysql_query('select '.USERS_EMAIL_FIELD.' from '.USERS_DATABASE.'.'.USERS_TABLE.' where '.USERS_ID_FIELD.' = ' . get_user_id());
-		$row = mysql_fetch_row($res);
+		$res = $mysqli->query('select '.USERS_EMAIL_FIELD.' from '.USERS_DATABASE.'.'.USERS_TABLE.' where '.USERS_ID_FIELD.' = ' . get_user_id());
+		$row = $res->fetch_row();
 		if ($row) $user_email = $row[0];
-		mysql_connection_overwrite(DATABASE);
+		$mysqli = mysqli_connection_overwrite(DATABASE);
 
 		$email_subject = '[HEURIST] email from ' . get_user_name();
 		if (count($bib_ids) == 1) $email_subject .= ' (one reference)';
@@ -234,21 +234,21 @@
 
 		if ($_REQUEST['notify_group']) {
 			$email_headers = preg_replace('/Cc:[^\r\n]*\r\n/', '', $email_headers);
-			$res = mysql_query('select '.GROUPS_NAME_FIELD.' from '.USERS_DATABASE.'.'.GROUPS_TBALE.' where '.GROUPS_ID_FIELD.'='.intval($_REQUEST['notify_group']));
-			$row = mysql_fetch_assoc($res);
+			$res = $mysqli->query('select '.GROUPS_NAME_FIELD.' from '.USERS_DATABASE.'.'.GROUPS_TBALE.' where '.GROUPS_ID_FIELD.'='.intval($_REQUEST['notify_group']));
+			$row = $res->fetch_assoc();
 			$grpname = $row[GROUPS_NAME_FIELD];
-			$res = mysql_query('select '.USERS_EMAIL_FIELD.'
+			$res = $mysqli->query('select '.USERS_EMAIL_FIELD.'
 				from '.USERS_DATABASE.'.'.USERS_TABLE.' left join '.USERS_DATABASE.'.'.USER_GROUPS_TABLE.' on '.USER_GROUPS_USER_ID_FIELD.'='.USERS_ID_FIELD.'
 				where '.USER_GROUPS_GROUP_ID_FIELD.'='.intval($_REQUEST['notify_group']));
-			$count =  mysql_num_rows($res);
-			while ($row = mysql_fetch_assoc($res))
+			$count =  $res->num_rows;
+			while ($row = $res->fetch_assoc())
 				$email_headers .= "\r\nBcc: ".$row[USERS_EMAIL_FIELD];
 			mail(get_user_name().' <'.$user_email.'>', $email_subject, $email_text, $email_headers);
 
 			return 'Notification email sent to group '.$grpname.' ('.$count.' members)';
 		} else if ($_REQUEST['notify_person']) {
-			$res = mysql_query('select '.USERS_EMAIL_FIELD.', concat('.USERS_FIRSTNAME_FIELD.'," ",'.USERS_LASTNAME_FIELD.') as fullname from '.USERS_DATABASE.'.'.USERS_TABLE.' where '.USERS_ID_FIELD.'='.$_REQUEST['notify_person']);
-			$psn = mysql_fetch_assoc($res);
+			$res = $mysqli->query('select '.USERS_EMAIL_FIELD.', concat('.USERS_FIRSTNAME_FIELD.'," ",'.USERS_LASTNAME_FIELD.') as fullname from '.USERS_DATABASE.'.'.USERS_TABLE.' where '.USERS_ID_FIELD.'='.$_REQUEST['notify_person']);
+			$psn = $res->fetch_assoc();
 			mail($psn[USERS_EMAIL_FIELD], $email_subject, $email_text, $email_headers);
 			return 'Notification email sent to '.addslashes($psn['fullname']);
 		} else if ($_REQUEST['notify_email']) {

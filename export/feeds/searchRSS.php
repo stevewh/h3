@@ -42,7 +42,7 @@ require_once(dirname(__FILE__).'/../../search/parseQueryToSQL.php');
 $_REQUEST['_rss_search_search'] = 1;
 define('rss_search-RESULTS_PER_PAGE', 500);
 
-mysql_connection_select(DATABASE);
+$mysqli = mysqli_connection_select(DATABASE);
 
 
 if (! @$_REQUEST['q']  ||  (@$_REQUEST['ver'] && intval(@$_REQUEST['ver']) < SEARCH_VERSION))
@@ -58,9 +58,9 @@ if ( $_REQUEST['w'] == 'B'  ||  $_REQUEST['w'] == 'bookmark') {		// my bookmark 
 	return;	// wwgd
 }
 if (@$where){
-	$query = REQUEST_to_query($query, $search_type,NULL,"0");
+	$query = REQUEST_to_query($mysqli, $query, $search_type,NULL,"0");
 } else {
-	$query = REQUEST_to_query($query, $search_type);
+	$query = REQUEST_to_query($mysqli, $query, $search_type);
 }
 if (preg_match('/.* order by (.*)/', $query, $matches)) {
 	$order_col = $matches[1];

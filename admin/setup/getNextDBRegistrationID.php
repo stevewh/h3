@@ -53,7 +53,7 @@
 	require_once(dirname(__FILE__)."/../../common/config/initialise.php");
 	require_once(dirname(__FILE__).'/../../common/php/dbMySqlWrappers.php');
 
-	mysql_connection_insert("hdb_H3MasterIndex"); // hard-coded master index for the Heurist constellation
+	$mysqli = mysqli_connection_insert("hdb_H3MasterIndex"); // hard-coded master index for the Heurist constellation
 
 	$indexdb_user_id = 0; // Flags problem if not reset
 	$returnData = ''; // String returned to caller, contains dbID or 0, and error message (if any)
@@ -97,26 +97,26 @@
 
 	// Find the registering user in the index database, make them the owner of the new record
 	$usrEmail = strtolower(trim($usrEmail));
-	$res = mysql_query("select ugr_ID, ugr_Name, ugr_Password, ugr_FirstName, ugr_LastName from sysUGrps where lower(ugr_eMail)='".$usrEmail."'");
+	$res = $mysqli->query("select ugr_ID, ugr_Name, ugr_Password, ugr_FirstName, ugr_LastName from sysUGrps where lower(ugr_eMail)='".$usrEmail."'");
 	$indexdb_user_id = null;
 	/*****DEBUG****///error_log('trying for email address');
 
 	// Check if the email address is recognised as a user name
 	// Added 19 Jan 2012: we also use email for ugr_Name and it must be unique, so check it has not been used
-	if(($res) && (mysql_num_rows($res) == 0)) { // no user found on email, try querying on user name
+	if(($res) && ($res->num_rows == 0)) { // no user found on email, try querying on user name
 /*****DEBUG****///error_log('trying for user name');
-		$res = mysql_query("select ugr_ID, ugr_Name, ugr_Password, ugr_FirstName, ugr_LastName from sysUGrps where lower(ugr_Name)='".$usrEmail."'");
+		$res = $mysqli->query("select ugr_ID, ugr_Name, ugr_Password, ugr_FirstName, ugr_LastName from sysUGrps where lower(ugr_Name)='".$usrEmail."'");
 	}
 	if($res) { // query OK, now see if we have found the user
-/*****DEBUG****///error_log('Query OK, got '.mysql_num_rows($res).' rows returned');
-		if(mysql_num_rows($res) == 0) { // did not find the user, create a new one and pass back login info
+/*****DEBUG****///error_log('Query OK, got '.$res->num_rows.' rows returned');
+		if($res->num_rows == 0) { // did not find the user, create a new one and pass back login info
 			/*****DEBUG****///error_log('inserting a record for '.$usrEmail,', '.$usrPassword,', '.$usrEmail,', '.$usrFirstName,', '.$usrLastName);
-			$res = mysql_query("insert into sysUGrps (`ugr_Name`, `ugr_Password`, `ugr_eMail`, `ugr_Enabled`, `ugr_FirstName`, `ugr_lastName`)
+			$res = $mysqli->query("insert into sysUGrps (`ugr_Name`, `ugr_Password`, `ugr_eMail`, `ugr_Enabled`, `ugr_FirstName`, `ugr_lastName`)
 				VALUES  ('$usrEmail','$usrPassword','$usrEmail','y','$usrFirstName','$usrLastName')");
 			// Note: we use $usrEmail as user name because the person's name may be repeated across many different users of
 			// different databases eg. there are lots of johnsons, which will cause insert statement to fail as ugr_Name is unique.
 			if($res) { 	// New user created successfully
-				$indexdb_user_id = mysql_insert_id();
+				$indexdb_user_id = $mysql->insert_id;
 				header('Location: ' . HEURIST_BASE_URL . '/common/connect/login.php?db=' . HEURIST_DBNAME . (isset($last_uri) ? '&last_uri=' . urlencode($last_uri) : '')); // TODO: Change to HEURIST_BASE_URL
 			} else { // Unable to create the new user
 				error_log('unable to crate new user');
@@ -125,7 +125,7 @@
 				echo $returnData; // if you can't set up user it isn't worth trying to register the database''
 			}
 		} else { // existing user
-			$row = mysql_fetch_row($res);
+			$row = $res->fetch_row();
 			$indexdb_user_id = $row[0]; // set the user ID for the user in the index database, everything else is known
 /*****DEBUG****///error_log('Existing user ID is '.$indexdb_user_id);
 		}
@@ -140,9 +140,9 @@
 	// This is not a fully valid Heurist record, we let the edit form take care of that
 	// First look to see if there is an existing registration - note, this uses the URL to find the record, not the registration ID
 	// TODO: Would be good to have a recaptcha style challenge otherwise can be called repeatedly with slight URL variations to spawn multiple registrations of dummy databases
-	$res = mysql_query("select rec_ID, rec_Title from Records where `rec_URL`='$serverURL'");
-	if(mysql_num_rows($res) == 0) { // new registration
-		$res = mysql_query("insert into Records
+	$res = $mysqli->query("select rec_ID, rec_Title from Records where `rec_URL`='$serverURL'");
+	if($res->num_rows == 0) { // new registration
+		$res = $mysqli->query("insert into Records
 			(rec_URL, rec_Added, rec_Title, rec_RecTypeID, rec_AddedByImport, rec_OwnerUGrpID, rec_NonOwnerVisibility,rec_Popularity)
 			VALUES  ('$serverURL', now(), '$dbTitle', " . HEURIST_DB_DESCRIPTOR_RECTYPE . ", 0, $indexdb_user_id, 'viewable', 99)");
 		if (!$res) { // Unable to allocate a new ID
@@ -150,22 +150,22 @@
 			$returnData = $dbID . "," . $error;
 			echo $returnData;
 		} else { // core database record created OK
-			$dbID = mysql_insert_id();
+			$dbID = $mysql->insert_id;
 			$returnData = $dbID;
 
 			//Write the database title into the details, further data will be entered by the Heurist form
-			$res = mysql_query("insert into recDetails
+			$res = $mysqli->query("insert into recDetails
 				(dtl_RecID,dtl_DetailTypeID,dtl_Value) VALUES ('$dbID', ".DT_NAME.", '$dbTitle')");
 
 			//Write db version as detail
 			if($dbVersion){
 				$update = "insert into recDetails (dtl_RecID,dtl_DetailTypeID,dtl_Value) VALUES ('$dbID', 335, '$dbVersion')";
-				$res = mysql_query($update);
+				$res = $mysqli->query($update);
 			}
 
 			// Write the record bookmark into the bookmarks table. This allos the user registering the database
 			// to see thir lsit of databases as My Bookmarks
-			$res = mysql_query("insert into usrBookmarks
+			$res = $mysqli->query("insert into usrBookmarks
 				(bkm_UGrpID,bkm_RecID) VALUES ('$indexdb_user_id','$dbID')");
 
 
@@ -196,7 +196,7 @@
 		// existing registration - used to update title, but this is now handled by metadata edit form
 		// This should now not be called any more
 		// just incase there was a problem let's return the id.
-		$dbID = mysql_fetch_assoc($res);
+		$dbID = $res->fetch_assoc();
 		if (@$dbID && array_key_exists("rec_ID",$dbID)) {
 			$returnData = $dbID["rec_ID"];
 		}

@@ -69,11 +69,11 @@ if (! is_logged_in()) {
 
 if (!array_key_exists('user',$_REQUEST) || !$_REQUEST['user'] ) $_REQUEST['user'] = get_user_id();
 
-mysql_connection_select(DATABASE);
+$mysqli = mysqli_connection_select(DATABASE);
 
 if ($_REQUEST['user']) {
 	if (array_key_exists('kwd',$_REQUEST) && $_REQUEST['kwd']) {
-		$res = mysql_query('
+		$res = $mysqli->query('
    select B.bkm_UGrpID,
           concat(usr.'.USERS_FIRSTNAME_FIELD.'," ",usr.'.USERS_LASTNAME_FIELD.') as name,
 		  count(B.bkm_UGrpID) as freq
@@ -92,7 +92,7 @@ left join '.USERS_DATABASE.'.'.USERS_TABLE.' usr on usr.'.USERS_ID_FIELD.'=B.bkm
 
 	}
 	else {
-		$res = mysql_query('
+		$res = $mysqli->query('
    select B.bkm_UGrpID,
           concat(usr.'.USERS_FIRSTNAME_FIELD.'," ",usr.'.USERS_LASTNAME_FIELD.') as name,
 		  count(B.bkm_UGrpID) as freq
@@ -162,7 +162,7 @@ Users with similar interests to you: (show
 <?php
 
 	$i = 0;
-	while ($row = mysql_fetch_assoc($res)) {
+	while ($row = $res->fetch_assoc()) {
 		echo ' <tr'. (++$i > 10 ? ' style="display: none;"' : '') .'><td><a href="'.HEURIST_SITE_PATH.'admin/ugrps/viewUserDetails.php?db='.HEURIST_DBNAME.'&Id='.$row['bkm_UGrpID'].'" title="View user profile for '.$row['name'].'">'.$row['name']."</a>&nbsp;&nbsp;&nbsp;&nbsp;</td>\n";
 		echo '     <td><a target="_top" href="'.HEURIST_SITE_PATH.'search/search.html?db='.HEURIST_DBNAME.'&w=bookmark&q=user:%22'.$row['name'].'%22" title="Search for records that you and '.$row['name'].' share"><b>'.$row['freq']."</b> records in common</a></td></tr>\n";
 	}

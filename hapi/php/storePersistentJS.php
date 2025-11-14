@@ -46,9 +46,9 @@
 require_once(dirname(__FILE__)."/../../common/connect/applyCredentials.php");
 require_once(dirname(__FILE__)."/../../common/php/dbMySqlWrappers.php");
 
-mysql_connection_overwrite("hapi");
+$mysqli = mysqli_connection_overwrite("hapi");
 
-mysql_query("start transaction");
+$mysqli->query("start transaction");
 
 if (! is_logged_in()) {
 /*****
@@ -76,17 +76,17 @@ if (preg_match("/^([a-zA-Z0-9_]+)((?:[.][a-zA-Z0-9_]+)+)$/", $varName, $matches)
 
 	if (@$_REQUEST["crossSession"]) {
 		// cross-session values are stored in the database
-		$res = mysql_query("select * from hapi_pj_party where pj_location='" . addslashes($location) . "'" .
+		$res = $mysqli->query("select * from hapi_pj_party where pj_location='" . addslashes($location) . "'" .
 		                                                " and pj_instance='" . HEURIST_DBNAME . "'" .
 		                                                " and pj_user_id=" . get_user_id() .
 		                                                " and pj_varname='" . addslashes($topLevelVarName) . "'");
-		$topObject = mysql_fetch_assoc($res);
+		$topObject = $res->fetch_assoc();
 		$topObject = json_decode($topObject["pj_value"], 1);
 		if (! is_array($topObject)) $topObject = array();
 
 		setInnerValue($topObject, $innerVarPath, $value);
 
-		mysql_query("replace hapi_pj_party (pj_location, pj_instance, pj_user_id, pj_varname, pj_value)
+		$mysqli->query("replace hapi_pj_party (pj_location, pj_instance, pj_user_id, pj_varname, pj_value)
 		                            values ('".addslashes($location)."',
 		                                     '".HEURIST_DBNAME."',
 		                                     ".get_user_id().",
@@ -110,7 +110,7 @@ if (preg_match("/^([a-zA-Z0-9_]+)((?:[.][a-zA-Z0-9_]+)+)$/", $varName, $matches)
 }
 else if (preg_match("/^([a-zA-Z0-9_]+)$/", $varName)) {
 	if (@$_REQUEST["crossSession"]) {
-		mysql_query("replace hapi_pj_party (pj_location, pj_instance, pj_user_id, pj_varname, pj_value)
+		$mysqli->query("replace hapi_pj_party (pj_location, pj_instance, pj_user_id, pj_varname, pj_value)
 		                            values ('".addslashes($location)."',
 		                                     '".HEURIST_DBNAME."',
 		                                     ".get_user_id().",
@@ -128,7 +128,7 @@ else {
 }
 
 
-mysql_query("commit");
+$mysqli->query("commit");
 
 print json_encode(array("success" => true));
 
@@ -153,7 +153,7 @@ function setInnerValue(&$obj, $innerVar, $value) {
 
 
 function jsonError($message) {
-	mysql_query("rollback");
+	$mysqli->query("rollback");
 	print "{\"error\":\"" . addslashes($message) . "\"}";
 	exit(0);
 }

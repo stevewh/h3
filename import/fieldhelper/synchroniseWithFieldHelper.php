@@ -108,8 +108,8 @@ function update_counts(divid, processed, added, total) {
 	$mediaExts = null;
 	$progress_divid = 0;
 
-		mysql_connection_overwrite(DATABASE);
-		if(mysql_error()) {
+		$mysqli = mysqli_connection_overwrite(DATABASE);
+		if($mysqli->error) {
 			die("Sorry, could not connect to the database (mysql_connection_overwrite error)");
 		}
 
@@ -151,12 +151,12 @@ function update_counts(divid, processed, added, total) {
 			}else{
 				// Find out which folders to parse for XML manifests
 				$query1 = "SELECT sys_MediaFolders, sys_MediaExtensions from sysIdentification where sys_ID=1";
-				$res1 = mysql_query($query1);
-				if (!$res1 || mysql_num_rows($res1) == 0) {
+				$res1 = $mysqli->query($query1);
+				if (!$res1 || mysqli_num_rows($res1) == 0) {
 					die ("<p><b>Sorry, unable to read the sysIdentification from the current databsae. Possibly wrong database format, please consult Heurist team");
 				}
 
-				$row1 = $row = mysql_fetch_row($res1);
+				$row1 = $row = mysqli_fetch_row($res1);
 				$mediaFolders = $row1[0];
 				$dirs = explode(';', $mediaFolders); // get an array of folders
 
@@ -293,7 +293,7 @@ function update_counts(divid, processed, added, total) {
 		function jsonError($message) {
 			global $rep_issues, $currfile;
 
-			//mysql_query("rollback");
+			//$mysqli->query("rollback");
 			error_log("ERROR :".$message);
 
 			$rep_issues = $rep_issues."<br/>Error save record for file:".$currfile.". ".$message;

@@ -50,6 +50,7 @@
 
 // User must be system administrator or admin of the owners group for this database
 require_once(dirname(__FILE__).'/../../common/connect/applyCredentials.php');
+require_once(dirname(__FILE__).'/../../common/php/dbMySqlWrappers.php');
 require_once(dirname(__FILE__).'/../../common/php/getRecordInfoLibrary.php');
 require_once(dirname(__FILE__).'/saveStructure.php');
 
@@ -99,7 +100,7 @@ $parent_id = @$_REQUEST['parent'];
 			echo "<div style='color:red'>Display name is mandatory!</div>";
 		}else{
 
-			$db = mysqli_connection_overwrite(DATABASE); //artem's
+			mysqli_connection_overwrite(DATABASE); //artem's
 
 			$res = updateTerms(array('trm_Label','trm_Description','trm_Domain','trm_ParentTermID','trm_Status','trm_Code'), $parent_id."-1",
 					array($_REQUEST['name'],$_REQUEST['description'],$_REQUEST['domain'], ($parent_id==0?null:$parent_id) ,"open",$_REQUEST['code']), null);

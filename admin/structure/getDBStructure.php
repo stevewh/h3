@@ -62,8 +62,8 @@
 
 	// Deals with all the database connections stuff
 
-	mysql_connection_select(DATABASE);
-	if(mysql_error()) {
+	$mysqli = mysqli_connection_select(DATABASE);
+	if($mysqli->error) {
 		die("Could not get database structure from given database source, MySQL error - unable to connect to database.");
 	}
 
@@ -83,87 +83,87 @@
 	print "<html><head></head><body>\n";
 	print "-- Heurist Definitions Exchange File  generated: ".date("d M Y @ H:i")."<br>\n";
 	print "-- Installation = " . HEURIST_BASE_URL. "<br>\n";
-    print "-- Database = " . HEURIST_DBNAME . "<br>\n";
-    print "-- Program Version: ".HEURIST_VERSION."<br>\n";
-    print "-- Database Version: ".HEURIST_DBVERSION; // ** Do not change format of this line ** !!! it is checked to make sure vesions match
-    print "<br><br>\n";
+  print "-- Database = " . HEURIST_DBNAME . "<br>\n";
+  print "-- Program Version: ".HEURIST_VERSION."<br>\n";
+  print "-- Database Version: ".HEURIST_DBVERSION; // ** Do not change format of this line ** !!! it is checked to make sure vesions match
+  print "<br><br>\n";
 
 
-    // Now output each of the definition tables as data for an insert statement. The headings are merely for documentation
-    // Each block of data is between a >>StartData>> and >>EndData>> markers
-    // This could perhaps be done more elegantly as JSON structures, but SQL inserts help to point up errors in fields
+  // Now output each of the definition tables as data for an insert statement. The headings are merely for documentation
+  // Each block of data is between a >>StartData>> and >>EndData>> markers
+  // This could perhaps be done more elegantly as JSON structures, but SQL inserts help to point up errors in fields
 
-    $startToken = ">>StartData>>";
-    $endToken = ">>EndData>>";
+  $startToken = ">>StartData>>";
+  $endToken = ">>EndData>>";
 
-    // ------------------------------------------------------------------------------------------
-    // defRecTypeGroups
+  // ------------------------------------------------------------------------------------------
+  // defRecTypeGroups
 
-    print "\n\n\n-- RECORD TYPE GROUPS";print "\n";
-    print "<p>";
-    include 'crosswalk/defRecTypeGroupsFields.inc'; // sets value of $flds
-    print "-- $flds \n";
-    $query = "select $flds from defRecTypeGroups";
-    $res = mysql_query($query);
-    $fmt = 'defRecTypeGroups';
+  print "\n\n\n-- RECORD TYPE GROUPS";print "\n";
+  print "<p>";
+  include 'crosswalk/defRecTypeGroupsFields.inc'; // sets value of $flds
+  print "-- $flds \n";
+  $query = "select $flds from defRecTypeGroups";
+  $res = $mysqli->query($query);
+  $fmt = 'defRecTypeGroups';
 
-    print "<p>";
-    print "\n$startToken\n";
-    while ($row = mysql_fetch_assoc($res)) { @print_row($row, $fmt); }
-    print "$endToken\n";
-    print "<p>&nbsp;<p>&nbsp;<p>";
+  print "<p>";
+  print "\n$startToken\n";
+  while ($row = $res->fetch_assoc()) { @print_row($row, $fmt); }
+  print "$endToken\n";
+  print "<p>&nbsp;<p>&nbsp;<p>";
 
-    // ------------------------------------------------------------------------------------------
-    // defDetailTypeGroups
+  // ------------------------------------------------------------------------------------------
+  // defDetailTypeGroups
 
-    print "\n\n\n-- DETAIL TYPE GROUPS";print "\n";
-    print "<p>";
-    include 'crosswalk/defDetailTypeGroupsFields.inc'; // sets value of $flds
-    print "-- $flds \n";
-    $query = "select $flds from defDetailTypeGroups";
-    $res = mysql_query($query);
-    $fmt = 'defDetailTypeGroups';
+  print "\n\n\n-- DETAIL TYPE GROUPS";print "\n";
+  print "<p>";
+  include 'crosswalk/defDetailTypeGroupsFields.inc'; // sets value of $flds
+  print "-- $flds \n";
+  $query = "select $flds from defDetailTypeGroups";
+  $res = $mysqli->query($query);
+  $fmt = 'defDetailTypeGroups';
 
-    print "<p>";
-    print "\n$startToken\n";
-    while ($row = mysql_fetch_assoc($res)) { @print_row($row, $fmt); }
-    print "$endToken\n";
-    print "<p>&nbsp;<p>&nbsp;<p>";
+  print "<p>";
+  print "\n$startToken\n";
+  while ($row = $res->fetch_assoc()) { @print_row($row, $fmt); }
+  print "$endToken\n";
+  print "<p>&nbsp;<p>&nbsp;<p>";
 
-    // ------------------------------------------------------------------------------------------
-    // Detail Type ONTOLOGIES
+  // ------------------------------------------------------------------------------------------
+  // Detail Type ONTOLOGIES
 
-    print "\n\n\n-- ONTOLOGIES";print "\n";
-    print "<p>";
-    include 'crosswalk/defOntologiesFields.inc'; // sets value of $flds
-    print "-- $flds \n";
-    $query = "select $flds from defOntologies";
-    $res = mysql_query($query);
-    $fmt = 'defOntologies';
+  print "\n\n\n-- ONTOLOGIES";print "\n";
+  print "<p>";
+  include 'crosswalk/defOntologiesFields.inc'; // sets value of $flds
+  print "-- $flds \n";
+  $query = "select $flds from defOntologies";
+  $res = $mysqli->query($query);
+  $fmt = 'defOntologies';
 
-    print "<p>";
-    print "\n$startToken\n";
-    while ($row = mysql_fetch_assoc($res)) { @print_row($row, $fmt); }
-    print "$endToken\n";
-    print "<p>&nbsp;<p>&nbsp;<p>";
+  print "<p>";
+  print "\n$startToken\n";
+  while ($row = $res->fetch_assoc()) { @print_row($row, $fmt); }
+  print "$endToken\n";
+  print "<p>&nbsp;<p>&nbsp;<p>";
 
 
-    // ------------------------------------------------------------------------------------------
-    // Detail Type TERMS
+  // ------------------------------------------------------------------------------------------
+  // Detail Type TERMS
 
-    print "\n\n\n-- TERMS";print "\n";
-    print "<p>";
-    include 'crosswalk/defTermsFields.inc'; // sets value of $flds
-    print "-- $flds \n";
-    $query = "select $flds from defTerms";
-    $res = mysql_query($query);
-    $fmt = 'defTerms';
+  print "\n\n\n-- TERMS";print "\n";
+  print "<p>";
+  include 'crosswalk/defTermsFields.inc'; // sets value of $flds
+  print "-- $flds \n";
+  $query = "select $flds from defTerms";
+  $res = $mysqli->query($query);
+  $fmt = 'defTerms';
 
-    print "<p>";
-    print "\n$startToken\n";
-    while ($row = mysql_fetch_assoc($res)) { @print_row($row, $fmt); }
-    print "$endToken\n";
-    print "<p>&nbsp;<p>&nbsp;<p>";
+  print "<p>";
+  print "\n$startToken\n";
+  while ($row = $res->fetch_assoc()) { @print_row($row, $fmt); }
+  print "$endToken\n";
+  print "<p>&nbsp;<p>&nbsp;<p>";
 
 
 	// ------------------------------------------------------------------------------------------
@@ -174,12 +174,12 @@
     include 'crosswalk/defRecTypesFields.inc'; // sets value of $flds
     print "-- $flds \n";
     $query = "select $flds from defRecTypes";
-	$res = mysql_query($query);
+	$res = $mysqli->query($query);
 	$fmt = 'defRecTypes';
 
 	print "<p>";
     print "\n$startToken\n";
-	while ($row = mysql_fetch_assoc($res)) { @print_row($row, $fmt); }
+	while ($row = $res->fetch_assoc()) { @print_row($row, $fmt); }
     print "\n$endToken\n";
 	print "<p>&nbsp;<p>&nbsp;<p>";
 
@@ -192,12 +192,12 @@
     include 'crosswalk/defDetailTypesFields.inc'; // sets value of $flds
     print "-- $flds \n";
     $query = "select $flds from defDetailTypes";
-	$res = mysql_query($query);
+	$res = $mysqli->query($query);
 	$fmt = 'defDetailTypes';
 
 	print "<p>";
     print "\n$startToken\n";
-	while ($row = mysql_fetch_assoc($res)) { @print_row($row, $fmt); }
+	while ($row = $res->fetch_assoc()) { @print_row($row, $fmt); }
     print "\n$endToken\n";
 	print "<p>&nbsp;<p>&nbsp;<p>";
 
@@ -210,12 +210,12 @@
     include 'crosswalk/defRecStructureFields.inc'; // sets value of $flds
     print "-- $flds \n";
 	$query = "select $flds from defRecStructure";
-	$res = mysql_query($query);
+	$res = $mysqli->query($query);
 	$fmt = 'defRecStructure';
 
 	print "<p>";
     print "\n$startToken\n";
-	while ($row = mysql_fetch_assoc($res)) { @print_row($row, $fmt); }
+	while ($row = $res->fetch_assoc()) { @print_row($row, $fmt); }
     print "\n$endToken\n";
 	print "<p>&nbsp;<p>&nbsp;<p>";
 
@@ -227,12 +227,12 @@
     include 'crosswalk/defRelationshipConstraintsFields.inc'; // sets value of $flds
     print "-- $flds \n";
 	$query = "select $flds from defRelationshipConstraints";
-	$res = mysql_query($query);
+	$res = $mysqli->query($query);
 	$fmt = 'defRelationshipConstraints';
 
 	print "<p>";
     print "\n$startToken\n";
-	while ($row = mysql_fetch_assoc($res)) { @print_row($row, $fmt); }
+	while ($row = $res->fetch_assoc()) { @print_row($row, $fmt); }
     print "\n$endToken\n";
 	print "<p>&nbsp;<p>&nbsp;<p>";
 
@@ -244,12 +244,12 @@
     include 'crosswalk/defFileExtToMimetypeFields.inc'; // sets value of $flds
     print "-- $flds \n";
 	$query = "select $flds from defFileExtToMimetype";
-	$res = mysql_query($query);
+	$res = $mysqli->query($query);
 	$fmt = 'defFileExtToMimetype';
 
 	print "<p>";
     print "\n$startToken\n";
-	while ($row = mysql_fetch_assoc($res)) { @print_row($row, $fmt); }
+	while ($row = $res->fetch_assoc()) { @print_row($row, $fmt); }
     print "\n$endToken\n";
 	print "<p>&nbsp;<p>&nbsp;<p>";
 
@@ -263,12 +263,12 @@
 	$query = "select $flds from defTranslations where trn_Source in
 	('rty_Name', 'dty_Name', 'ont_ShortName', 'vcb_Name', 'trm_Label', 'rst_DisplayName', 'rtg_Name')";
 	// filters to only definition (not data) translations - add others as required
-	$res = mysql_query($query);
+	$res = $mysqli->query($query);
 	$fmt = 'defTranslations';
 
 	print "<p>";
     print "\n$startToken\n";
-	while ($row = mysql_fetch_assoc($res)) { @print_row($row, $fmt); }
+	while ($row = $res->fetch_assoc()) { @print_row($row, $fmt); }
     print "\n$endToken\n";
 	print "<p>&nbsp;<p>&nbsp;<p>";
 
@@ -280,12 +280,12 @@
     include 'crosswalk/defCalcFunctionsFields.inc'; // sets value of $flds
     print "-- $flds \n";
 	$query = "select $flds from defCalcFunctions";
-	$res = mysql_query($query);
+	$res = $mysqli->query($query);
 	$fmt = 'defCalcFunctions';
 
 	print "<p>";
     print "\n$startToken\n";
-	while ($row = mysql_fetch_assoc($res)) { @print_row($row, $fmt); }
+	while ($row = $res->fetch_assoc()) { @print_row($row, $fmt); }
     print "\n$endToken\n";
 	print "<p>&nbsp;<p>&nbsp;<p>";
 
@@ -297,12 +297,12 @@
     include 'crosswalk/defCrosswalkFields.inc'; // sets value of $flds
     print "-- $flds \n";
 	$query = "select $flds from defCrosswalk";
-	$res = mysql_query($query);
+	$res = $mysqli->query($query);
 	$fmt = 'defCrosswalk';
 
 	print "<p>";
     print "\n$startToken\n";
-	while ($row = mysql_fetch_assoc($res)) { @print_row($row, $fmt); }
+	while ($row = $res->fetch_assoc()) { @print_row($row, $fmt); }
     print "\n$endToken\n";
 	print "<p>&nbsp;<p>&nbsp;<p>";
 
@@ -314,12 +314,12 @@
     include 'crosswalk/defLanguagesFields.inc'; // sets value of $flds
     print "-- $flds \n";
 	$query = "select $flds from defLanguages";
-	$res = mysql_query($query);
+	$res = $mysqli->query($query);
 	$fmt = 'defLanguages';
 
 	print "<p>";
     print "\n$startToken\n";
-	while ($row = mysql_fetch_assoc($res)) { @print_row($row, $fmt); }
+	while ($row = $res->fetch_assoc()) { @print_row($row, $fmt); }
     print "\n$endToken\n";
 	print "<p>&nbsp;<p>&nbsp;<p>";
 
@@ -331,12 +331,12 @@
     include 'crosswalk/defURLPrefixesFields.inc'; // sets value of $flds
     print "-- $flds \n";
 	$query = "select $flds from defURLPrefixes";
-	$res = mysql_query($query);
+	$res = $mysqli->query($query);
 	$fmt = 'defURLPrefixes';
 
 	print "<p>";
 	print "\n$startToken\n";
-    while ($row = mysql_fetch_assoc($res)) { @print_row($row, $fmt); }
+    while ($row = $res->fetch_assoc()) { @print_row($row, $fmt); }
     print "\n$endToken\n";
 	print "<p>&nbsp;<p>&nbsp;<p>";
 
@@ -357,12 +357,12 @@
     include 'crosswalk/sysUGrpsFields.inc'; // sets value of $flds
     print "-- $flds \n";
 	$query = "select $flds from sysUGrps";
-	$res = mysql_query($query);
+	$res = $mysqli->query($query);
 	$fmt = 'sysUGrps';
 
 	print "<p>";
     print "\n$startToken\n";
-	while ($row = mysql_fetch_assoc($res)) { print_row($row, $fmt); }
+	while ($row = $res->fetch_assoc()) { print_row($row, $fmt); }
     print "\n$endToken\n";
 	print "<p>&nbsp;<p>&nbsp;<p>";
 
@@ -374,12 +374,12 @@
     include 'crosswalk/sysUsrGrpLinksFields.inc'; // sets value of $flds
     print "-- $flds \n";
 	$query = "select $flds from sysUsrGrpLinks";
-	$res = mysql_query($query);
+	$res = $mysqli->query($query);
 	$fmt = 'sysUsrGrpLinks';
 
 	print "<p>";
     print "\n$startToken\n";
-	while ($row = mysql_fetch_assoc($res)) { print_row($row, $fmt); }
+	while ($row = $res->fetch_assoc()) { print_row($row, $fmt); }
     print "\n$endToken\n";
 	print "<p>&nbsp;<p>&nbsp;<p>";
 
@@ -391,12 +391,12 @@
     include 'crosswalk/usrHyperlinkFiltersFields.inc'; // sets value of $flds
     print "-- $flds \n";
 	$query = "select $flds from usrHyperlinkFilters";
-	$res = mysql_query($query);
+	$res = $mysqli->query($query);
 	$fmt = 'usrHyperlinkFilters';
 
 	print "<p>";
     print "\n$startToken\n";
-	while ($row = mysql_fetch_assoc($res)) { print_row($row, $fmt); }
+	while ($row = $res->fetch_assoc()) { print_row($row, $fmt); }
     print "\n$endToken\n";
 	print "<p>&nbsp;<p>&nbsp;<p>";
 
@@ -408,12 +408,12 @@
     include 'crosswalk/usrTagsFields.inc'; // sets value of $flds
     print "-- $flds \n";
 	$query = "select $flds from UsrTags";
-	$res = mysql_query($query);
+	$res = $mysqli->query($query);
 	$fmt = 'UsrTags';
 
 	print "<p>";
     print "\n$startToken\n";
-	while ($row = mysql_fetch_assoc($res)) { print_row($row, $fmt); }
+	while ($row = $res->fetch_assoc()) { print_row($row, $fmt); }
     print "\n$endToken\n";
 	print "<p>&nbsp;<p>&nbsp;<p>";
 
@@ -436,15 +436,15 @@
 
 			case 'defRecTypes': // Data from the defRecTypes table
 			if($row['rty_ID'] != 0) {
-			$rty_Name = mysql_real_escape_string($row['rty_Name']); // escapes RTF-8 characters
-			$rty_Description = mysql_real_escape_string($row['rty_Description']);
-			$rty_TitleMask = mysql_real_escape_string($row['rty_TitleMask']);
-			$rty_CanonicalTitleMask = mysql_real_escape_string($row['rty_CanonicalTitleMask']);
-			$rty_Plural = mysql_real_escape_string($row['rty_Plural']);
-			$rty_NameInOriginatingDB = mysql_real_escape_string($row['rty_NameInOriginatingDB']);
-			$rty_RecTypeGroupID = mysql_real_escape_string($row['rty_RecTypeGroupID']);
-			$rty_ReferenceURL = mysql_real_escape_string($row['rty_ReferenceURL']);
-			$rty_AlternativeRecEditor = mysql_real_escape_string($row['rty_AlternativeRecEditor']);
+			$rty_Name = $mysqli->real_escape_string($row['rty_Name']); // escapes RTF-8 characters
+			$rty_Description = $mysqli->real_escape_string($row['rty_Description']);
+			$rty_TitleMask = $mysqli->real_escape_string($row['rty_TitleMask']);
+			$rty_CanonicalTitleMask = $mysqli->real_escape_string($row['rty_CanonicalTitleMask']);
+			$rty_Plural = $mysqli->real_escape_string($row['rty_Plural']);
+			$rty_NameInOriginatingDB = $mysqli->real_escape_string($row['rty_NameInOriginatingDB']);
+			$rty_RecTypeGroupID = $mysqli->real_escape_string($row['rty_RecTypeGroupID']);
+			$rty_ReferenceURL = $mysqli->real_escape_string($row['rty_ReferenceURL']);
+			$rty_AlternativeRecEditor = $mysqli->real_escape_string($row['rty_AlternativeRecEditor']);
 			print "('$row[rty_ID]','$rty_Name','$row[rty_OrderInGroup]','$rty_Description','$rty_TitleMask',
 			'$rty_CanonicalTitleMask','$rty_Plural','$row[rty_Status]',
 			'$row[rty_OriginatingDBID]','$rty_NameInOriginatingDB','$row[rty_IDInOriginatingDB]',
@@ -455,15 +455,15 @@
 			break;
 
 			case 'defDetailTypes': // Data from the recDetails table
-			$dty_Name = mysql_real_escape_string($row['dty_Name']);
-			$dty_Documentation = mysql_real_escape_string($row['dty_Documentation']);
-			$dty_HelpText = mysql_real_escape_string($row['dty_HelpText']);
-			$dty_ExtendedDescription = mysql_real_escape_string($row['dty_ExtendedDescription']);
-			$dty_NameInOriginatingDB = mysql_real_escape_string($row['dty_NameInOriginatingDB']);
-			$dty_EntryMask = mysql_real_escape_string($row['dty_EntryMask']);
-			$dty_JsonTermIDTree = mysql_real_escape_string($row['dty_JsonTermIDTree']);
-			$dty_TermIDTreeNonSelectableIDs = mysql_real_escape_string($row['dty_TermIDTreeNonSelectableIDs']);
-			$dty_PtrTargetRectypeIDs = mysql_real_escape_string($row['dty_PtrTargetRectypeIDs']);
+			$dty_Name = $mysqli->real_escape_string($row['dty_Name']);
+			$dty_Documentation = $mysqli->real_escape_string($row['dty_Documentation']);
+			$dty_HelpText = $mysqli->real_escape_string($row['dty_HelpText']);
+			$dty_ExtendedDescription = $mysqli->real_escape_string($row['dty_ExtendedDescription']);
+			$dty_NameInOriginatingDB = $mysqli->real_escape_string($row['dty_NameInOriginatingDB']);
+			$dty_EntryMask = $mysqli->real_escape_string($row['dty_EntryMask']);
+			$dty_JsonTermIDTree = $mysqli->real_escape_string($row['dty_JsonTermIDTree']);
+			$dty_TermIDTreeNonSelectableIDs = $mysqli->real_escape_string($row['dty_TermIDTreeNonSelectableIDs']);
+			$dty_PtrTargetRectypeIDs = $mysqli->real_escape_string($row['dty_PtrTargetRectypeIDs']);
 			print "('$row[dty_ID]','$dty_Name','$dty_Documentation','$row[dty_Type]','$dty_HelpText',
 			'$dty_ExtendedDescription','$dty_EntryMask','$row[dty_Status]','$row[dty_OriginatingDBID]',
 			'$dty_NameInOriginatingDB','$row[dty_IDInOriginatingDB]','$row[dty_DetailTypeGroupID]',
@@ -472,13 +472,13 @@
 			break;
 
 			case 'defRecStructure': // Data from the defRecStructure table
-			$rst_DisplayName = mysql_real_escape_string($row['rst_DisplayName']);
-			$rst_DisplayHelpText = mysql_real_escape_string($row['rst_DisplayHelpText']);
-			$rst_DisplayExtendedDescription = mysql_real_escape_string($row['rst_DisplayExtendedDescription']);
-			$rst_DefaultValue = mysql_real_escape_string($row['rst_DefaultValue']);
-			$rst_FilteredJsonTermIDTree = mysql_real_escape_string($row['rst_FilteredJsonTermIDTree']);
-			$rst_TermIDTreeNonSelectableIDs = mysql_real_escape_string($row['rst_TermIDTreeNonSelectableIDs']);
-			$rst_PtrFilteredIDs = mysql_real_escape_string($row['rst_PtrFilteredIDs']);
+			$rst_DisplayName = $mysqli->real_escape_string($row['rst_DisplayName']);
+			$rst_DisplayHelpText = $mysqli->real_escape_string($row['rst_DisplayHelpText']);
+			$rst_DisplayExtendedDescription = $mysqli->real_escape_string($row['rst_DisplayExtendedDescription']);
+			$rst_DefaultValue = $mysqli->real_escape_string($row['rst_DefaultValue']);
+			$rst_FilteredJsonTermIDTree = $mysqli->real_escape_string($row['rst_FilteredJsonTermIDTree']);
+			$rst_TermIDTreeNonSelectableIDs = $mysqli->real_escape_string($row['rst_TermIDTreeNonSelectableIDs']);
+			$rst_PtrFilteredIDs = $mysqli->real_escape_string($row['rst_PtrFilteredIDs']);
 			print "('$row[rst_ID]','$row[rst_RecTypeID]',
                 '$row[rst_DetailTypeID]','$rst_DisplayName','$rst_DisplayHelpText',
                 '$rst_DisplayExtendedDescription','$row[rst_DisplayOrder]','$row[rst_DisplayWidth]',
@@ -491,9 +491,9 @@
 			break;
 
 			case 'defTerms': // Data from the rec_details_lookup table
-			$trm_Label = mysql_real_escape_string($row['trm_Label']);
-			$trm_Description = mysql_real_escape_string($row['trm_Description']);
-			$trm_NameInOriginatingDB = mysql_real_escape_string($row['trm_NameInOriginatingDB']);
+			$trm_Label = $mysqli->real_escape_string($row['trm_Label']);
+			$trm_Description = $mysqli->real_escape_string($row['trm_Description']);
+			$trm_NameInOriginatingDB = $mysqli->real_escape_string($row['trm_NameInOriginatingDB']);
 			print "('$row[trm_ID]','$trm_Label','$row[trm_InverseTermId]',
                 '$trm_Description','$row[trm_Status]',
                 '$row[trm_OriginatingDBID]','$trm_NameInOriginatingDB','$row[trm_IDInOriginatingDB]',
@@ -502,11 +502,11 @@
 			break;
 
 			case 'defOntologies': // Data from Ontologies table
-			$ont_ShortName = mysql_real_escape_string($row['ont_ShortName']);
-			$ont_FullName = mysql_real_escape_string($row['ont_FullName']);
-			$ont_Description = mysql_real_escape_string($row['ont_Description']);
-			$ont_RefURI = mysql_real_escape_string($row['ont_RefURI']);
-			$ont_NameInOriginatingDB = mysql_real_escape_string($row['ont_NameInOriginatingDB']);
+			$ont_ShortName = $mysqli->real_escape_string($row['ont_ShortName']);
+			$ont_FullName = $mysqli->real_escape_string($row['ont_FullName']);
+			$ont_Description = $mysqli->real_escape_string($row['ont_Description']);
+			$ont_RefURI = $mysqli->real_escape_string($row['ont_RefURI']);
+			$ont_NameInOriginatingDB = $mysqli->real_escape_string($row['ont_NameInOriginatingDB']);
 			print "('$row[ont_ID]','$ont_ShortName','$ont_FullName','$ont_Description',
                 '$ont_RefURI','$row[ont_Status]',
                 '$row[ont_OriginatingDBID]','$ont_NameInOriginatingDB','$row[ont_IDInOriginatingDB]',
@@ -514,7 +514,7 @@
 			break;
 
 			case 'defRelationshipConstraints': // Data from relationship constraints table
-			$rcs_Description = mysql_real_escape_string($row['rcs_Description']);
+			$rcs_Description = $mysqli->real_escape_string($row['rcs_Description']);
 			print "('$row[rcs_ID]','$row[rcs_SourceRectypeID]','$row[rcs_TargetRectypeID]','$rcs_Description',
                 '$row[rcs_RelationshipsLimit]','$row[rcs_Status]',
                 '$row[rcs_OriginatingDB]','$row[rcs_IDInOriginatingDB]',
@@ -522,34 +522,34 @@
 			break;
 
 			case 'defFileExtToMimetype': // Data from field extension to mimetype table
-			$fxm_Extension = mysql_real_escape_string($row['fxm_Extension']);
-			$fxm_MimeType = mysql_real_escape_string($row['fxm_MimeType']);
-			$fxm_IconFileName = mysql_real_escape_string($row['fxm_IconFileName']);
-			$fxm_FiletypeName = mysql_real_escape_string($row['fxm_FiletypeName']);
-			$fxm_ImagePlaceholder = mysql_real_escape_string($row['fxm_ImagePlaceholder']);
+			$fxm_Extension = $mysqli->real_escape_string($row['fxm_Extension']);
+			$fxm_MimeType = $mysqli->real_escape_string($row['fxm_MimeType']);
+			$fxm_IconFileName = $mysqli->real_escape_string($row['fxm_IconFileName']);
+			$fxm_FiletypeName = $mysqli->real_escape_string($row['fxm_FiletypeName']);
+			$fxm_ImagePlaceholder = $mysqli->real_escape_string($row['fxm_ImagePlaceholder']);
 			print "('$fxm_Extension','$fxm_MimeType',
                 '$row[fxm_OpenNewWindow]','$fxm_IconFileName','$fxm_FiletypeName','$fxm_ImagePlaceholder'),";
 			break;
 
 			case 'defRecTypeGroups': // Data from record type classes table
-			$rtg_Name = mysql_real_escape_string($row['rtg_Name']);
-			$rtg_Description = mysql_real_escape_string($row['rtg_Description']);
+			$rtg_Name = $mysqli->real_escape_string($row['rtg_Name']);
+			$rtg_Description = $mysqli->real_escape_string($row['rtg_Description']);
 			print "('$row[rtg_ID]','$rtg_Name','$row[rtg_Domain]','$row[rtg_Order]','$rtg_Description'),";
 			break;
 
 			case 'defDetailTypeGroups': // Data from detail type classes table
-			$dtg_Name = mysql_real_escape_string($row['dtg_Name']);
-			$dtg_Description = mysql_real_escape_string($row['dtg_Description']);
+			$dtg_Name = $mysqli->real_escape_string($row['dtg_Name']);
+			$dtg_Description = $mysqli->real_escape_string($row['dtg_Description']);
 			print "('$row[dtg_ID]','$dtg_Name','$row[dtg_Order]','$dtg_Description'),";
 			break;
 
 			case 'defTranslations':
-			$trn_Translation = mysql_real_escape_string($row['trn_Translation']);
+			$trn_Translation = $mysqli->real_escape_string($row['trn_Translation']);
 			print "('$row[trn_ID]','$row[trn_Source]','$row[trn_Code]','$row[trn_LanguageCode3]','$trn_Translation'),";
 			break;
 
 			case 'defCalcFunctions':
-			$cfn_FunctionSpecification = mysql_real_escape_string($row['cfn_FunctionSpecification']);
+			$cfn_FunctionSpecification = $mysqli->real_escape_string($row['cfn_FunctionSpecification']);
 			print "('$row[cfn_ID]','$row[cfn_Domain]','$cfn_FunctionSpecification'),";
 			break;
 
@@ -561,35 +561,35 @@
 			break;
 
 			case 'defLanguages':
-			$lng_Name = mysql_real_escape_string($row['lng_Name']);
-			$lng_Notes = mysql_real_escape_string($row['lng_Notes']);
+			$lng_Name = $mysqli->real_escape_string($row['lng_Name']);
+			$lng_Notes = $mysqli->real_escape_string($row['lng_Notes']);
 			print "('$row[NISOZ3953]','$row[lng_ISO639]','$lng_Name','$lng_Notes'),";
 			break;
 
 			case 'defURLPrefixes':
-			$urp_Prefix = mysql_real_escape_string($row['urp_Prefix']);
+			$urp_Prefix = $mysqli->real_escape_string($row['urp_Prefix']);
 			print "('$row[urp_ID]','$urp_Prefix'),";
 			break;
 
 			// Note: these have not yet (Sep 2011) been implemented in buildCrosswalks.php as they are not really needed
 
             case 'sysUGrps': // User details - data from sysUGrps table
-			$ugr_Name = mysql_real_escape_string($row['ugr_Name']);
-			$ugr_LongName = mysql_real_escape_string($row['ugr_LongName']);
-			$ugr_Description = mysql_real_escape_string($row['ugr_Description']);
-			$ugr_Password = mysql_real_escape_string($row['ugr_Password']);
-			$ugr_eMail = mysql_real_escape_string($row['ugr_eMail']);
-			$ugr_FirstName = mysql_real_escape_string($row['ugr_FirstName']);
-			$ugr_LastName = mysql_real_escape_string($row['ugr_LastName']);
-			$ugr_Departement = mysql_real_escape_string($row['ugr_Departement']);
-			$ugr_Organisation = mysql_real_escape_string($row['ugr_Organisation']);
-			$ugr_City = mysql_real_escape_string($row['ugr_City']);
-			$ugr_State = mysql_real_escape_string($row['ugr_State']);
-			$ugr_Postcode = mysql_real_escape_string($row['ugr_Postcode']);
-			$ugr_Interests = mysql_real_escape_string($row['ugr_Interests']);
-            $ugr_IncomingEmailAddresses = mysql_real_escape_string($row['ugr_IncomingEmailAddresses']);
-            $ugr_TargetEmailAddresses = mysql_real_escape_string($row['ugr_TargetEmailAddresses']);
-			$ugr_URLs = mysql_real_escape_string($row['ugr_URLs']);
+			$ugr_Name = $mysqli->real_escape_string($row['ugr_Name']);
+			$ugr_LongName = $mysqli->real_escape_string($row['ugr_LongName']);
+			$ugr_Description = $mysqli->real_escape_string($row['ugr_Description']);
+			$ugr_Password = $mysqli->real_escape_string($row['ugr_Password']);
+			$ugr_eMail = $mysqli->real_escape_string($row['ugr_eMail']);
+			$ugr_FirstName = $mysqli->real_escape_string($row['ugr_FirstName']);
+			$ugr_LastName = $mysqli->real_escape_string($row['ugr_LastName']);
+			$ugr_Departement = $mysqli->real_escape_string($row['ugr_Departement']);
+			$ugr_Organisation = $mysqli->real_escape_string($row['ugr_Organisation']);
+			$ugr_City = $mysqli->real_escape_string($row['ugr_City']);
+			$ugr_State = $mysqli->real_escape_string($row['ugr_State']);
+			$ugr_Postcode = $mysqli->real_escape_string($row['ugr_Postcode']);
+			$ugr_Interests = $mysqli->real_escape_string($row['ugr_Interests']);
+            $ugr_IncomingEmailAddresses = $mysqli->real_escape_string($row['ugr_IncomingEmailAddresses']);
+            $ugr_TargetEmailAddresses = $mysqli->real_escape_string($row['ugr_TargetEmailAddresses']);
+			$ugr_URLs = $mysqli->real_escape_string($row['ugr_URLs']);
 			print "('$row[ugr_ID]','$row[ugr_Type]','$ugr_Name','$ugr_LongName','$ugr_Description',
 			'$ugr_Password','$ugr_eMail','$ugr_FirstName','$ugr_LastName','$ugr_Department',
 			'$ugr_Organisation','$ugr_City','$ugr_State','$ugr_Postcode','$ugr_Interests',
@@ -602,13 +602,13 @@
 			break;
 
 			case 'usrHyperlinkFilters': // User's hyperlink filter strings'
-			$hyf_String = mysql_real_escape_string($row['hyf_String']);
+			$hyf_String = $mysqli->real_escape_string($row['hyf_String']);
 			print "('$hyf_String','$row[hyf_UGrpID]'),";
 			break;
 
 			case 'UsrTags': // User's tagging values'
-			$tag_Text = mysql_real_escape_string($row['tag_Text']);
-			$tag_Description = mysql_real_escape_string($row['tag_Description']);
+			$tag_Text = $mysqli->real_escape_string($row['tag_Text']);
+			$tag_Description = $mysqli->real_escape_string($row['tag_Description']);
 			print "('$row[tag_ID]','$row[tag_UGrpID]','$tag_Text','$tag_Description','$row[tag_AddedByImport]'),";
 			break;
 

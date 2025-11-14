@@ -85,12 +85,12 @@
 	<body class="popup">
 		<?php
 
-			mysql_connection_select(DATABASE);
+			$mysqli = mysqli_connection_select(DATABASE);
 			// lookup detail type enum values
 			$TL = array();
 			$query = 'SELECT trm_ID, trm_Label, trm_ParentTermID, trm_OntID, trm_Code FROM defTerms';
-			$res = mysql_query($query);
-			while ($row = mysql_fetch_assoc($res)) {
+			$res = $mysqli->query($query);
+			while ($row = $res->fetch_assoc()) {
 				$TL[$row['trm_ID']] = $row;
 			}
 
@@ -105,15 +105,15 @@
 			" WHERE (dty_Type in ('enum','relationtype','relmarker','resource')".
 			" and (dty_JsonTermIDTree is not null or dty_TermIDTreeNonSelectableIDs is not null)) ".
 			"or (dty_Type in ('relmarker','resource') and dty_PtrTargetRectypeIDs is not null); ";
-			$res = mysql_query($query);
-			while ($row = mysql_fetch_assoc($res)) {
+			$res = $mysqli->query($query);
+			while ($row = $res->fetch_assoc()) {
 				$DTT[$row['dty_ID']] = $row;
 			}
 
 			$RTN = array();	//record type name
 			$query = 'SELECT rty_ID, rty_Name FROM defRecTypes';
-			$res = mysql_query($query);
-			while ($row = mysql_fetch_assoc($res)) {
+			$res = $mysqli->query($query);
+			while ($row = $res->fetch_assoc()) {
 				$RTN[$row['rty_ID']] = $row['rty_Name'];
 			}
 

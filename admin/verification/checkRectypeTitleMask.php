@@ -53,9 +53,9 @@ require_once(dirname(__FILE__).'/../../common/php/utilsTitleMask.php');
 
 $check = @$_REQUEST['check'] ? intval($_REQUEST['check']):0;
 if ($check == 0) {
-	mysql_connection_select(DATABASE);
+	$mysqli = mysqli_connection_select(DATABASE);
 }else{
-	mysql_connection_overwrite(DATABASE);
+	$mysqli = mysqli_connection_overwrite(DATABASE);
 }
 
 $rectypeID = @$_REQUEST['rty_id'] ? $_REQUEST['rty_id'] : null;
@@ -117,7 +117,7 @@ $recID = @$_REQUEST['rec_id']? $_REQUEST['rec_id'] : null;;
 
 			echo "<br/><hr>\n";
 
-$rtIDs = mysql__select_assoc("defRecTypes","rty_ID","rty_Name","1 order by rty_ID");
+$rtIDs = mysqli__select_assoc($mysqli, "defRecTypes","rty_ID","rty_Name","1 order by rty_ID");
 
 
 if (!$rectypeID){
@@ -130,11 +130,11 @@ if (!$rectypeID){
 
 function checkRectypeMask($rtID, $rtName, $mask, $coMask, $recID, $check) {
 	if (!@$mask && @$rtID) {
-		$mask= mysql__select_array("defRecTypes","rty_TitleMask","rty_ID=$rtID");
+		$mask= mysqli__select_array($mysqli, "defRecTypes","rty_TitleMask","rty_ID=$rtID");
 		$mask=$mask[0];
 	}
 	if (!@$coMask && @$rtID) {
-		$coMask= mysql__select_array("defRecTypes","rty_CanonicalTitleMask","rty_ID=$rtID");
+		$coMask= mysqli__select_array($mysqli, "defRecTypes","rty_CanonicalTitleMask","rty_ID=$rtID");
 		$coMask=$coMask[0];
 	}
 
@@ -167,8 +167,8 @@ function checkRectypeMask($rtID, $rtName, $mask, $coMask, $recID, $check) {
 			if ($check != 2) {
 				echo "<div class='resultsRow'><div class='statusCell'></div><div class='maskCell'>Correct canonical mask = <span class='valid'>$coMask</span></div></div>";
 			}else{ // repair canonical
-				mysql_query("update defRecTypes set rty_CanonicalTitleMask='$coMask' where rty_ID=$rtID");
-				$error = mysql_error();
+				$mysqli->query("update defRecTypes set rty_CanonicalTitleMask='$coMask' where rty_ID=$rtID");
+				$error = $mysqli->error;
 				echo "<div class='resultsRow'><div class='statusCell ".($error == "" ? "valid'>Update successful":"invalid'>Failed to update")."</div>";
 				echo "<div class='maskCell'>Correct canonical mask = <span class='valid'>$coMask</span></div>";
 				echo ( $error ? "<div class='errorCell invalid'> Error : ".$error."</div>":"")."</div>";

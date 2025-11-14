@@ -39,18 +39,18 @@ function hasWootReadPermission($wootId) {
 
 	if (is_admin()) { return true; }
 
-	$res = mysql_query("select * from " . WOOT_PERMISSION_TABLE . " where wrprm_WootID=$wootId and
+	$res = $mysqli->query("select * from " . WOOT_PERMISSION_TABLE . " where wrprm_WootID=$wootId and
 	                   (wrprm_UGrpID=".get_user_id()." or wrprm_GroupID in (".join(",", get_group_ids()).",-1))");
-	return (mysql_num_rows($res) > 0);
+	return ($res->num_rows > 0);
 }
 function hasWootWritePermission($wootId) {
 	/* Given a woot id, return true if the user has permission to write to it */
 
 	if (is_admin()) { return true; }
 
-	$res = mysql_query("select * from " . WOOT_PERMISSION_TABLE . " where wrprm_WootID=$wootId and
+	$res = $mysqli->query("select * from " . WOOT_PERMISSION_TABLE . " where wrprm_WootID=$wootId and
 	                   (wrprm_UGrpID=".get_user_id()." or wrprm_GroupID in (".join(",", get_group_ids()).",-1)) and wrprm_Type='RW'");
-	return (mysql_num_rows($res) > 0);
+	return ($res->num_rows > 0);
 }
 
 
@@ -64,10 +64,10 @@ function getReadableChunks($wootId=NULL, $restrictToCurrent=false) {
 
 	$restriction = is_admin()? "1 " : "(wprm_UGrpID=".get_user_id()." or wprm_GroupID in (".join(",", get_group_ids()).",-1)) ";
 	if (! $restrictToCurrent) {
-		return mysql__select_array(PERMISSION_TABLE, "wprm_ChunkID", $restriction . ($wootId? " and chunk_WootID=$wootId" : ""));
+		return mysqli__select_array($mysqli, PERMISSION_TABLE, "wprm_ChunkID", $restriction . ($wootId? " and chunk_WootID=$wootId" : ""));
 	}
 	else {
-		return mysql__select_array(CHUNK_TABLE . " left join " . PERMISSION_TABLE . " on chunk_ID=wprm_ChunkID", "wprm_ChunkID",
+		return mysqli__select_array($mysqli, CHUNK_TABLE . " left join " . PERMISSION_TABLE . " on chunk_ID=wprm_ChunkID", "wprm_ChunkID",
 		                           "$restriction and chunk_IsLatest" . ($wootId? " and chunk_WootID=$wootId" : "") . " and wprm_ChunkID is not null");
 	}
 }
@@ -81,24 +81,24 @@ function getWritableChunks($wootId=NULL, $restrictToCurrent=false) {
 
 	$restriction = is_admin()? "1 " : "(wprm_UGrpID=".get_user_id()." or wprm_GroupID in (".join(",", get_group_ids()).",-1)) and wprm_Type='RW' ";
 	if (! $restrictToCurrent) {
-		return mysql__select_array(PERMISSION_TABLE, "wprm_ChunkID",
+		return mysqli__select_array($mysqli, PERMISSION_TABLE, "wprm_ChunkID",
 		                           $restriction . ($wootId? " and chunk_WootID=$wootId" : ""));
 	}
 	else {
-		return mysql__select_array(CHUNK_TABLE . " left join " . PERMISSION_TABLE . " on chunk_ID=wprm_ChunkID", "wprm_ChunkID",
+		return mysqli__select_array($mysqli, CHUNK_TABLE . " left join " . PERMISSION_TABLE . " on chunk_ID=wprm_ChunkID", "wprm_ChunkID",
 		                           "$restriction and chunk_IsLatest" . ($wootId? " and chunk_WootID=$wootId" : "") . " and wprm_ChunkID is not null");
 	}
 }
 
 function jsonReturn($value, $commit=false) {
 	print json_encode($value);
-	mysql_query($commit? "commit" : "rollback");
+	$mysqli->query($commit? "commit" : "rollback");
 	exit();
 }
 
 
 function jsonError($message) {
-        mysql_query("rollback");
+        $mysqli->query("rollback");
         print "{\"error\":\"" . addslashes($message) . "\"}";
         exit(0);
 }

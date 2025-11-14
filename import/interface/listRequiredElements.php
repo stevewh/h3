@@ -49,15 +49,15 @@
 	require_once(dirname(__FILE__).'/../../common/php/dbMySqlWrappers.php');
 
 
-	mysql_connection_select(DATABASE);
+	$mysqli = mysqli_connection_select(DATABASE);
 
-	$bdt = mysql__select_assoc('defDetailTypes', 'dty_ID', 'dty_Name', '1');
-	$rft = mysql__select_assoc('defRecTypes', 'rty_ID', 'rty_Name', '1');
-	$res = mysql_query('select * from defRecTypes left join defRecStructure on rst_RecTypeID=rty_ID
+	$bdt = mysqli__select_assoc($mysqli, 'defDetailTypes', 'dty_ID', 'dty_Name', '1');
+	$rft = mysqli__select_assoc($mysqli, 'defRecTypes', 'rty_ID', 'rty_Name', '1');
+	$res = $mysqli->query('select * from defRecTypes left join defRecStructure on rst_RecTypeID=rty_ID
 								left join defRecTypeGroups on rtg_ID = rty_RecTypeGroupID
 								order by rtg_Order, rtg_Name, rty_OrderInGroup, rty_Name');
 	$bdr = array();
-	while ($row = mysql_fetch_assoc($res)) {
+	while ($row = $res->fetch_assoc()) {
 	if (! $bdr[$row['rty_ID']])
 		$bdr[$row['rty_ID']] = array();
 	$bdr[$row['rty_ID']][$row['rst_DetailTypeID']] = $row;

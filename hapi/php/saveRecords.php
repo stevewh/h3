@@ -55,7 +55,7 @@ if (! is_logged_in()) {
 
 $_REQUEST = json_decode(@$_POST["data"]?  $_POST["data"] : base64_decode(@$_GET["data"]), true);
 
-mysql_connection_overwrite(DATABASE);
+$mysqli = mysqli_connection_overwrite(DATABASE);
 
 /* check if there are any records identified only by their hhash values */
 if (!is_logged_in()) {// must be logged into save
@@ -83,24 +83,24 @@ foreach ($_REQUEST["records"] as $nonce => $record) {
 	if (! $record["id"]) {
 		$wg = defined(HEURIST_NEWREC_OWNER_ID) ? HEURIST_NEWREC_OWNER_ID:get_user_id();
 		if(@$record["group"]){// check membership as non-member saves are not allowed
-			$res = mysql_query("select * from ".USERS_DATABASE.".sysUsrGrpLinks where ugl_UserID=" . get_user_id() . " and ugl_GroupID=" . $record["group"]);
-			$wg = (mysql_num_rows($res) > 0 ? $record["group"]: get_user_id());// if not a member we save the record with user as owner
+			$res = $mysqli->query("select * from ".USERS_DATABASE.".sysUsrGrpLinks where ugl_UserID=" . get_user_id() . " and ugl_GroupID=" . $record["group"]);
+			$wg = ($res->num_rows > 0 ? $record["group"]: get_user_id());// if not a member we save the record with user as owner
 		}
 		$type = @$record['type'];
 		if ($type) {
-			mysql__insert("Records", array("rec_AddedByUGrpID" => get_user_id(),
+			mysqli__insert($mysqli, "Records", array("rec_AddedByUGrpID" => get_user_id(),
 										"rec_RecTypeID" => $type,
 										"rec_OwnerUGrpID" => $wg,
 										"rec_FlagTemporary" => 1,
 										"rec_Added" => date('Y-m-d H:i:s')));
-			if (mysql_error()) {
+			if ($mysqli->error) {
 				array_push($out["record"], array("error" => " creating temporary record nonce = $nonce rectype = "
-																.@$record["type"]." error : ".mysql_error(),
+																.@$record["type"]." error : ".$mysqli->error,
 												"record" => $record,
 												"nonce" => $nonce));
 				$_REQUEST["records"][$nonce]["id"] = -1;
 			}else{
-				$id = mysql_insert_id();
+				$id = $mysqli->insert_id;
 				$_REQUEST["records"][$nonce]["id"] = $id;
 			}
 		}else{
@@ -147,13 +147,13 @@ if (count($retitleRecs) > 0) {
 	foreach ( $retitleRecs as $id  ) {
 		// calculate title, do an update
 		$query = "select rty_TitleMask, rty_ID from defRecTypes left join Records on rty_ID=rec_RecTypeID where rec_ID = $id";
-		$res = mysql_query($query);
-		$mask = mysql_fetch_assoc($res);
+		$res = $mysqli->query($query);
+		$mask = $res->fetch_assoc();
 		$type = $mask["rty_ID"];
 		$mask = $mask["rty_TitleMask"];
 		$title = fill_title_mask($mask, $id, $type);
 		if ($title) {
-			mysql_query("update Records set rec_Title = '" . addslashes($title) . "' where rec_ID = $id");
+			$mysqli->query("update Records set rec_Title = '" . addslashes($title) . "' where rec_ID = $id");
 		}
 	}
 }
@@ -165,7 +165,7 @@ return;
 
 
 function jsonError($message) {
-	mysql_query("rollback");
+	$mysqli->query("rollback");
 	print "{\"error\":\"" . addslashes($message) . "\"}";
 	exit(0);
 }

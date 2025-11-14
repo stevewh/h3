@@ -53,7 +53,7 @@ if (! is_logged_in()) {
 	return;
 }
 
-mysql_connection_select(DATABASE);
+$mysqli = mysqli_connection_select(DATABASE);
 
 ?>
 <html>
@@ -116,8 +116,8 @@ workgroup tags are a controlled list of shared tags established by a workgroup a
 	// foreach ($_SESSION['heurist']['user_access'] as $grp_id => $access) {
 	//	if ($access == "admin") array_push($adminGroupList,$grp_id);
 	$q='select distinct ugl_GroupID from '.USERS_DATABASE.'.sysUsrGrpLinks where ugl_UserID='.get_user_id().' and ugl_Role="admin"';
-	$gres = mysql_query($q);
-	while ($grp = mysql_fetch_assoc($gres)) {
+	$gres = $mysqli->query($q);
+	while ($grp = mysqli_fetch_assoc($gres)) {
 		array_push($adminGroupList,$grp['ugl_GroupID']);
 	}
 	if (count($adminGroupList) < 1){
@@ -125,14 +125,14 @@ workgroup tags are a controlled list of shared tags established by a workgroup a
 		return;
 	}
 	$adminGroupList = join(',', $adminGroupList);
-	$gres = mysql_query('select grp.ugr_ID, grp.ugr_Name from '.USERS_DATABASE.'.sysUGrps grp where grp.ugr_ID in ('.$adminGroupList.') order by grp.ugr_Name');
-	while ($grp = mysql_fetch_assoc($gres)) {
+	$gres = $mysqli->query('select grp.ugr_ID, grp.ugr_Name from '.USERS_DATABASE.'.sysUGrps grp where grp.ugr_ID in ('.$adminGroupList.') order by grp.ugr_Name');
+	while ($grp = mysqli_fetch_assoc($gres)) {
 		print '<div class="gr_div">';
 		print '<b>' . htmlspecialchars($grp['ugr_Name']) . '</b>';
 
 		print '<ul>';
-		$res = mysql_query('select tag_ID, tag_Text, count(rtl_ID) as tgi_count from usrTags left join usrRecTagLinks on rtl_TagID=tag_ID where tag_UGrpID='.$grp['ugr_ID'].' group by tag_ID, rtl_TagID order by tag_Text');
-		while ($tag = mysql_fetch_assoc($res)) {
+		$res = $mysqli->query('select tag_ID, tag_Text, count(rtl_ID) as tgi_count from usrTags left join usrRecTagLinks on rtl_TagID=tag_ID where tag_UGrpID='.$grp['ugr_ID'].' group by tag_ID, rtl_TagID order by tag_Text');
+		while ($tag = $res->fetch_assoc()) {
 			$searchlink = HEURIST_BASE_URL.'search/search.html?q=tag%3A%22'.$grp['ugr_Name'].'%5C'.$tag['tag_Text'].'%22&w=all&stype=';
 			if ($tag['tgi_count'] == 0) $used = '';
 			else $used = '<i>(<a target=_blank href="'.$searchlink.'">used '.($tag['tgi_count'] == 1 ? 'once' : $tag['tgi_count'].' times').'</a>)</i>';
@@ -169,29 +169,29 @@ function add_tags() {
 	if (! $insert_stmt) return;
 
 	$insert_stmt = 'insert into usrTags (tag_Text, tag_UGrpID) values ' . $insert_stmt;
-	mysql_connection_overwrite(DATABASE);
-	mysql_query($insert_stmt);
-	if (mysql_affected_rows() == 1) {
+	$mysqli = mysqli_connection_overwrite(DATABASE);
+	$mysqli->query($insert_stmt);
+	if ($mysqli->affected_rows == 1) {
 		print '<div style="color: red;">1 tag added</div>';
-	} else if (mysql_affected_rows() >= 0) {
-		print '<div style="color: red;">' . mysql_affected_rows() . ' tags added</div>';
+	} else if ($mysqli->affected_rows >= 0) {
+		print '<div style="color: red;">' . $mysqli->affected_rows . ' tags added</div>';
 	} else {
-		print '<div style="color: red;">Error: ' . mysql_error() . '</div>';
+		print '<div style="color: red;">Error: ' . $mysqli->error . '</div>';
 	}
 }
 
 
 function delete_tag() {
 	$tag_id = intval($_REQUEST['deleting']);
-	mysql_connection_overwrite(DATABASE);
-	mysql_query('delete from usrTags where tag_ID = ' . $tag_id );
-	if (mysql_affected_rows() >= 1) {	// overkill
+	$mysqli = mysqli_connection_overwrite(DATABASE);
+	$mysqli->query('delete from usrTags where tag_ID = ' . $tag_id );
+	if ($mysqli->affected_rows >= 1) {	// overkill
 		print '<div style="color: red;">1 tag deleted</div>';
 	} else {
 		print '<div style="color: red;">No tags deleted</div>';
 	}
 
-	mysql_query('delete from usrRecTagLinks where rtl_TagID = ' . $tag_id);
+	$mysqli->query('delete from usrRecTagLinks where rtl_TagID = ' . $tag_id);
 }
 
 ?>

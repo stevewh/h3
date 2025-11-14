@@ -34,7 +34,7 @@ function findFuzzyMatches($fields, $rec_types, $rec_id=NULL, $fuzziness=NULL) {
 	if (! $fuzziness) $fuzziness = 0.5;
 
 	// Get some data about the matching data for the given record type
-	$types = mysql__select_assoc('defRecStructure left join defDetailTypes on rst_DetailTypeID=dty_ID',
+	$types = mysqli__select_assoc($mysqli, 'defRecStructure left join defDetailTypes on rst_DetailTypeID=dty_ID',
 								'dty_ID', 'dty_Type', 'rst_RecTypeID=' . $rec_types[0] .
 														' and rst_RecordMatchOrder or rst_DetailTypeID='.DT_NAME);
 	$fuzzyFields = array();
@@ -100,9 +100,9 @@ function findFuzzyMatches($fields, $rec_types, $rec_id=NULL, $fuzziness=NULL) {
 	}
 
 	$matches = array();
-	$res = mysql_query("select rec_ID as id, rec_Title as title, rec_Hash as hhash from $tables where $predicates order by rec_Title limit 100");
+	$res = $mysqli->query("select rec_ID as id, rec_Title as title, rec_Hash as hhash from $tables where $predicates order by rec_Title limit 100");
 /*****DEBUG****///error_log("approx-matching: select rec_ID as id, rec_Title as title, rec_Hash as hhash from $tables where $predicates order by rec_Title limit 100");
-	while ($bib = mysql_fetch_assoc($res)) {
+	while ($bib = $res->fetch_assoc()) {
 		array_push($matches, $bib);
 	}
 

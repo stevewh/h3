@@ -55,7 +55,7 @@ if(@$_REQUEST['recid']){
 
 	$rec_ID = $_REQUEST['recid'];
 
-	$tags = mysql__select_array('usrRecTagLinks, usrTags',
+	$tags = mysqli__select_array($mysqli, 'usrRecTagLinks, usrTags',
 									'tag_Text',
 									"rtl_TagID=tag_ID and rtl_RecID=$rec_ID and tag_UGrpID = ".
 									get_user_id()." order by rtl_Order");

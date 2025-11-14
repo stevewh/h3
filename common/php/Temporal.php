@@ -70,12 +70,12 @@ function temporalToHumanReadableString($value, $showoriginal_temporal=false){
 					break;
 				case 'c'://carbon
 					$value = (@$tDate['BPD']? '' . $tDate['BPD'] . ' BPD':
-									@$tDate['BCE']? '' . $tDate['BCE'] . ' BCE': "");
+									  (@$tDate['BCE']? '' . $tDate['BCE'] . ' BCE': ""));
 					if ($value) {
 						$value = $value.(@$tDate['DEV']? ' ' . convertDurationToDelta($tDate['DEV'],'±'):
-											@$tDate['DVP']? ' ' . convertDurationToDelta($tDate['DVP'],'+').
+											(@$tDate['DVP']? ' ' . convertDurationToDelta($tDate['DVP'],'+').
 													(@$tDate['DVN']?"/ ".convertDurationToDelta($tDate['DVN'],'-'):""):
-											@$tDate['DVN']?" ".convertDurationToDelta($tDate['DVN'],'-'):"");
+											(@$tDate['DVN']?" ".convertDurationToDelta($tDate['DVN'],'-'):"")));
 					}else{
 						$value = "unknown carbon temporal format";
 					}
@@ -214,12 +214,12 @@ function convertDurationToDelta($value,$prefix = "") {
 	if ($date) { // valid ISO Duration split into date and time
 
 		return (@$date['year'] ? "$prefix".$date['year'] :
-				@$date['month'] ? "$prefix".$date['month'] :
-				@$date['day'] ? "$prefix".$date['day'] :
-				@$date['hour'] ? "$prefix".$date['hour'] :
-				@$date['minute'] ? "$prefix".$date['minute'] :
-				@$date['second'] ? "$prefix".$date['second'] :
-				"");
+				(@$date['month'] ? "$prefix".$date['month'] :
+				(@$date['day'] ? "$prefix".$date['day'] :
+				(@$date['hour'] ? "$prefix".$date['hour'] :
+				(@$date['minute'] ? "$prefix".$date['minute'] :
+				(@$date['second'] ? "$prefix".$date['second'] :
+				""))))));
 
 	}
 }

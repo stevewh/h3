@@ -47,8 +47,8 @@
 
     // Deals with all the database connections stuff
 
-    mysql_connection_select(DATABASE);
-    if(mysql_error()) {
+    $mysqli = mysqli_connection_select(DATABASE);
+    if($mysqli->error) {
         die("Could not get database structure from given database source.");
     }
 ?>
@@ -73,8 +73,8 @@
 		//current user email
 		$query = 'select '.USERS_EMAIL_FIELD.' from '.USERS_TABLE.' where '.USERS_ID_FIELD.'='.get_user_id();
 
-		$res = mysql_query($query);
-		while ($row = mysql_fetch_assoc($res)) {
+		$res = $mysqli->query($query);
+		while ($row = $res->fetch_assoc()) {
 			if ($row[USERS_EMAIL_FIELD])
 				$email = $row[USERS_EMAIL_FIELD];
 			else
@@ -105,7 +105,7 @@
     print "<br /><div>Click on the database name to open in new window</div>";
 	print "<ul class='dbList'>";
 
-	$list = mysql__getdatabases(false, $email, $role);
+	$list = mysqli__getdatabases($mysqli, false, $email, $role);
 	foreach ($list as $name) {
             print("<li><a href=".HEURIST_BASE_URL."?db=$name target=_blank>$name</a></li>");
 	}

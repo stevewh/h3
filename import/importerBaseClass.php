@@ -494,9 +494,9 @@ class HeuristNativeEntry {
 		// or a special string ("anonymous" or "et al.")
 
 		if (is_numeric($author_bib_id)) {
-			$author_details = mysql__select_assoc('recDetails', 'dtl_DetailTypeID', 'dtl_Value', 'dtl_RecID='.intval($author_bib_id));
-			$res = mysql_query("select rec_Hash from Records where rec_ID = " . $author_bib_id);
-			$hash = mysql_fetch_row($res);  $hash = $hash[0];
+			$author_details = mysqli__select_assoc($mysqli, 'recDetails', 'dtl_DetailTypeID', 'dtl_Value', 'dtl_RecID='.intval($author_bib_id));
+			$res = $mysqli->query("select rec_Hash from Records where rec_ID = " . $author_bib_id);
+			$hash = $res->fetch_row();  $hash = $hash[0];
 
 			$this->_authors[] = &$author_details;
 			$this->_author_bib_ids[] = $author_bib_id;
@@ -746,18 +746,18 @@ class HeuristNativeEntry {
 		global $hash_info;
 		if (! $hash_info) {
 			// hash_info contains all the good stuff we need for determining the hash, indexed by rectype, and then by dty_ID
-			$res = mysql_query("select rst_RecTypeID, dty_ID, dty_Type = 'resource' as isResource from defRecStructure, defDetailTypes
+			$res = $mysqli->query("select rst_RecTypeID, dty_ID, dty_Type = 'resource' as isResource from defRecStructure, defDetailTypes
 			                     where rst_DetailTypeID=dty_ID and ((dty_Type != 'resource' and rst_RecordMatchOrder) or (dty_Type = 'resource' and rst_RequirementType = 'required'))
 			                  order by rst_RecTypeID, dty_Type = 'resource', dty_ID");
 			$hash_info = array();
-			while ($row = mysql_fetch_assoc($res)) {
+			while ($row = $res->fetch_assoc()) {
 				if (! @$hash_info[$row["rst_RecTypeID"]]) $hash_info[$row["rst_RecTypeID"]] = array();
 				$hash_info[$row["rst_RecTypeID"]][$row["dty_ID"]] = $row["isResource"];
 			}
 		}
 		global $bdt_to_rectype;
 		if (! @$bdt_to_rectype) {
-			$temp = mysql__select_assoc('defDetailTypes', 'dty_ID', 'dty_PtrTargetRectypeIDs', 'dty_PtrTargetRectypeIDs is not null');
+			$temp = mysqli__select_assoc($mysqli, 'defDetailTypes', 'dty_ID', 'dty_PtrTargetRectypeIDs', 'dty_PtrTargetRectypeIDs is not null');
 			foreach ($temp as $dtyID => $ptrTargetString) {
 				$bdt_to_rectype[$dtyID] = explode(",",$ptrTargetString);
 			}
@@ -798,18 +798,18 @@ class HeuristNativeEntry {
 		global $hash_info;
 		if (! $hash_info) {
 			// hash_info contains all the good stuff we need for determining the hash, indexed by rectype, and then by dty_ID
-			$res = mysql_query("select rst_RecTypeID, dty_ID, dty_Type = 'resource' as isResource from defRecStructure, defDetailTypes
+			$res = $mysqli->query("select rst_RecTypeID, dty_ID, dty_Type = 'resource' as isResource from defRecStructure, defDetailTypes
 			                     where rst_DetailTypeID=dty_ID and ((dty_Type != 'resource' and rst_RecordMatchOrder) or (dty_Type = 'resource' and rst_RequirementType = 'required'))
 			                  order by rst_RecTypeID, dty_Type = 'resource', dty_ID");
 			$hash_info = array();
-			while ($row = mysql_fetch_assoc($res)) {
+			while ($row = $res->fetch_assoc()) {
 				if (! @$hash_info[$row["rst_RecTypeID"]]) $hash_info[$row["rst_RecTypeID"]] = array();
 				$hash_info[$row["rst_RecTypeID"]][$row["dty_ID"]] = $row["isResource"];
 			}
 		}
 		global $bdt_to_rectype;
 		if (! @$bdt_to_rectype) {
-			$temp = mysql__select_assoc('defDetailTypes', 'dty_ID', 'dty_PtrTargetRectypeIDs', 'dty_PtrTargetRectypeIDs is not null');
+			$temp = mysqli__select_assoc($mysqli, 'defDetailTypes', 'dty_ID', 'dty_PtrTargetRectypeIDs', 'dty_PtrTargetRectypeIDs is not null');
 			foreach ($temp as $dtyID => $ptrTargetString) {
 				$bdt_to_rectype[$dtyID] = explode(",",$ptrTargetString);
 			}
@@ -860,8 +860,8 @@ class HeuristNativeEntry {
 		if (! $this->_container) return true;
 
 		$containerBDType = intval($rectype_to_bdt_id_map[ $this->_container->getReferenceType() ]);
-		$res = mysql_query("select * from defRecStructure where rst_DetailTypeID = $containerBDType and rst_RecTypeID = " . $this->_rectype . " and rst_RequirementType = 'required'");
-		if (mysql_num_rows($res) == 0) return true;
+		$res = $mysqli->query("select * from defRecStructure where rst_DetailTypeID = $containerBDType and rst_RecTypeID = " . $this->_rectype . " and rst_RequirementType = 'required'");
+		if ($res->num_rows == 0) return true;
 		return false;
 	}
 
@@ -926,7 +926,7 @@ function decode_thesis_type(&$foreign_field) {	//SAW bug fix - the value passed 
 
 function is_enum_field($heurist_type) {
 	static $bdt_enums = NULL;
-	if (! $bdt_enums) $bdt_enums = mysql__select_assoc('defDetailTypes', 'dty_ID', '1', 'dty_Type="enum"');
+	if (! $bdt_enums) $bdt_enums = mysqli__select_assoc($mysqli, 'defDetailTypes', 'dty_ID', '1', 'dty_Type="enum"');
 
 	if (@$bdt_enums[$heurist_type]) return true;
 	else return false;
@@ -960,11 +960,11 @@ function load_bib_detail_requirements() {
 	// Should probably detail with eXcluded elements at some stage, but not now.
 	global $rec_detail_requirements;
 
-	// mysql_connection_select('SHSSERI_bookmarks');
-	//mysql_connection_select(DATABASE);
-	$res = mysql_query('select rst_RecTypeID, rst_DetailTypeID from defRecStructure left join defDetailTypes on rst_DetailTypeID=dty_ID where rst_RequirementType = "Y" and dty_Type != "resource"');
+	// $mysqli = mysqli_connection_select('SHSSERI_bookmarks');
+	//$mysqli = mysqli_connection_select(DATABASE);
+	$res = $mysqli->query('select rst_RecTypeID, rst_DetailTypeID from defRecStructure left join defDetailTypes on rst_DetailTypeID=dty_ID where rst_RequirementType = "Y" and dty_Type != "resource"');
 	$rec_detail_requirements = array();
-	while ($row = mysql_fetch_row($res)) {
+	while ($row = $res->fetch_row()) {
 		if (array_key_exists($row[0], $rec_detail_requirements))
 			array_push($rec_detail_requirements[$row[0]], $row[1]);
 		else
@@ -978,10 +978,10 @@ function load_bib_requirement_names() {
 	// inner array is a mapping of dty_ID to rst_DisplayName, union a mapping of rst_DisplayName to dty_ID
 	global $bib_requirement_names;
 
-	// mysql_connection_select('SHSSERI_bookmarks');
-	$res = mysql_query('select rst_RecTypeID, rst_DetailTypeID, rst_DisplayName, dty_Name from defRecStructure left join defDetailTypes on rst_DetailTypeID=dty_ID');
+	// $mysqli = mysqli_connection_select('SHSSERI_bookmarks');
+	$res = $mysqli->query('select rst_RecTypeID, rst_DetailTypeID, rst_DisplayName, dty_Name from defRecStructure left join defDetailTypes on rst_DetailTypeID=dty_ID');
 	$bib_requirement_names = array();
-	while ($row = mysql_fetch_row($res)) {
+	while ($row = $res->fetch_row()) {
 		if (! array_key_exists($row[0], $bib_requirement_names))
 			$bib_requirement_names[$row[0]] = array();
 		$bib_requirement_names[$row[0]][$row[1]] = $row[2];
@@ -994,10 +994,10 @@ function load_bib_type_names() {
 	// $bib_type_names is the mapping of dty_ID to dty_Name
 	global $bib_type_names;
 
-	// mysql_connection_select('SHSSERI_bookmarks');
-	$res = mysql_query('select dty_ID, dty_Name from defDetailTypes');
+	// $mysqli = mysqli_connection_select('SHSSERI_bookmarks');
+	$res = $mysqli->query('select dty_ID, dty_Name from defDetailTypes');
 	$bib_type_names = array();
-	while ($row = mysql_fetch_row($res))
+	while ($row = $res->fetch_row())
 		$bib_type_names[$row[0]] = $row[1];
 }
 
@@ -1006,10 +1006,10 @@ function load_bib_type_name_to_id() {
 	// $bib_type_names is the mapping of dty_Name to dty_ID
 	global $bib_type_name_to_id;
 
-	// mysql_connection_select('SHSSERI_bookmarks');
-	$res = mysql_query('select dty_ID, dty_Name from defDetailTypes');
+	// $mysqli = mysqli_connection_select('SHSSERI_bookmarks');
+	$res = $mysqli->query('select dty_ID, dty_Name from defDetailTypes');
 	$bib_type_name_to_id = array();
-	while ($row = mysql_fetch_row($res))
+	while ($row = $res->fetch_row())
 		$bib_type_name_to_id[strtolower($row[1])] = $row[0];
 }
 
@@ -1020,9 +1020,9 @@ function load_heurist_rectypes() {
 
 	$heurist_rectypes = array();
 
-	// mysql_connection_select('SHSSERI_bookmarks');
-	$res = mysql_query('select * from defRecTypes');
-	while ($row = mysql_fetch_assoc($res)) {
+	// $mysqli = mysqli_connection_select('SHSSERI_bookmarks');
+	$res = $mysqli->query('select * from defRecTypes');
+	while ($row = $res->fetch_assoc()) {
 		// fix up the title masks
 
 		// magical strings unlikely to appear in a title mask: magic-open-bracket becomes [, magic-close-bracket becomes ]
@@ -1038,10 +1038,10 @@ function load_rectype_name_to_id() {
 	// $bib_type_names is the mapping of rty_Name to rty_ID
 	global $rectype_name_to_id;
 
-	// mysql_connection_select('SHSSERI_bookmarks');
-	$res = mysql_query('select rty_ID, rty_Name from defRecTypes where rty_ID');
+	// $mysqli = mysqli_connection_select('SHSSERI_bookmarks');
+	$res = $mysqli->query('select rty_ID, rty_Name from defRecTypes where rty_ID');
 	$rectype_name_to_id = array();
-	while ($row = mysql_fetch_row($res))
+	while ($row = $res->fetch_row())
 		$rectype_name_to_id[strtolower($row[1])] = $row[0];
 }
 
@@ -1052,9 +1052,9 @@ function load_rec_detail_lookups() {	//saw TODO enumTerms change
 
 	global $rec_detail_lookups, $rec_detail_lookups_lc;	// staid and lowercase versions of this data
 
-	$res = mysql_query('select * from defTerms');
+	$res = $mysqli->query('select * from defTerms');
 	$rec_detail_lookups = array();
-	while ($row = mysql_fetch_assoc($res)) {
+	while ($row = $res->fetch_assoc()) {
 		if (! @$rec_detail_lookups[$row['trm_Label']])
 			$rec_detail_lookups[$row['trm_Label']] = array();
 

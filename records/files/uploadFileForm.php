@@ -37,7 +37,7 @@ require_once(dirname(__FILE__)."/../../records/file/uploadFile.php");
 
 if (! is_logged_in()) return;
 
-mysql_connection_overwrite(DATABASE);
+$mysqli = mysqli_connection_overwrite(DATABASE);
 
 
 if (! @$_POST["recID"]) {
@@ -91,8 +91,8 @@ $fileID = upload_file($upload["name"], null, $upload["tmp_name"], $upload["error
 
 if (is_numeric($fileID)) {
 	if ($bibID  &&  $bdtID) {
-		mysql_query("update Records set rec_Modified=now() where rec_ID=$bibID");
-		mysql_query("insert into recDetails (dtl_RecID, dtl_DetailTypeID, dtl_UploadedFileID) values ($bibID, $bdtID, $fileID)");
+		$mysqli->query("update Records set rec_Modified=now() where rec_ID=$bibID");
+		$mysqli->query("insert into recDetails (dtl_RecID, dtl_DetailTypeID, dtl_UploadedFileID) values ($bibID, $bdtID, $fileID)");
 	}
 
 	$file = get_uploaded_file_info($fileID, false, false);

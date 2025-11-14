@@ -40,7 +40,7 @@ require_once(dirname(__FILE__).'/../../search/getSearchResults.php');
 
 // Deals with all the database connections stuff
 
-mysql_connection_select(DATABASE);
+$mysqli = mysqli_connection_select(DATABASE);
 //place code here
 //echo DATABASE."\n";
 //echo json_format(getVocabTree('reltype'),true)."<br><br><br>";

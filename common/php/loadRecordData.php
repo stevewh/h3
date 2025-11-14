@@ -81,14 +81,14 @@ if (! defined("SAVE_URI")) {
 
 if (!defined("JSON_RESPONSE")) {
 	require_once(dirname(__FILE__)."/../../common/connect/applyCredentials.php");
-	//require_once("dbMySqlWrappers.php");
+	require_once("dbMySqlWrappers.php");
 	require_once("getRecordInfoLibrary.php");
 	if (! is_logged_in()) return;
 
 	header('Content-type: text/javascript');
 }
 
-mysql_connection_select(DATABASE);
+$mysqli = mysqli_connection_select(DATABASE);
 list($rec_id, $bkm_ID, $replaced) = getResolvedIDs(@$_REQUEST["recID"],@$_REQUEST['bkmk_id']);
 /*****DEBUG****///error_log("rec_id ".print_r($rec_id,true));
 
@@ -130,7 +130,7 @@ if (! $rec_id) {
                $_SESSION[HEURIST_SESSION_DB_PREFIX.'heurist']["user_access"][$record["workgroupID"]] ||
                @$record["workgroupID"] == 0 && is_logged_in();
 
-    $record["bdValuesByType"] = getAllRecordDetails($rec_id, $isOwner, $record["rectypeID"]);
+    $record["bdValuesByType"] = getAllRecordDetails($rec_id, $record["rectypeID"], $isOwner);
 		$record["reminders"] = getAllReminders($rec_id);
 		$record["comments"] = getAllComments($rec_id);
 		$record["workgroupTags"] = getAllworkgroupTags($rec_id);

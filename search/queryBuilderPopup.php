@@ -45,7 +45,7 @@
 	require_once(dirname(__FILE__).'/../common/connect/applyCredentials.php');
 	require_once(dirname(__FILE__).'/../common/php/dbMySqlWrappers.php');
 
-	mysql_connection_select(USERS_DATABASE);
+	$mysqli = mysqli_connection_select(USERS_DATABASE);
 ?>
 <html>
 	<head>
@@ -115,8 +115,8 @@
 				<option value=p>popularity</option>
 				<optgroup label="Detail fields">
 					<?php
-						$res = mysql_query('select dty_ID, dty_Name from '.DATABASE.'.defDetailTypes order by dty_Name');
-						while ($row = mysql_fetch_assoc($res)) {
+						$res = $mysqli->query('select dty_ID, dty_Name from '.DATABASE.'.defDetailTypes order by dty_Name');
+						while ($row = $res->fetch_assoc()) {
 						?>
 						<option value="f:&quot;<?= $row['dty_Name'] ?>&quot;"><?= htmlspecialchars($row['dty_Name']) ?></option>
 						<?php	}	?>
@@ -140,7 +140,7 @@
 		<div class="advanced-search-row">
 			<label for="type">Record type:</label>
 			<?php
-				$res = mysql_query("select distinct rty_ID,rty_Name,rty_Description, rtg_Name
+				$res = $mysqli->query("select distinct rty_ID,rty_Name,rty_Description,rtg_Name,rtg_Order,rty_OrderInGroup
 				from defRecTypes left join defRecTypeGroups on rtg_ID = rty_RecTypeGroupID
 				where rty_ShowInLists = 1 order by rtg_Order, rtg_Name, rty_OrderInGroup, rty_Name");
 			?>
@@ -148,7 +148,7 @@
 				<option selected="selected" value="">(select record type)</option>
 				<?php
 					$section = "";
-					while ($row = mysql_fetch_assoc($res)) {
+					while ($row = $res->fetch_assoc()) {
 						if ($row["rtg_Name"] != $section) {
 							if ($section) print "</optgroup>\n";
 							$section = $row["rtg_Name"];
@@ -168,13 +168,13 @@
 			<label for="tag">Tags:</label>
 			<input name=tag id="tag" onChange="update(this);" onKeyPress="return keypress(event);">
 			<?php
-				$res = mysql_query('select concat('.GROUPS_NAME_FIELD.', "\\\\", tag_Text) from '.DATABASE.'.usrTags, '.USER_GROUPS_TABLE.', '.GROUPS_TABLE.' where tag_UGrpID='.USER_GROUPS_GROUP_ID_FIELD.' and '.USER_GROUPS_GROUP_ID_FIELD.'='.GROUPS_ID_FIELD.' and '.USER_GROUPS_USER_ID_FIELD.'=' . get_user_id() . ' order by '.GROUPS_NAME_FIELD.', tag_Text');
-				if (mysql_num_rows($res) > 0) {
+				$res = $mysqli->query('select concat('.GROUPS_NAME_FIELD.', "\\\\", tag_Text) from '.DATABASE.'.usrTags, '.USER_GROUPS_TABLE.', '.GROUPS_TABLE.' where tag_UGrpID='.USER_GROUPS_GROUP_ID_FIELD.' and '.USER_GROUPS_GROUP_ID_FIELD.'='.GROUPS_ID_FIELD.' and '.USER_GROUPS_USER_ID_FIELD.'=' . get_user_id() . ' order by '.GROUPS_NAME_FIELD.', tag_Text');
+				if ($res->num_rows > 0) {
 				?>
 				<span style="padding-left:28px;">or</span>
 				<select id="wgtag" name="wgtag" onChange="update(this);" onKeyPress="return keypress(event);" style="width: 200px;">
 					<option value="" selected>(select...)</option>
-					<?php		while ($row = mysql_fetch_row($res)) {	?>
+					<?php		while ($row = $res->fetch_row()) {	?>
 						<option value="<?= htmlspecialchars($row[0]) ?>"><?= htmlspecialchars($row[0]) ?></option>
 						<?php		}	?>
 				</select>
@@ -207,8 +207,8 @@
 					<optgroup id="rectype-specific-fields" label="rectype specific fields" style="display: none;"></optgroup>
 					<optgroup label="Generic fields">
 						<?php
-							$res = mysql_query('select dty_ID, dty_Name from '.DATABASE.'.defDetailTypes order by dty_Name');
-							while ($row = mysql_fetch_assoc($res)) {
+							$res = $mysqli->query('select dty_ID, dty_Name from '.DATABASE.'.defDetailTypes order by dty_Name');
+							while ($row = $res->fetch_assoc()) {
 							   print "<option value='".$row['dty_ID']."'>".htmlspecialchars($row['dty_Name'])."</option>";
 							}
                         ?>
@@ -229,7 +229,7 @@
 -->
 
 		<?php
-				$groups = mysql__select_assoc(USERS_DATABASE.".".USER_GROUPS_TABLE." left join ".USERS_DATABASE.".".GROUPS_TABLE." on ".USER_GROUPS_GROUP_ID_FIELD."=".GROUPS_ID_FIELD, GROUPS_ID_FIELD, GROUPS_NAME_FIELD, USER_GROUPS_USER_ID_FIELD."=".get_user_id()." and ".GROUPS_TYPE_FIELD."='workgroup' order by ".GROUPS_NAME_FIELD);
+				$groups = mysqli__select_assoc($mysqli, USERS_DATABASE.".".USER_GROUPS_TABLE." left join ".USERS_DATABASE.".".GROUPS_TABLE." on ".USER_GROUPS_GROUP_ID_FIELD."=".GROUPS_ID_FIELD, GROUPS_ID_FIELD, GROUPS_NAME_FIELD, USER_GROUPS_USER_ID_FIELD."=".get_user_id()." and ".GROUPS_TYPE_FIELD."='workgroup' order by ".GROUPS_NAME_FIELD);
 				if ($groups  &&  count($groups) > 0) {
 				?>
 		<div class="advanced-search-row">
@@ -259,8 +259,8 @@
 				<?php
 					$query = 'select '.USERS_ID_FIELD.', concat('.USERS_FIRSTNAME_FIELD.'," ",'.USERS_LASTNAME_FIELD.') as fullname from '.USERS_TABLE.
 					' where '.USERS_ACTIVE_FIELD.' = "Y" and '.GROUPS_TYPE_FIELD.'="user" order by fullname';
-					$res = mysql_query($query);
-					while ($row = mysql_fetch_row($res)) {
+					$res = $mysqli->query($query);
+					while ($row = $res->fetch_row()) {
 						print '<option value="&quot;'.htmlspecialchars($row[1]).'&quot;">'.htmlspecialchars($row[1]).'</option>'."\n";
 					}
 				?>

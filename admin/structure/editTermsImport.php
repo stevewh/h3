@@ -190,7 +190,7 @@ function upload_termsfile($parent_id, $domain, $has_codes, $has_descr) {
 
 	if($row==0) return array('error'=>'No one appropriate line found');
 
-	$db = mysqli_connection_overwrite(DATABASE); //artem's
+	mysqli_connection_overwrite(DATABASE); //artem's
 
 	$colNames = array('trm_Code','trm_Label','trm_Description','trm_Domain','trm_ParentTermID','trm_AddedByImport');
 

@@ -55,7 +55,7 @@ if (! is_logged_in()) {
 	header('Location: ' . HEURIST_BASE_URL . 'common/connect/login.php');
 	return;
 }
-mysql_connection_overwrite(DATABASE);
+$mysqli = mysqli_connection_overwrite(DATABASE);
 ?>
 <html>
 <head>
@@ -115,19 +115,19 @@ print '<div><span id=errors>0</span> errors</div>';
 
 		foreach ($_REQUEST['bib'] as $rec_id) {
 
-			mysql_query("start transaction");
+			$mysqli->query("start transaction");
 
 			$res = deleteRecord($rec_id, $needDeleteFile);
 			//$res = array("bkmk_count"=>0, "rel_count"=>0);
 
 			if( array_key_exists("error", $res) ){
 
-				mysql_query("rollback");
+				$mysqli->query("rollback");
 
 				array_push($errors, "Rec#".$rec_id."  ".$res["error"]);
 
 			}else{
-				mysql_query("commit");
+				$mysqli->query("commit");
 
 				$recs_count++;
 				$bkmk_count += $res["bkmk_count"];
@@ -214,16 +214,16 @@ This is a fairly slow process, taking several minutes per 1000 records, please b
 	$cnt_checked = 0;
 	foreach ($bib_ids as $rec_id) {
 		if (! $rec_id) continue;
-		$res = mysql_query('select rec_Title,rec_AddedByUGrpID from Records where rec_ID = ' . $rec_id);
-		$row = mysql_fetch_assoc($res);
+		$res = $mysqli->query('select rec_Title,rec_AddedByUGrpID from Records where rec_ID = ' . $rec_id);
+		$row = $res->fetch_assoc();
 		$rec_title = $row['rec_Title'];
 		$owner = $row['rec_AddedByUGrpID'];
-		$res = mysql_query('select '.USERS_USERNAME_FIELD.' from Records left join usrBookmarks on bkm_recID=rec_ID left join '.USERS_DATABASE.'.'.USERS_TABLE.' on '.USERS_ID_FIELD.'=bkm_UGrpID where rec_ID = ' . $rec_id);
-		$bkmk_count = mysql_num_rows($res);
+		$res = $mysqli->query('select '.USERS_USERNAME_FIELD.' from Records left join usrBookmarks on bkm_recID=rec_ID left join '.USERS_DATABASE.'.'.USERS_TABLE.' on '.USERS_ID_FIELD.'=bkm_UGrpID where rec_ID = ' . $rec_id);
+		$bkmk_count = $res->num_rows;
 		$bkmk_users = array();
-		while ($row = mysql_fetch_assoc($res)) array_push($bkmk_users, $row[USERS_USERNAME_FIELD]);
-		$refs_res = mysql_query('select dtl_RecID from recDetails left join defDetailTypes on dty_ID=dtl_DetailTypeID where  dty_Type="resource and dtl_Value='.$rec_id.' "');
-		$refs = mysql_num_rows($refs_res);
+		while ($row = $res->fetch_assoc()) array_push($bkmk_users, $row[USERS_USERNAME_FIELD]);
+		$refs_res = $mysqli->query('select dtl_RecID from recDetails left join defDetailTypes on dty_ID=dtl_DetailTypeID where  dty_Type="resource and dtl_Value='.$rec_id.' "');
+		$refs = mysqli_num_rows($refs_res);
 
 		$allowed = is_admin()  ||
 				   ($owner == get_user_id()  &&
@@ -245,7 +245,7 @@ This is a fairly slow process, taking several minutes per 1000 records, please b
 
 		if ($refs) {
 			print ' <p style="margin-left: 20px;">Referenced by: ';
-			while ($row = mysql_fetch_assoc($refs_res)) {
+			while ($row = mysqli_fetch_assoc($refs_res)) {
 				print '  <a target=_new href="'.HEURIST_SITE_PATH.'records/edit/editRecord.html?db='.HEURIST_DBNAME.'&recID='.$row['dtl_RecID'].'">'.$row['dtl_RecID'].'</a>';
 			}
 			print "</p>";

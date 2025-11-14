@@ -145,20 +145,24 @@ define('ADMIN_DBUSERPSWD', $dbAdminPassword);
 define('READONLY_DBUSERNAME', $dbReadonlyUsername); //readonly user for access to user and heurist databases
 define('READONLY_DBUSERPSWD', $dbReadonlyPassword);
 define('HEURIST_DB_PREFIX', (@$_REQUEST['prefix'] ? $_REQUEST['prefix'] : $dbPrefix)); //database name prefix which is added to db=name to compose the mysql dbname used in queries, normally hdb_
-define('HEURIST_REFERENCE_BASE_URL', "http://heuristscholar.org/h3/"); // Heurist Installation which contains reference structure definitions (registered DB # 3)
-define('HEURIST_INDEX_BASE_URL', "http://heuristscholar.org/h3-sw/"); //@todo: CHANGE TP h3 back!!!! Heurist Installation which contains index of registered Heurist databases (registered DB # 1)
+define('HEURIST_REFERENCE_BASE_URL', "http://localhost/h3zag/"); // Heurist Installation which contains reference structure definitions (registered DB # 3)
+define('HEURIST_INDEX_BASE_URL', "http://localhost/h3zag/"); //@todo: CHANGE TP h3 back!!!! Heurist Installation which contains index of registered Heurist databases (registered DB # 1)
 define('HEURIST_SYS_GROUP_ID', 1); // ID of Heurist System User Group which has special privileges - deprecated, although more generally group 1 on every database is the Database Managers group
 /*****DEBUG****///error_log("in initialise dbHost = $dbHost");
 //test db connect valid db
-$db = mysql_connect(HEURIST_DBSERVER_NAME, $dbAdminUsername, $dbAdminPassword) or returnErrorMsgPage(1, "Unable to connect to db server with admin account, set login in configIni.php. MySQL error: " . mysql_error());
-$db = mysql_connect(HEURIST_DBSERVER_NAME, $dbReadonlyUsername, $dbReadonlyPassword) or returnErrorMsgPage(1, "Unable to connect to db server with readonly account, set login in configIni.php. MySQL error: " . mysql_error());
+$testDefaultDBFullname = HEURIST_DB_PREFIX.$defaultDBname;
+$mysqli = mysqli_connection_insert($testDefaultDBFullname,$dbHost);
+// no need for the following, if connection error previous function will die
+// returnErrorMsgPage(1, "Unable to connect to db server with admin account, set login in configIni.php. MySQL error: " . $mysqli->error);
+$mysqliro = mysqli_connection_select($testDefaultDBFullname,$dbHost);
+// no need for the following, if connection error previous function will die
+// or returnErrorMsgPage(1, "Unable to connect to db server with readonly account, set login in configIni.php. MySQL error: " . $mysqli->error);
+
 if (@$defaultDBname != '') {
 	define('HEURIST_DEFAULT_DBNAME', $defaultDBname); //default dbname used when the URI is ambiguous about the db
-
 }
 if (@$httpProxy != '') {
 	define('HEURIST_HTTP_PROXY', $httpProxy); //http address:port for proxy request
-
 }
 // upload path eg. /var/www/htdocs/HEURIST_FILESTORE
 if ($defaultRootFileUploadPath) {
@@ -203,26 +207,26 @@ if ($dbFullName == "") {
 }
 define('HEURIST_SESSION_DB_PREFIX', $dbFullName . ".");
 // we have a database name so test it out
-if (mysql_query("use $dbFullName")) {
+if ($mysqli->query("use $dbFullName")) {
 	define('DATABASE', $dbFullName);
 } else {
 	if (defined("NO_DB_ALLOWED")) { //for createNewDB.php and selectDatabase.php
 		return;
 	} else {
-		returnErrorMsgPage(2, "Unable to open database : $dbName, MySQL error: " . mysql_error());
+		returnErrorMsgPage(2, "Unable to open database : $dbName, MySQL error: " . $mysqli->error);
 	}
 }
 // using the database so let's get the configuration data from it's sys table
-$res = mysql_query('select * from sysIdentification');
-if (!$res) returnErrorMsgPage(0, "Unable to read sysIdentification information, MySQL error: " . mysql_error());
-$sysValues = mysql_fetch_assoc($res);
+$res = $mysqliro->query('select * from sysIdentification');
+if (!$res) returnErrorMsgPage(0, "Unable to read sysIdentification information, MySQL error: " . $mysqliro->error);
+$sysValues = $res->fetch_assoc();
 // set up user access and group table stuff
 $udb = $sysValues['sys_UGrpsDatabase'];
 if ($udb) {
 	define('USERS_DATABASE', $udb);
 } else {
 	define('USERS_DATABASE', DATABASE); //use the system db for UGrp information
-
+  error_log('USERS_DATABASE set to '.DATABASE);
 }
 // access control logic defines
 define('USERS_TABLE', 'sysUGrps');
@@ -578,12 +582,13 @@ function defineDTLocalMagic($defString, $dtID, $dbID) {
 * @return    int local rectype ID or null if not found
 */
 function rectypeLocalIDLookup($rtID, $dbID = 2) {
+  global $mysqliro;
 	static $RTIDs;
 	if (!$RTIDs) {
-		$res = mysql_query('select rty_ID as localID,rty_OriginatingDBID as dbID,rty_IDInOriginatingDB as id from defRecTypes order by dbID');
-		if (!$res) returnErrorMsgPage(0, "Unable to build internal record type lookup table, MySQL error: " . mysql_error());
+		$res = $mysqliro->query('select rty_ID as localID,rty_OriginatingDBID as dbID,rty_IDInOriginatingDB as id from defRecTypes order by dbID');
+		if (!$res) returnErrorMsgPage(0, "Unable to build internal record type lookup table, MySQL error: " . $mysqliro->error);
 		$RTIDs = array();
-		while ($row = mysql_fetch_assoc($res)) {
+		while ($row = $res->fetch_assoc()) {
 			/*****DEBUG****///		error_log("rt ". print_r($row,true));
 			if (!@$RTIDs[$row['dbID']]) {
 				$RTIDs[$row['dbID']] = array();
@@ -602,12 +607,13 @@ function rectypeLocalIDLookup($rtID, $dbID = 2) {
 * @return    int local detailtype ID or null if not found
 */
 function detailtypeLocalIDLookup($dtID, $dbID = 2) {
+  global $mysqliro;
 	static $DTIDs;
 	if (!$DTIDs) {
-		$res = mysql_query('select dty_ID as localID,dty_OriginatingDBID as dbID,dty_IDInOriginatingDB as id from defDetailTypes order by dbID');
-		if (!$res) returnErrorMsgPage(0, "Unable to build internal field type lookup table, MySQL error: " . mysql_error());
+		$res = $mysqliro->query('select dty_ID as localID,dty_OriginatingDBID as dbID,dty_IDInOriginatingDB as id from defDetailTypes order by dbID');
+		if (!$res) returnErrorMsgPage(0, "Unable to build internal field type lookup table, MySQL error: " . $mysqliro->error);
 		$DTIDs = array();
-		while ($row = mysql_fetch_assoc($res)) {
+		while ($row = $res->fetch_assoc()) {
 			if (!@$DTIDs[$row['dbID']]) {
 				$DTIDs[$row['dbID']] = array();
 			}
@@ -644,6 +650,7 @@ function testDirWriteableAndDefine($defString, $dir, $isDocrootRelative = false,
 * @param    string [$msg] error message
 */
 function returnErrorMsgPage($critical, $msg = null) {
+  global $mysqliro;
 	$redirect = null;
 	if ($critical == 1) { // bad connection to MySQL server
 		echo "<p>&nbsp;Heurist initialisation error<p> ".$msg?$msg:""." <p><i>Please consult your sysadmin for help, or email: info - a t - heuristscholar.org </i></p>";
@@ -657,7 +664,7 @@ function returnErrorMsgPage($critical, $msg = null) {
 		// gets to here if database not specified properly. This is an error if set up properly, but not at first initialisaiton of the system
 		// Test for existence of databases, if none then Heurist has not been set up yet
 		// Placed here rather than up-front test to avoid having to test this in every script
-		$list = mysql__getdatabases();
+		$list = mysqli__getdatabases($mysqliro, true);
 		if (count($list) > 0) {
 			$msg2 = "<p>&nbsp;Cannot open database<p><br><br>".$msg?$msg:""."<p><br><br><i>Please consult your sysadmin for help, or email: info - a t - heuristscholar.org </i></p>";
 			$msg2 = rawurlencode($msg2);

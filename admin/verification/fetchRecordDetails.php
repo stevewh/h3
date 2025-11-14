@@ -47,9 +47,9 @@ define('dirname(__FILE__)', dirname(__FILE__));	// this line can be removed on n
 require_once(dirname(__FILE__).'/../../common/connect/applyCredentials.php');
 require_once(dirname(__FILE__).'/../../common/php/dbMySqlWrappers.php');
 
-mysql_connection_select(DATABASE);
+$mysqli = mysqli_connection_select(DATABASE);
 
-$ref_detail_types = mysql__select_array('defDetailTypes', 'dty_ID', 'dty_Type="resource"');
+$ref_detail_types = mysqli__select_array($mysqli, 'defDetailTypes', 'dty_ID', 'dty_Type="resource"');
 
 function ref_detail_types () {
 	global $ref_detail_types;
@@ -65,11 +65,11 @@ function fetch_bib_details ($rec_id, $recurse=false, $visited=array()) {
 	array_push($visited, $rec_id);
 
 	$details = array();
-	$res = mysql_query('select dtl_DetailTypeID, dtl_Value
+	$res = $mysqli->query('select dtl_DetailTypeID, dtl_Value
 	                      from recDetails
 	                     where dtl_RecID = ' . $rec_id . '
 	                  order by dtl_DetailTypeID, dtl_ID');
-	while ($row = mysql_fetch_assoc($res)) {
+	while ($row = $res->fetch_assoc()) {
 
 		$type = $row['dtl_DetailTypeID'];
 		$val = $row['dtl_Value'];

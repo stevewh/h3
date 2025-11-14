@@ -52,8 +52,8 @@ if (! is_logged_in()) {
 }
 
 if (@$_REQUEST["action"] == "delete"  &&  @$_REQUEST["rem_ID"]) {
-	mysql_connection_overwrite(DATABASE);
-	mysql_query("delete from usrReminders where rem_ID = " . intval($_REQUEST["rem_ID"]) . " and rem_OwnerUGrpID = " . get_user_id());
+	$mysqli = mysqli_connection_overwrite(DATABASE);
+	$mysqli->query("delete from usrReminders where rem_ID = " . intval($_REQUEST["rem_ID"]) . " and rem_OwnerUGrpID = " . get_user_id());
 }
 
 $future = (! @$_REQUEST["show"]  ||  $_REQUEST["show"] === "future");
@@ -111,11 +111,11 @@ $future = (! @$_REQUEST["show"]  ||  $_REQUEST["show"] === "future");
     </tr>
 <?php
 
-mysql_connection_select(DATABASE);
+$mysqli = mysqli_connection_select(DATABASE);
 
 $future_clause = $future ? "and rem_Freq != 'once' or rem_StartDate > now()" : "";
 
-$res = mysql_query("select usrReminders.*, rec_Title, grp.".GROUPS_NAME_FIELD.",  concat(usr.".USERS_FIRSTNAME_FIELD.",' ',usr.".USERS_LASTNAME_FIELD.") as username
+$res = $mysqli->query("select usrReminders.*, rec_Title, grp.".GROUPS_NAME_FIELD.",  concat(usr.".USERS_FIRSTNAME_FIELD.",' ',usr.".USERS_LASTNAME_FIELD.") as username
 					  from usrReminders
 				 left join Records on rec_ID = rem_RecID
 				 left join ".USERS_DATABASE.".".GROUPS_TABLE." grp on grp.".GROUPS_ID_FIELD." = rem_ToWorkgroupID
@@ -125,11 +125,11 @@ $res = mysql_query("select usrReminders.*, rec_Title, grp.".GROUPS_NAME_FIELD.",
 				  order by rem_RecID, rem_StartDate");
 
 
-if (mysql_num_rows($res) == 0) {
+if ($res->num_rows == 0) {
 	print "<tr><td></td><td colspan=4>No reminders</td></tr>";
 }
 
-while ($row = mysql_fetch_assoc($res)) {
+while ($row = $res->fetch_assoc()) {
 	$recipient = $row[GROUPS_NAME_FIELD] ? $row[GROUPS_NAME_FIELD] :
 					($row["username"] ? $row["username"] : $row["rem_ToEmail"]);
 ?>

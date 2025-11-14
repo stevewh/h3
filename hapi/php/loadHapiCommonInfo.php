@@ -64,39 +64,39 @@ if (! ($loc = get_location($_REQUEST["key"]))) {
 define_constants($loc["hl_instance"]);
 */
 
-mysql_connection_select(DATABASE);
+$mysqli = mysqli_connection_select(DATABASE);
 
 
 if (defined('HEURIST_USER_GROUP_ID')) {
-	$res = mysql_query("select usr.ugr_ID, usr.ugr_Name, concat(if(usr.ugr_FirstName is null,'Fred',usr.ugr_FirstName),' ',if(usr.ugr_LastName is null,'Nerks',usr.ugr_LastName)) as Realname from ".USERS_DATABASE.".sysUGrps usr, ".USERS_DATABASE.".sysUsrGrpLinks
+	$res = $mysqli->query("select usr.ugr_ID, usr.ugr_Name, concat(if(usr.ugr_FirstName is null,'Fred',usr.ugr_FirstName),' ',if(usr.ugr_LastName is null,'Nerks',usr.ugr_LastName)) as Realname from ".USERS_DATABASE.".sysUGrps usr, ".USERS_DATABASE.".sysUsrGrpLinks
 	                     where ugl_GroupID=2 and ugl_UserID=usr.ugr_ID and usr.ugr_Enabled='y' and !usr.ugr_IsModelUser");
 //usr.ugr_FirstName is not null and usr.ugr_LastName is not null and
 } else {
-	$res = mysql_query("select usr.ugr_ID, usr.ugr_Name, concat(if(usr.ugr_FirstName is null,'Fred',usr.ugr_FirstName),' ',if(usr.ugr_LastName is null,'Nerks',usr.ugr_LastName)) as Realname from ".USERS_DATABASE.".sysUGrps usr
+	$res = $mysqli->query("select usr.ugr_ID, usr.ugr_Name, concat(if(usr.ugr_FirstName is null,'Fred',usr.ugr_FirstName),' ',if(usr.ugr_LastName is null,'Nerks',usr.ugr_LastName)) as Realname from ".USERS_DATABASE.".sysUGrps usr
 	                     where usr.ugr_Enabled='y' and !usr.ugr_IsModelUser");
 //usr.ugr_FirstName is not null and usr.ugr_LastName is not null and
 }
 
 $users = array();
-while ($row = mysql_fetch_row($res)) { array_push($users, $row); }
+while ($row = $res->fetch_row()) { array_push($users, $row); }
 
-$res = mysql_query("select distinct grp.ugr_ID, grp.ugr_Name, grp.ugr_LongName, grp.ugr_Description, grp.ugr_URLs
+$res = $mysqli->query("select distinct grp.ugr_ID, grp.ugr_Name, grp.ugr_LongName, grp.ugr_Description, grp.ugr_URLs
 					from ".USERS_DATABASE.".sysUGrps grp, ".USERS_DATABASE.".sysUsrGrpLinks
 					where ugl_GroupID=grp.ugr_ID");
 $workgroups = array();
-while ($row = mysql_fetch_row($res)) { array_push($workgroups, $row); }
-$res = mysql_query("select rty_ID, rty_Name, rty_CanonicalTitleMask from defRecTypes ");
+while ($row = $res->fetch_row()) { array_push($workgroups, $row); }
+$res = $mysqli->query("select rty_ID, rty_Name, rty_CanonicalTitleMask from defRecTypes ");
 $recordTypes = array();
-while ($row = mysql_fetch_row($res)) array_push($recordTypes, $row);
+while ($row = $res->fetch_row()) array_push($recordTypes, $row);
 
-$res = mysql_query("select dty_ID, dty_Name, dty_HelpText, dty_Type, NULL as enums, dty_PtrTargetRectypeIDs,
+$res = $mysqli->query("select dty_ID, dty_Name, dty_HelpText, dty_Type, NULL as enums, dty_PtrTargetRectypeIDs,
 					dty_JsonTermIDTree, dty_TermIDTreeNonSelectableIDs, dty_ExtendedDescription, dty_DetailTypeGroupID,
 					dty_FieldSetRecTypeID, dty_ShowInLists, dty_NonOwnerVisibility
 					from defDetailTypes");
 
 $detailTypes = array();
 $detailTypesById = array();
-while ($row = mysql_fetch_row($res)) {
+while ($row = $res->fetch_row()) {
 	switch ($row[3]) {	// determine variety from dty_Type
 		// these ones thoughtfully have the same name for their variety as they do for their dty_Type
 	    case "date":
@@ -130,14 +130,14 @@ while ($row = mysql_fetch_row($res)) {
 			$trmIDs = join(",",$trmIDs);
 //			error_log("$trmCnt enum terms for $row[1] ====>".print_r($trmIDs,true));
 			if ($trmIDs) {
-				$resTerm = mysql_query("select trm_ID,trm_Label from defTerms ".//test to see that all terms are in this domain
+				$resTerm = $mysqli->query("select trm_ID,trm_Label from defTerms ".//test to see that all terms are in this domain
 										"where trm_ID in ($trmIDs) and trm_Domain = 'enum'");
-				if (mysql_num_rows($resTerm) != $trmCnt){
-//					error_log("".mysql_num_rows($resTerm)." enum terms found for $row[1] ");
+				if (mysqli_num_rows($resTerm) != $trmCnt){
+//					error_log("".mysqli_num_rows($resTerm)." enum terms found for $row[1] ");
 					$row[4] = array( array("0","Invalid Terms for $row[1]"));
 				}else{
 					$row[4] = array();
-					while($trmSet = mysql_fetch_row($resTerm)) {
+					while($trmSet = mysqli_fetch_row($resTerm)) {
 						array_push($row[4],$trmSet);
 					}
 				}
@@ -167,14 +167,14 @@ while ($row = mysql_fetch_row($res)) {
 			$trmIDs = join(",",$trmIDs);
 //			error_log("rel terms array ====>".print_r($trmIDs,true));
 			if ($trmIDs) {
-				$resTerm = mysql_query("select trm.trm_ID,trm.trm_Label,inv.trm_ID as invID, inv.trm_Label as invLabel ".
+				$resTerm = $mysqli->query("select trm.trm_ID,trm.trm_Label,inv.trm_ID as invID, inv.trm_Label as invLabel ".
 										"from defTerms trm left join defTerms inv on trm.trm_InverseTermID = inv.trm_ID ".
 										"where trm.trm_ID in ($trmIDs) and trm.trm_Domain = 'relation' ");
-				if (mysql_num_rows($resTerm) != $trmCnt){
+				if (mysqli_num_rows($resTerm) != $trmCnt){
 					$row[4] = array( array("0","Invalid Terms for $row[1]"));
 				}else{
 					$row[4] = array();
-					while($trmSet = mysql_fetch_row($resTerm)) {
+					while($trmSet = mysqli_fetch_row($resTerm)) {
 						array_push($row[4],$trmSet);
 					}
 				}
@@ -208,8 +208,8 @@ while ($row = mysql_fetch_row($res)) {
 
 // detailRequirements is an array of [recordTypeID, detailTypeID, requiremence, repeatable, name, prompt, match, size, order, default] values
 $detailRequirements = array();
-$rec_types = mysql__select_array("defRecTypes","distinct rty_ID", "1 order by rty_ID");
-//$rec_types = mysql__select_array("defRecStructure left join defDetailType on dty_ID = rst_DetailTypeID",
+$rec_types = mysqli__select_array($mysqli, "defRecTypes","distinct rty_ID", "1 order by rty_ID");
+//$rec_types = mysqli__select_array($mysqli, "defRecStructure left join defDetailType on dty_ID = rst_DetailTypeID",
 //									"distinct rst_RecTypeID", "1 order by rst_RecTypeID");
 		// rdr = [ rst_DetailTypeID => [
 			// 0-rst_DisplayName

@@ -76,7 +76,7 @@ if (! is_logged_in()) return;
 
 require_once(dirname(__FILE__)."/../../common/php/getRecordInfoLibrary.php");
 
-mysql_connection_overwrite(DATABASE);
+$mysqli = mysqli_connection_overwrite(DATABASE);
 
 
 header("Content-type: text/javascript");
@@ -109,24 +109,24 @@ if (@$_REQUEST["delete"]  && $recID) {
 
 if (count(@$deletions) > 0) {
 	/* check the deletion recIDs to make sure they actually involve the given rec_ID */
-	$res = mysql_query("select rec_ID from Records, recDetails
+	$res = $mysqli->query("select rec_ID from Records, recDetails
 		where dtl_RecID=rec_ID and dtl_DetailTypeID in (".
 								(defined('DT_PRIMARY_RESOURCE')?DT_PRIMARY_RESOURCE:"0").",".
 								(defined('DT_TARGET_RESOURCE')?DT_TARGET_RESOURCE:"0").") and dtl_Value=$recID and rec_ID in (" . join(",", $deletions) . ")");
 
 	$deletions = array();
-	while ($row = mysql_fetch_row($res)) array_push($deletions, $row[0]);
+	while ($row = $res->fetch_row()) array_push($deletions, $row[0]);
 	if ($deletions) {
 		foreach ($deletions as $del_recID) {
 			/* one delete query per rec_ID, this way the archive_bib* versioning stuff works */
-			mysql_query("update Records set rec_Modified=now() where rec_ID = $del_recID");
+			$mysqli->query("update Records set rec_Modified=now() where rec_ID = $del_recID");
 /*****DEBUG****///error_log("in delete code $del_recID ");
-			mysql_query("delete from recDetails where dtl_RecID = $del_recID");
-/*****DEBUG****///error_log("in deleted details for record $del_recID ".mysql_error());
-			mysql_query("delete from Records where rec_ID = $del_recID");
-/*****DEBUG****///error_log("in deleted delete record $del_recID ".mysql_error());
-			if (mysql_error()) {
-				print "(" . json_format(array("error" => slash(mysql_error()))) . ")";
+			$mysqli->query("delete from recDetails where dtl_RecID = $del_recID");
+/*****DEBUG****///error_log("in deleted details for record $del_recID ".$mysqli->error);
+			$mysqli->query("delete from Records where rec_ID = $del_recID");
+/*****DEBUG****///error_log("in deleted delete record $del_recID ".$mysqli->error);
+			if ($mysqli->error) {
+				print "(" . json_format(array("error" => slash($mysqli->error))) . ")";
 				return;
 			}
 		}
@@ -167,13 +167,13 @@ if (count(@$deletions) > 0) {
 }
 
 function saveRelationship($recID, $relTermID, $trgRecID, $interpRecID, $title, $notes, $start_date, $end_date) {
-	$relval = mysql_fetch_assoc(mysql_query("select trm_Label from defTerms where trm_ID = $relTermID"));
+	$relval = mysqli_fetch_assoc($mysqli->query("select trm_Label from defTerms where trm_ID = $relTermID"));
 	$relval = $relval['trm_Label'];
-	$srcTitle = mysql_fetch_assoc(mysql_query("select rec_Title from Records where rec_ID = $recID"));
+	$srcTitle = mysqli_fetch_assoc($mysqli->query("select rec_Title from Records where rec_ID = $recID"));
 	$srcTitle = $srcTitle['rec_Title'];
-	$trgTitle = mysql_fetch_assoc(mysql_query("select rec_Title from Records where rec_ID = $trgRecID"));
+	$trgTitle = mysqli_fetch_assoc($mysqli->query("select rec_Title from Records where rec_ID = $trgRecID"));
 	$trgTitle = $trgTitle['rec_Title'];
-	mysql__insert("Records", array("rec_Title" => "$title ($srcTitle $relval $trgTitle)",
+	mysqli__insert($mysqli, "Records", array("rec_Title" => "$title ($srcTitle $relval $trgTitle)",
 					"rec_Added"     => date('Y-m-d H:i:s'),
 					"rec_Modified"  => date('Y-m-d H:i:s'),
 					"rec_RecTypeID"   => RT_RELATION,
@@ -182,11 +182,11 @@ function saveRelationship($recID, $relTermID, $trgRecID, $interpRecID, $title, $
 											(defined('HEURIST_NEWREC_OWNER_ID') ? HEURIST_NEWREC_OWNER_ID: get_user_id()))),
 					"rec_AddedByUGrpID" => get_user_id()));
 
-	if (mysql_error()) {
-		return array("error" => slash(mysql_error()));
+	if ($mysqli->error) {
+		return array("error" => slash($mysqli->error));
 	}
 
-	$relnRecID = mysql_insert_id();
+	$relnRecID = $mysqli->insert_id;
 	$res = null;
 /*****DEBUG****///error_log("defines title=".DT_NAME.", prim = ".DT_PRIMARY_RESOURCE);
 	if ($relnRecID > 0 &&  defined('DT_NAME') &&
@@ -207,12 +207,12 @@ function saveRelationship($recID, $relTermID, $trgRecID, $interpRecID, $title, $
 		if ($end_date && defined('DT_END_DATE'))
 			$query .= ", ($relnRecID, ".DT_END_DATE.", '" . addslashes($end_date) . "')";
 /*****DEBUG****///error_log(" rel save query = $query");
-		$res = mysql_query($query);
-/*****DEBUG****///error_log("res = $res  error " .mysql_error());
+		$res = $mysqli->query($query);
+/*****DEBUG****///error_log("res = $res  error " .$mysqli->error);
 	}
 
-	if (mysql_error($res)) {
-		return array("error" => slash(mysql_error($res)));
+	if ($mysqli->error) {
+		return array("error" => slash($mysqli->error));
 	} else {
 //		$related = getAllRelatedRecords($recID, $relnRecID);
 		$related = getAllRelatedRecords($recID);

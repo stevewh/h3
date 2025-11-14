@@ -80,10 +80,10 @@ if (@$_REQUEST["g"]) {
   <table>
 <?php
 
-mysql_connection_select(USERS_DATABASE);
+$mysqli = mysqli_connection_select(USERS_DATABASE);
 
 $grp_ids = array_keys($_SESSION[HEURIST_SESSION_DB_PREFIX.'heurist']["user_access"]);
-$grp_names = mysql__select_assoc(GROUPS_TABLE, GROUPS_ID_FIELD, GROUPS_NAME_FIELD, GROUPS_ID_FIELD." in (".join(",",$grp_ids).")");
+$grp_names = mysqli__select_assoc($mysqli, GROUPS_TABLE, GROUPS_ID_FIELD, GROUPS_NAME_FIELD, GROUPS_ID_FIELD." in (".join(",",$grp_ids).")");
 
 foreach ($grp_ids as $grp_id) {
 	print("<tr><td>".$grp_names[$grp_id]."</td><td>");

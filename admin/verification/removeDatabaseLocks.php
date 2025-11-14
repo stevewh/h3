@@ -53,15 +53,15 @@
         return;
     }
 
-    mysql_connection_overwrite(DATABASE);
+    $mysqli = mysqli_connection_overwrite(DATABASE);
 
     $query="delete from sysLocks";
-    $res = mysql_query($query);
+    $res = $mysqli->query($query);
     if (!$res) {
-        die('<p>Invalid query, please report to developers: '.$query.'  Error: '.mysql_error());
+        die('<p>Invalid query, please report to developers: '.$query.'  Error: '.$mysqli->error);
     }
 
-    if (mysql_affected_rows()==0) {
+    if ($mysqli->affected_rows==0) {
         print "<html><head><link rel=stylesheet href='../../common/css/global.css'></head><body class='popup'>
         <h2> There were no database locks to remove</h2>";
     }

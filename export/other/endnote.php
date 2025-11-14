@@ -235,25 +235,26 @@ else
 	return;	// wwgd
 
 
-mysql_connection_select(DATABASE);
+$mysqli = mysqli_connection_select(DATABASE);
 
-$rectype = mysql__select_assoc('defRecTypes', 'rty_ID', 'rty_Name', '1');
+$rectype = mysqli__select_assoc($mysqli, 'defRecTypes', 'rty_ID', 'rty_Name', '1');
 
-$res = mysql_query(REQUEST_to_query('select distinct rec_ID, rec_URL, rec_ScratchPad, rec_RecTypeID ', $search_type));
+$res = $mysqli->query(REQUEST_to_query($mysqli, 'select distinct rec_ID, rec_URL, rec_ScratchPad, rec_RecTypeID ', $search_type));
 
-while ($row = mysql_fetch_assoc($res))
+while ($row = $res->fetch_assoc())
 	print_biblio($row);
 
 
 function print_biblio($bib) {
 	global $rectype;
+  global $mysqli;
 	$output = '';
 
 	$output .= print_bib_details($bib['rec_ID'], $bib['rec_RecTypeID'], array());
 
 	if ($bib['rec_URL']) $output .= '%U ' . $bib['rec_URL'] . "\n";
 
-	$kwds = mysql__select_array('usrBookmarks left join usrRecTagLinks on rtl_RecID = bkm_RecID
+	$kwds = mysqli__select_array($mysqli, 'usrBookmarks left join usrRecTagLinks on rtl_RecID = bkm_RecID
 	                                       left join usrTags on tag_ID = rtl_TagID',
 	                            'tag_Text',
 	                            'bkm_recID = ' . $bib['rec_ID'] . ' and bkm_UGrpID = ' . get_user_id() . ' and tag_Text != "" and tag_Text is not null');
@@ -273,19 +274,20 @@ function print_bib_details ($rec_id, $base_rectype, $visited) {
 	global $heurist_to_refer_map;
 	global $parent_detail_types;
 	global $rectype_parent_map;
+  global $mysqli;
 	$output = '';
 
 	array_push($visited, $rec_id);
 
-	$res = mysql_query('select rec_RecTypeID from Records where rec_ID = ' . $rec_id);
-	$row = mysql_fetch_assoc($res);
+	$res = $mysqli->query('select rec_RecTypeID from Records where rec_ID = ' . $rec_id);
+	$row = $res->fetch_assoc();
 	$rt = $row['rec_RecTypeID'];
 
 	$details = array();
-	$res = mysql_query('select dtl_DetailTypeID, dtl_Value
+	$res = $mysqli->query('select dtl_DetailTypeID, dtl_Value
 	                      from recDetails
 	                     where dtl_RecID = ' . $rec_id);
-	while ($row = mysql_fetch_assoc($res)) {
+	while ($row = $res->fetch_assoc()) {
 
 		if (! @$details[$row['dtl_DetailTypeID']]) {
 			$details[$row['dtl_DetailTypeID']] = $row['dtl_Value'];
@@ -298,10 +300,10 @@ function print_bib_details ($rec_id, $base_rectype, $visited) {
 
 	// authors
 	if (@$details['158']) {//MAGIC NUMBER
-		$res = mysql_query("select rec_Title from Records where rec_ID in (" .
+		$res = $mysqli->query("select rec_Title from Records where rec_ID in (" .
 							(is_array($details['158']) ? join(",", $details['158']) : $details['158']) . ")");//MAGIC NUMBER
 		$details['158'] = array();//MAGIC NUMBER
-		while ($row = mysql_fetch_assoc($res)) {
+		while ($row = $res->fetch_assoc()) {
 			array_push($details['158'], $row['rec_Title']);//MAGIC NUMBER
 		}
 	}

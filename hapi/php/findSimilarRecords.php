@@ -66,7 +66,7 @@ if (! $details  || ! $types) {
 	return;
 }
 
-mysql_connection_select(DATABASE);
+$mysqli = mysqli_connection_select(DATABASE);
 
 $matches = findFuzzyMatches($details, $types, $id, $fuzziness);
 

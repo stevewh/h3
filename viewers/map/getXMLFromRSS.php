@@ -38,11 +38,11 @@ define("KML_DETAIL_TYPE", 551);
 define("RSSFEED_DETAIL_TYPE", 610);
 define("FILE_DETAIL_TYPE", 221);
 
-mysql_connection_select(DATABASE);
-$res = mysql_query("select dtl_Value from recDetails where dtl_RecID = " . intval($_REQUEST["id"]) . " and dtl_DetailTypeID = " . RSSFEED_DETAIL_TYPE);
-if (mysql_num_rows($res)) {
+$mysqli = mysqli_connection_select(DATABASE);
+$res = $mysqli->query("select dtl_Value from recDetails where dtl_RecID = " . intval($_REQUEST["id"]) . " and dtl_DetailTypeID = " . RSSFEED_DETAIL_TYPE);
+if ($res->num_rows) {
 	//read in the feed data
-	$rssURL = mysql_fetch_array($res);
+	$rssURL = $res->fetch_array();
 	$ch = curl_init($rssURL[0]);
 	curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 	curl_setopt($ch, CURLOPT_HEADER, 0);
@@ -75,8 +75,8 @@ if (mysql_num_rows($res)) {
 	$text = preg_replace($pat,$repPat,$rawXML);
 	print $text;
 } else {	//leaving the this after the rssfeed check allows use to cache a file in case the feed doesn't work. More coding (try catch ) is needed for this
-	$res = mysql_query("select ulf_ID from recDetails left join recUploadedFiles on ulf_ID = dtl_UploadedFileID where dtl_RecID = " . intval($_REQUEST["id"]) . " and dtl_DetailTypeID = " . FILE_DETAIL_TYPE);
-	$file_id = mysql_fetch_array($res);
+	$res = $mysqli->query("select ulf_ID from recDetails left join recUploadedFiles on ulf_ID = dtl_UploadedFileID where dtl_RecID = " . intval($_REQUEST["id"]) . " and dtl_DetailTypeID = " . FILE_DETAIL_TYPE);
+	$file_id = $res->fetch_array();
 	$file_id = $file_id[0];
 	print file_get_contents(HEURIST_UPLOAD_DIR . "/" . $file_id);
 }

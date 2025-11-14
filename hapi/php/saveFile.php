@@ -78,9 +78,9 @@
 
             /*****DEBUG****///error_log("upload file info - ". print_r($_FILES["file"],true));
 
-	        mysql_connection_overwrite(DATABASE);
+	        $mysqli = mysqli_connection_overwrite(DATABASE);
 
-	        mysql_query("start transaction");
+	        $mysqli->query("start transaction");
         //POST Content-Length of 103399974 bytes exceeds the limit of 29360128 bytes in Unknown on line
 
 	        //$upload["type"]
@@ -91,7 +91,7 @@
 		        $file = get_uploaded_file_info($fileID, false);
 		        print json_format($file);
 
-		        mysql_query("commit");
+		        $mysqli->query("commit");
 	        }
 	        else if ($fileID) {
 		        jsonError($fileID);
@@ -110,7 +110,7 @@
 
 
 	function jsonError($message) {
-		mysql_query("rollback");
+		$mysqli->query("rollback");
 		print "{\"error\":\"" . addslashes($message) . "\"}";
 	}
 

@@ -34,7 +34,7 @@ require_once(dirname(__FILE__).'/../../common/php/Temporal.php');
 require_once(dirname(__FILE__).'/../../search/parseQueryToSQL.php');
 include_once('../../external/geoPHP/geoPHP.inc');
 
-mysql_connection_select(DATABASE);
+$mysqli = mysqli_connection_select(DATABASE);
 
 $islist = array_key_exists("q", $_REQUEST);
 
@@ -54,10 +54,10 @@ if(!$islist){
 	if(array_key_exists("id", $_REQUEST) && $_REQUEST["id"]!="")
 	{
 	//kml is stored in uploaded file
-	$res = mysql_query("select ulf_ID, ulf_FilePath, ulf_FileName from recDetails left join recUploadedFiles on ulf_ID = dtl_UploadedFileID where dtl_RecID = " . intval($_REQUEST["id"]) . " and (dtl_DetailTypeID = ".(defined('DT_FILE_RESOURCE')?DT_FILE_RESOURCE:"0")." OR dtl_DetailTypeID = ".(defined('DT_KML_FILE')?DT_KML_FILE:"0").")");
+	$res = $mysqli->query("select ulf_ID, ulf_FilePath, ulf_FileName from recDetails left join recUploadedFiles on ulf_ID = dtl_UploadedFileID where dtl_RecID = " . intval($_REQUEST["id"]) . " and (dtl_DetailTypeID = ".(defined('DT_FILE_RESOURCE')?DT_FILE_RESOURCE:"0")." OR dtl_DetailTypeID = ".(defined('DT_KML_FILE')?DT_KML_FILE:"0").")");
 
-	if (mysql_num_rows($res)) {
-			$file_data = mysql_fetch_array($res);
+	if ($res->num_rows) {
+			$file_data = $res->fetch_array();
 
 			if ($file_data[2]) {
 				$filename = $file_data[1].$file_data[2]; // post 18/11/11 proper file path and name
@@ -67,14 +67,14 @@ if(!$islist){
 
 		print file_get_contents($filename);
 	}else{
-		$res = mysql_query("select dtl_Value from recDetails where dtl_RecID = " . intval($_REQUEST["id"]) . " and dtl_DetailTypeID = ".(defined('DT_KML')?DT_KML:"0"));
+		$res = $mysqli->query("select dtl_Value from recDetails where dtl_RecID = " . intval($_REQUEST["id"]) . " and dtl_DetailTypeID = ".(defined('DT_KML')?DT_KML:"0"));
 
 		print "<?xml version='1.0' encoding='UTF-8'?>\n";
 		print '<kml xmlns="http://www.opengis.net/kml/2.2" xmlns:gx="http://www.google.com/kml/ext/2.2" xmlns:kml="http://www.opengis.net/kml/2.2" xmlns:atom="http://www.w3.org/2005/Atom">';
 		print '<Document>';
 
-		if (mysql_num_rows($res)) {
-			$kml = mysql_fetch_array($res);
+		if ($res->num_rows) {
+			$kml = $res->fetch_array();
 			$kml = $kml[0];
 			print $kml;
 		}
@@ -141,15 +141,15 @@ if($islist || (array_key_exists("id", $_REQUEST) && $_REQUEST["id"]!="")){
 
 /*****DEBUG****///error_log("1.>>>>".$squery);
 
-		$res = mysql_query($squery);
-		$wkt_reccount = mysql_num_rows($res);
+		$res = $mysqli->query($squery);
+		$wkt_reccount = $res->num_rows;
 
 /*****DEBUG****///error_log("2.>>>>".$wkt_reccount);
 
 /*****DEBUG****///error_log(">>>>".$isSearchKml."2.>>>>".$squery2);
 		if($isSearchKml){
-			$res2 = mysql_query($squery2);
-			$kml_reccount = mysql_num_rows($res2);
+			$res2 = $mysqli->query($squery2);
+			$kml_reccount = mysqli_num_rows($res2);
 		}else{
 			$kml_reccount = 0;
 		}
@@ -158,7 +158,7 @@ if($islist || (array_key_exists("id", $_REQUEST) && $_REQUEST["id"]!="")){
 		{
 
 			if($wkt_reccount>0){
-				while ($row = mysql_fetch_row($res)) {
+				while ($row = $res->fetch_row()) {
 					$kml = null;
 					$dt = $row[3];
 	/*****DEBUG****///error_log(">>>>>".$dt." == ".(defined('DT_GEO_OBJECT')?DT_GEO_OBJECT:"0"));
@@ -210,7 +210,7 @@ if($islist || (array_key_exists("id", $_REQUEST) && $_REQUEST["id"]!="")){
 			}
 
 			if($kml_reccount>0){
-				while ($file_data = mysql_fetch_row($res2)) {
+				while ($file_data = mysqli_fetch_row($res2)) {
 					if ($file_data[3]) {
 
 	print "<NetworkLink>";
@@ -232,7 +232,7 @@ print '</kml>';
 //
 function prepareQuery($squery, $search_type, $detailsTable, $where, $limit)
 {
-			$squery = REQUEST_to_query($squery, $search_type);
+			$squery = REQUEST_to_query($mysqli, $squery, $search_type);
 			//remove order by
 			$pos = strpos($squery," order by ");
 			if($pos>0){

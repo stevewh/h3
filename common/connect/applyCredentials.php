@@ -198,11 +198,11 @@ function jump_sessions() {
 * @param mixed $user_id
 */
 function reloadUserGroups($user_id){
-
-		$res = mysql_query('select '.GROUPS_ID_FIELD.','.USER_GROUPS_ROLE_FIELD.' from '.USER_GROUPS_TABLE.','.GROUPS_TABLE.
+    $mysqli = mysqli_connection_select(USERS_DATABASE);
+		$res = $mysqli->query('select '.GROUPS_ID_FIELD.','.USER_GROUPS_ROLE_FIELD.' from '.USER_GROUPS_TABLE.','.GROUPS_TABLE.
 							' where '.USER_GROUPS_GROUP_ID_FIELD.'='.GROUPS_ID_FIELD.
 							' and '.USER_GROUPS_USER_ID_FIELD.'="'.$user_id.'"');
-		while ($row = mysql_fetch_assoc($res)) {
+		while ($row = $res->fetch_assoc()) {
 			if ($row[USER_GROUPS_ROLE_FIELD])
 				$groups[$row[GROUPS_ID_FIELD]] = $row[USER_GROUPS_ROLE_FIELD];
 			else

@@ -172,8 +172,8 @@
 		if (!$relTermID) return;
 
 		if (! $inverses) {
-			//		$inverses = mysql__select_assoc("defTerms A left join defTerms B on B.trm_ID=A.trm_InverseTermID", "A.trm_Label", "B.trm_Label", "A.rdl_rdt_id=200 and A.trm_Label is not null");
-			$inverses = mysql__select_assoc("defTerms A left join defTerms B on B.trm_ID=A.trm_InverseTermID", "A.trm_ID", "B.trm_ID", "A.trm_Label is not null and B.trm_Label is not null");
+			//		$inverses = mysqli__select_assoc($mysqli, "defTerms A left join defTerms B on B.trm_ID=A.trm_InverseTermID", "A.trm_Label", "B.trm_Label", "A.rdl_rdt_id=200 and A.trm_Label is not null");
+			$inverses = mysqli__select_assoc($mysqli, "defTerms A left join defTerms B on B.trm_ID=A.trm_InverseTermID", "A.trm_ID", "B.trm_ID", "A.trm_Label is not null and B.trm_Label is not null");
 		}
 
 		$inverse = @$inverses[$relTermID];
@@ -221,9 +221,9 @@
 	{
 		global $relTypDT,$relSrcDT,$relTrgDT,$intrpDT,$notesDT,$startDT,$endDT,$titleDT, $relRT;
 
-		$res = mysql_query('select * from recDetails where dtl_RecID = ' . $recID);
+		$res = $mysqli->query('select * from recDetails where dtl_RecID = ' . $recID);
 		$bd = array('recID' => $recID);
-		while ($row = mysql_fetch_assoc($res)) {
+		while ($row = $res->fetch_assoc()) {
 			switch ($row['dtl_DetailTypeID']) {
 				case $relTypDT:	//saw Enum change - added RelationValue for UI
 
@@ -233,7 +233,7 @@
 							$bd['relTermID'] = reltype_inverse($row['dtl_Value']);
 					}
 
-					$relval = mysql_fetch_assoc(mysql_query('select trm_Label, trm_ParentTermID from defTerms where trm_ID = ' .  intval($bd['RelTermID'])));
+					$relval = mysqli_fetch_assoc($mysqli->query('select trm_Label, trm_ParentTermID from defTerms where trm_ID = ' .  intval($bd['RelTermID'])));
 					$bd['relTerm'] = $relval['trm_Label'];
 					if ($relval['trm_ParentTermID'] ) {
 							$bd['parentTermID'] = $relval['trm_ParentTermID'];
@@ -242,22 +242,22 @@
 
 				case $relTrgDT:	// linked resource
 				if (! $i_am_primary) break;
-						$r = mysql_query('select rec_ID as recID, rec_Title as title, rec_RecTypeID as rectype, rec_URL as URL
+						$r = $mysqli->query('select rec_ID as recID, rec_Title as title, rec_RecTypeID as rectype, rec_URL as URL
 											from Records where rec_ID = ' . intval($row['dtl_Value']));
-						$bd['relatedRecID'] = mysql_fetch_assoc($r);
+						$bd['relatedRecID'] = mysqli_fetch_assoc($r);
 				break;
 
 				case $relSrcDT:
 				if ($i_am_primary) break;
-						$r = mysql_query('select rec_ID as recID, rec_Title as title, rec_RecTypeID as rectype, rec_URL as URL
+						$r = $mysqli->query('select rec_ID as recID, rec_Title as title, rec_RecTypeID as rectype, rec_URL as URL
 											from Records where rec_ID = ' . intval($row['dtl_Value']));
-						$bd['relatedRecID'] = mysql_fetch_assoc($r);
+						$bd['relatedRecID'] = mysqli_fetch_assoc($r);
 				break;
 
 				case $intrpDT:
-						$r = mysql_query('select rec_ID as recID, rec_Title as title, rec_RecTypeID as rectype, rec_URL as URL
+						$r = $mysqli->query('select rec_ID as recID, rec_Title as title, rec_RecTypeID as rectype, rec_URL as URL
 											from Records where rec_ID = ' . intval($row['dtl_Value']));
-						$bd['interpRecID'] = mysql_fetch_assoc($r);
+						$bd['interpRecID'] = mysqli_fetch_assoc($r);
 				break;
 
 				case $notesDT:
@@ -308,14 +308,14 @@
 		$query .= " order by LINK.dtl_DetailTypeID desc, DETAILS.dtl_ID";
 
 		/*****DEBUG****///error_log($query);
-		$res = mysql_query($query);	/* primary resources first, then non-primary, then authors */
+		$res = $mysqli->query($query);	/* primary resources first, then non-primary, then authors */
 
-		if (!mysql_num_rows($res)) {
+		if (!$res->num_rows) {
 			return array();
 		}
 
 		$relations = array('relationshipRecs' => array());
-		while ($row = mysql_fetch_assoc($res))
+		while ($row = $res->fetch_assoc())
 		{
 				$relnRecID = $row["dtl_RecID"];
 				$i_am_primary = ($row["type"] == $relSrcDT);
@@ -340,7 +340,7 @@
 		case $relTypDT:	//saw Enum change - nothing to do since dtl_Value is an id and inverse returns an id
 					$relations['relationshipRecs'][$relnRecID]["relTermID"] = $i_am_primary? $row["dtl_Value"] : reltype_inverse($row["dtl_Value"]);
 					if($relations['relationshipRecs'][$relnRecID]["relTermID"]) {
-						$relval = mysql_fetch_assoc(mysql_query('select trm_Label from defTerms where trm_ID = ' .  intval($relations['relationshipRecs'][$relnRecID]["relTermID"])));
+						$relval = mysqli_fetch_assoc($mysqli->query('select trm_Label from defTerms where trm_ID = ' .  intval($relations['relationshipRecs'][$relnRecID]["relTermID"])));
 						$relations['relationshipRecs'][$relnRecID]['relTerm'] = $relval['trm_Label'];
 					}
 			break;

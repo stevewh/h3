@@ -58,7 +58,7 @@
 	require_once("dbMySqlWrappers.php");
 	require_once("getRecordInfoLibrary.php");
 
-	mysql_connection_select(DATABASE);
+	$mysqli = mysqli_connection_select(DATABASE);
 
 	header("Content-type: text/javascript");
 
@@ -69,16 +69,16 @@
 
 	// for all tables used in common obj find the lastest update date and if it's not great than the last request
 	// signal requester
-	$res = mysql_query("select max(tlu_DateStamp) from sysTableLastUpdated where tlu_CommonObj = 1");
-	$lastModified = mysql_fetch_row($res);
+	$res = $mysqli->query("select max(tlu_DateStamp) from sysTableLastUpdated where tlu_CommonObj = 1");
+	$lastModified = $res->fetch_row();
 	$lastModified = strtotime($lastModified[0]);
 	/*****DEBUG****///error_log("lastmod = $lastModified with current time = ".@$_SERVER["REQUEST_TIME"]);
 	// not changed since last requested so return
-	if (strtotime(@$_SERVER["HTTP_IF_MODIFIED_SINCE"]) > $lastModified) {
-		header('HTTP/1.1 304 Not Modified');
-		/*****DEBUG****///error_log(" exiting loadCommonInfo with 'Not Modified' $lastModified");
-		exit();
-	}
+//	if (strtotime(@$_SERVER["HTTP_IF_MODIFIED_SINCE"]) > $lastModified) {
+//		header('HTTP/1.1 304 Not Modified');
+//		/*****DEBUG****///error_log(" exiting loadCommonInfo with 'Not Modified' $lastModified");
+//		exit();
+//	}
 
 	header('Cache-Control: no-cache');
 	header('Pragma: no-cache');
@@ -134,14 +134,14 @@ top.HEURIST.ratings = {"0": "not rated",
 	$workgroupIDs = array();
 	$workgroupsLength = 0;
 
-	$res = mysql_query("select grp.ugr_ID as grpID, grp.ugr_Name as grpName, grp.ugr_Description as description, grp.ugr_URLs as URL, count(ugl_UserID) as members
+	$res = $mysqli->query("select grp.ugr_ID as grpID, grp.ugr_Name as grpName, grp.ugr_Description as description, grp.ugr_URLs as URL, count(ugl_UserID) as members
 		from ".USERS_DATABASE.".sysUGrps grp
 		left join ".USERS_DATABASE.".sysUsrGrpLinks on ugl_GroupID = grp.ugr_ID
 		left join ".USERS_DATABASE.".sysUGrps b on b.ugr_ID = ugl_UserID
 		where grp.ugr_Type != 'user'
 		and b.ugr_Enabled  = 'y'
 	group by grp.ugr_ID order by grp.ugr_Name");
-	while ($row = mysql_fetch_assoc($res)) {
+	while ($row = $res->fetch_assoc()) {
 		$workgroups[$row["grpID"]] = array(
 			"name" => $row["grpName"],
 			"description" => $row["description"],
@@ -154,7 +154,7 @@ top.HEURIST.ratings = {"0": "not rated",
 	}
 	$workgroups["length"] = $workgroupsLength;
 
-	$res = mysql_query("select ugl_GroupID, concat(b.ugr_FirstName,' ',b.ugr_LastName) as name, b.ugr_eMail, b.ugr_ID
+	$res = $mysqli->query("select ugl_GroupID, concat(b.ugr_FirstName,' ',b.ugr_LastName) as name, b.ugr_eMail, b.ugr_ID
 		from ".USERS_DATABASE.".sysUGrps grp
 		left join ".USERS_DATABASE.".sysUsrGrpLinks on ugl_GroupID = grp.ugr_ID
 		left join ".USERS_DATABASE.".sysUGrps b on b.ugr_ID = ugl_UserID
@@ -163,7 +163,7 @@ top.HEURIST.ratings = {"0": "not rated",
 		and b.ugr_Enabled  = 'y'
 	order by ugl_GroupID, b.ugr_LastName, b.ugr_FirstName");
 	$grp_id = 0;
-	while ($row = mysql_fetch_assoc($res)) {
+	while ($row = $res->fetch_assoc()) {
 		if ($grp_id == 0   ||  $grp_id != $row["ugl_GroupID"]) {
 			if ($workgroups[$row["ugl_GroupID"]])
 				$workgroups[$row["ugl_GroupID"]]["admins"] = array();

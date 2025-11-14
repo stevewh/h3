@@ -52,15 +52,15 @@ require_once(dirname(__FILE__)."/../../common/php/dbMySqlWrappers.php");
 require_once(dirname(__FILE__)."/../../common/connect/applyCredentials.php");
 if (! is_logged_in()) return;
 
-mysql_connection_overwrite(DATABASE);
+$mysqli = mysqli_connection_overwrite(DATABASE);
 
 header("Content-type: text/javascript");
 
 
-$res = mysql_query("select tag_ID, tag_UGrpID, tag_Text from usrTags, ".USERS_DATABASE.".sysUsrGrpLinks, ".USERS_DATABASE.".sysUGrps grp where ugl_GroupID=tag_UGrpID and ugl_GroupID=grp.ugr_ID and ugl_UserID=".get_user_id()." and grp.ugr_Type!='user' order by grp.ugr_Name, tag_Text");
+$res = $mysqli->query("select tag_ID, tag_UGrpID, tag_Text from usrTags, ".USERS_DATABASE.".sysUsrGrpLinks, ".USERS_DATABASE.".sysUGrps grp where ugl_GroupID=tag_UGrpID and ugl_GroupID=grp.ugr_ID and ugl_UserID=".get_user_id()." and grp.ugr_Type!='user' order by grp.ugr_Name, tag_Text");
 $rows = array();
 $ids = array();
-while ($row = mysql_fetch_row($res)) {
+while ($row = $res->fetch_row()) {
 			$kwd_id = array_shift($row);
 			$rows[$kwd_id] = $row;
 			array_push($ids, $kwd_id);

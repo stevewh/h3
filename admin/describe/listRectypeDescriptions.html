@@ -43,9 +43,11 @@
  **/
 
 -->
-<html>
+<html lang="en">
  <head>
+  <meta charset="utf-8"/>
   <title>Heurist record structures listing</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <link rel="stylesheet" type="text/css" href="../../common/css/global.css">
   <link rel="icon" href="../../favicon.ico" type="image/x-icon">
@@ -84,7 +86,7 @@
   <div style="padding: 10px;">
 
 <div class="headline">Record types for database: [dbname!] </div>
-<p/>
+<p></p>
 
 Requirements: req. = Required, rec. = Recommended, xcl. = Forbidden, otherwise Optional
 <br>Status: Reserved, Approved, Pending, otherwise Open
@@ -95,7 +97,7 @@ Requirements: req. = Required, rec. = Recommended, xcl. = Forbidden, otherwise O
  [foreach rectype rtf : rty_ID order by (rty_RecTypeGroupID), rty_OrderInGroup, rty_Name]
  <tr class="rty_Name">
   <td style="text-align: right;">[rty_ID]</td>
-  <td><img src="[iconURL!][rty_ID].png" id="rt[rty_ID]" class="rft_icon"><span class="rty_Name">[rty_Name]</span></td>
+  <td><img src="[iconURL!][rty_ID].png" alt="icon for rectype" id="rt[rty_ID]" class="rft_icon"><span class="rty_Name">[rty_Name]</span></td>
  </tr>
  <tr>
   <td></td>

@@ -64,12 +64,12 @@ $hinclude = (@$_REQUEST['hinclude'] ? $_REQUEST['hinclude'] : ($recID?0:-1)); //
 
 /*****DEBUG****///error_log("recID = .$recID.  q = .$q.  outName = .$outName. depth = .$depth");
 
-mysql_connection_select(DATABASE);
+$mysqli = mysqli_connection_select(DATABASE);
 
 if ($recID ){ // check access first
-	$res = mysql_query("select * from Records where rec_ID = $recID");
-	$row = mysql_fetch_assoc($res);
-	$ACCESSABLE_OWNER_IDS = mysql__select_array('sysUsrGrpLinks left join sysUGrps grp on grp.ugr_ID=ugl_GroupID', 'ugl_GroupID',
+	$res = $mysqli->query("select * from Records where rec_ID = $recID");
+	$row = $res->fetch_assoc();
+	$ACCESSABLE_OWNER_IDS = mysqli__select_array($mysqli, 'sysUsrGrpLinks left join sysUGrps grp on grp.ugr_ID=ugl_GroupID', 'ugl_GroupID',
 									'ugl_UserID='.get_user_id().' and grp.ugr_Type != "user" order by ugl_GroupID');
 	if (is_logged_in()){
 		array_push($ACCESSABLE_OWNER_IDS,get_user_id());
@@ -78,7 +78,7 @@ if ($recID ){ // check access first
 		}
 	}
 
-	$rec_owner_id = mysql__select_array("Records","rec_OwnerUGrpID","rec_ID=$recID");
+	$rec_owner_id = mysqli__select_array($mysqli, "Records","rec_OwnerUGrpID","rec_ID=$recID");
 	/*****DEBUG****///error_log(" rec owner = $rec_owner_id[0]  ".count($rec_owner_id)." vis = ".$row['rec_NonOwnerVisibility']." ".print_r($ACCESSABLE_OWNER_IDS,true));
 
 	if ( $row['rec_NonOwnerVisibility'] != 'public' && (count($rec_owner_id) < 1 ||

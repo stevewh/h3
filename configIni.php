@@ -39,7 +39,8 @@ $serverName = null; // override default taken from request header SERVER_NAME
 // [database]
 // enter the host name or IP address of your MySQL server, blank --> localhost
 // for example $dbHost = "heuristscholar.org";  will cause the code to use mysql on the server at heuristscholar.org
-$dbHost = "zag-db-pro-1.ucc.usyd.edu.au"; // required
+//$dbHost = "zag-db-pro-1.ucc.usyd.edu.au"; // required
+$dbHost = "mydb"; // required
 
 // MySQL user with full write (create) access on this database server
 // The default installation of MySql gives you "root" as the master user with whatever password you set up for this,
@@ -65,7 +66,7 @@ $dbPrefix = "hdb_"; // recommended
 // If defaultDBName is blank, a list of available databases will be displayed on startup if none is specified
 $defaultDBname = "zagora"; // may be left blank
 
-// The HTTP address:port of teh proxy server that will allow access to the internet for external URI's
+// The HTTP address:port of the proxy server that will allow access to the internet for external URI's
 // this address will allow heurist to request content through the firewall for general Internet URI's
 $httpProxy = ""; // blank = assumes direct internet access from server - ok for laptop installations.
 
@@ -81,7 +82,7 @@ $passwordForDatabaseCreation="AandBzap"; // blank = any logged in user can creat
 // $defaultRootFileUploadPath = "/var/www/myUploadDir/";
 // Then, when running Heurist with db=main, uploaded files will be loaded into /var/www/myUploadDir/main/
 // defaults DocRoot/HEURIST_FILESTORE/dbname
-$defaultRootFileUploadPath = ""; // recommended
+$defaultRootFileUploadPath = "/var/www/heuristfilestore"; // recommended
 
 // The Document root  relative pathname of a directory where Heurist can store uploaded
 // icons eg. .png for rectypes. PHP must be able to create subdirectories off this directory
@@ -92,18 +93,18 @@ $defaultRootFileUploadPath = ""; // recommended
 // Then, when running Heurist with db=main, uploaded icons will be loaded into
 // /var/www/htdocs/myUploadDir/main/rectype-icons/
 // defaults /HEURIST_FILESTORE/
-$siteRelativeIconUploadBasePath = ""; // recommended
+$siteRelativeIconUploadBasePath = "/uploaded-heurist-files/"; // recommended
 
 // [email]
 
 // email address for the system administrator/installer of Heurist
 // where you would like Heurist to deliver system alerts.
 // Leaving this blank will suppress system alert emails
-$sysAdminEmail = "stephenawhite57@gmail.com"; // recommended
+$sysAdminEmail = "stephenawhite@hotmail.com"; // recommended
 
 // email address to which info@<installation server> will be redirected.
 // Leaving this blank will suppress info inquiry emails
-$infoEmail = "stephenawhite57@gmail.com"; // recommended
+$infoEmail = "stephenawhite@hotmail.com"; // recommended
 
 // email address to which bug reports will be sent.
 // Leaving this blank will send to heurist development

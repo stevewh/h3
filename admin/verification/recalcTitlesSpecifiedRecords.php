@@ -68,16 +68,16 @@ You must specify a record  (?recIDs=12345) a records set (?recIDs=12345,23456,67
 require_once(dirname(__FILE__).'/../../common/php/utilsTitleMask.php');
 
 
-mysql_connection_overwrite(DATABASE);
+$mysqli = mysqli_connection_overwrite(DATABASE);
 
 
-$res = mysql_query("select rec_ID, rec_Title, rec_RecTypeID from Records where ! rec_FlagTemporary and rec_ID in ($recids) order by rand()");
+$res = $mysqli->query("select rec_ID, rec_Title, rec_RecTypeID from Records where ! rec_FlagTemporary and rec_ID in ($recids) order by rand()");
 $recs = array();
-while ($row = mysql_fetch_assoc($res)) {
+while ($row = $res->fetch_assoc()) {
 	$recs[$row['rec_ID']] = $row;
 }
 /*****DEBUG****///error_log(print_r($recs,true));
-$masks = mysql__select_assoc('defRecTypes', 'rty_ID', 'rty_TitleMask', '1');
+$masks = mysqli__select_assoc($mysqli, 'defRecTypes', 'rty_ID', 'rty_TitleMask', '1');
 $updates = array();
 $blank_count = 0;
 $repair_count = 0;
@@ -189,9 +189,9 @@ if (count($updates) > 0) {
 	$i = 0;
 	foreach ($updates as $rec_id => $new_title) {
 /*
-		mysql_query('update Records set rec_Modified=now(), rec_Title="'.addslashes($new_title).'" where rec_ID='.$rec_id.' and rec_Title!="'.addslashes($new_title).'"');
+		$mysqli->query('update Records set rec_Modified=now(), rec_Title="'.addslashes($new_title).'" where rec_ID='.$rec_id.' and rec_Title!="'.addslashes($new_title).'"');
 */
-		mysql_query('update Records set rec_Title="'.addslashes($new_title).'" where rec_ID='.$rec_id);
+		$mysqli->query('update Records set rec_Title="'.addslashes($new_title).'" where rec_ID='.$rec_id);
 		++$i;
 		if ($rec_id % 10 == 0) {
 			print '<script type="text/javascript">update_counts2('.$i.','.count($updates).')</script>'."\n";
@@ -202,13 +202,13 @@ if (count($updates) > 0) {
 	foreach ($reparables as $rec_id) {
 		$rec = $recs[$rec_id];
 		if ( $rec['rec_RecTypeID'] == 1 && $rec['rec_Title']) {
-			$has_detail_160 = (mysql_num_rows(mysql_query("select dtl_ID from recDetails where dtl_DetailTypeID = $titleDT and dtl_RecID =". $rec_id)) > 0);
+			$has_detail_160 = (mysqli_num_rows($mysqli->query("select dtl_ID from recDetails where dtl_DetailTypeID = $titleDT and dtl_RecID =". $rec_id)) > 0);
 			//touch the record so we can update it  (required by the heuristdb triggers)
-			mysql_query('update Records set rec_RecTypeID=1 where rec_ID='.$rec_id);
+			$mysqli->query('update Records set rec_RecTypeID=1 where rec_ID='.$rec_id);
 			if ($has_detail_160) {
-				mysql_query('update recDetails set dtl_Value="' .$rec['rec_Title'] . "\" where dtl_DetailTypeID = $titleDT and dtl_RecID=".$rec_id);
+				$mysqli->query('update recDetails set dtl_Value="' .$rec['rec_Title'] . "\" where dtl_DetailTypeID = $titleDT and dtl_RecID=".$rec_id);
 			}else{
-				mysql_query('insert into recDetails (dtl_RecID, dtl_Value) VALUES(' .$rec_id . ','.$rec['rec_Title'] . ')');
+				$mysqli->query('insert into recDetails (dtl_RecID, dtl_Value) VALUES(' .$rec_id . ','.$rec['rec_Title'] . ')');
 			}
 		}
 	}

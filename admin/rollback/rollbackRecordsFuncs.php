@@ -49,7 +49,7 @@ require_once(dirname(__FILE__).'/../../common/php/utilsTitleMask.php');
 
 if (! is_admin()) return;
 
-mysql_connection_overwrite(DATABASE);
+$mysqli = mysqli_connection_overwrite(DATABASE);
 
 
 function getTargetVersions ($rec_ids=null, $before_date=null) {
@@ -69,21 +69,21 @@ function getTargetVersions ($rec_ids=null, $before_date=null) {
 		$where_clause .= "arec_Date > '$before_date'";
 	}
 
-	$arec_ids = mysql__select_array("archiveRecords", "distinct arec_ID", $where_clause);
+	$arec_ids = mysqli__select_array($mysqli, "archiveRecords", "distinct arec_ID", $where_clause);
 
 	$arec_ids_str = join(",", $arec_ids);
 
 	if ($before_date) {
-		$res = mysql_query("
+		$res = $mysqli->query("
 			select arec_ID, max(arec_Date)
 			from archiveRecords
 			where arec_ID in ($arec_ids_str) and arec_Date <= '$before_date'
 			group by arec_ID
 			order by max(arec_Date) desc
 		");
-		while ($row = mysql_fetch_row($res)) {
+		while ($row = $res->fetch_row()) {
 			// join to archiveDetails to find the latest non-false-delta version
-			$ver_res = mysql_query("
+			$ver_res = $mysqli->query("
 				select arec_Ver
 				from archiveRecords, archiveDetails
 				where arec_ID = " . $row[0] . "
@@ -93,13 +93,13 @@ function getTargetVersions ($rec_ids=null, $before_date=null) {
 				order by arec_Ver desc
 				limit 1
 			");
-			$arec_ver = mysql_fetch_row($ver_res);
+			$arec_ver = $ver_res->fetch_row();
 			$versions[$row[0]] = $arec_ver[0];
 		}
 
 	} else {
 		// join to archiveDetails to find the latest non-false-delta version
-		$res = mysql_query("
+		$res = $mysqli->query("
 			select arec_ID, max(arec_Ver)
 			from archiveRecords, archiveDetails
 			where arec_ID in ($arec_ids_str)
@@ -107,9 +107,9 @@ function getTargetVersions ($rec_ids=null, $before_date=null) {
 			and ard_Ver = arec_Ver
 			group by arec_ID
 		");
-		while ($row = mysql_fetch_row($res)) {
+		while ($row = $res->fetch_row()) {
 			// join to archiveDetails to find the latest non-false-delta version
-			$ver_res = mysql_query("
+			$ver_res = $mysqli->query("
 				select arec_Ver
 				from archiveRecords, archiveDetails
 				where arec_ID = " . $row[0] . "
@@ -119,7 +119,7 @@ function getTargetVersions ($rec_ids=null, $before_date=null) {
 				order by arec_Ver desc
 				limit 1
 			");
-			$arec_ver = mysql_fetch_row($ver_res);
+			$arec_ver = $ver_res->fetch_row();
 			$versions[$row[0]] = $arec_ver[0];
 		}
 	}
@@ -128,7 +128,7 @@ function getTargetVersions ($rec_ids=null, $before_date=null) {
 
 
 function getAffectedDetails ($rec_id, $since_version) {
-	return mysql__select_array(
+	return mysqli__select_array($mysqli, 
 		"archiveDetails",
 		"distinct ard_ID",
 		"ard_RecID = $rec_id and ard_Ver > $since_version"
@@ -139,14 +139,14 @@ function getAffectedDetails ($rec_id, $since_version) {
 function getDetailHistory ($ard_id, $up_to_version) {
 	// return deltas from archiveDetails, latest first
 	$deltas = array();
-	$res = mysql_query("
+	$res = $mysqli->query("
 		select ard_ID, ard_Ver, ard_DetailTypeID, ard_Value, ard_UploadedFileID, astext(ard_Geo) as ard_Geo
 		from archiveDetails
 		where ard_ID = $ard_id
 		and ard_Ver <= $up_to_version
 		order by ard_Ver desc
 	");
-	while ($row = mysql_fetch_assoc($res)) {
+	while ($row = $res->fetch_assoc()) {
 		array_push($deltas, $row);
 	}
 	return $deltas;
@@ -183,7 +183,7 @@ function getDetailRollbacks ($rec_id, $version) {
 		}
 	}
 
-	$current_details = mysql__select_array("recDetails", "dtl_ID", "dtl_RecID = $rec_id");
+	$current_details = mysqli__select_array($mysqli, "recDetails", "dtl_ID", "dtl_RecID = $rec_id");
 
 	foreach ($potential_deletes as $potential_delete) {
 		if (in_array($potential_delete, $current_details)) {
@@ -199,7 +199,7 @@ function getDetailRollbacks ($rec_id, $version) {
 			$ard_val = $potential_update["ard_Value"];
 			$ard_file_id = $potential_update["ard_UploadedFileID"];
 			$ard_geo = $potential_update["ard_Geo"];
-			$res = mysql_query("
+			$res = $mysqli->query("
 				select dtl_ID
 				from recDetails
 				where dtl_ID = $ard_id
@@ -207,7 +207,7 @@ function getDetailRollbacks ($rec_id, $version) {
 				and dtl_UploadedFileID " . ($ard_file_id ? "= $ard_file_id" : "is null") . "
 				and astext(dtl_Geo) " . ($ard_geo ? "= '$ard_geo'" : "is null")
 			);
-			if (mysql_num_rows($res) == 0) {
+			if ($res->num_rows == 0) {
 				array_push($updates, $potential_update);
 			}
 		} else {
@@ -240,12 +240,12 @@ function rollRecordBack ($rec_id, $changes) {
 		return true;
 	}
 
-	mysql_query("start transaction");
+	$mysqli->query("start transaction");
 
-	mysql_query("update Records set rec_Modified = now() where rec_ID = $rec_id");
-	if (mysql_error()) {
-		error_log(mysql_error());
-		mysql_query("rollback");
+	$mysqli->query("update Records set rec_Modified = now() where rec_ID = $rec_id");
+	if ($mysqli->error) {
+		error_log($mysqli->error);
+		$mysqli->query("rollback");
 		return false;
 	}
 
@@ -254,15 +254,15 @@ function rollRecordBack ($rec_id, $changes) {
 		$rd_val      = $update["ard_Value"] ? "'" . addslashes($update["ard_Value"]) . "'" : "null";
 		$rd_file_id  = $update["ard_UploadedFileID"] ? $update["ard_UploadedFileID"] : "null";
 		$rd_geo      = $update["ard_Geo"] ? "geomfromtext('" . $update["ard_Geo"] . "')" : "null";
-		mysql_query("
+		$mysqli->query("
 			update recDetails
 			set dtl_Value = $rd_val, dtl_UploadedFileID = $rd_file_id, dtl_Geo = $rd_geo
 			where dtl_RecID = $rec_id
 			and dtl_ID = $rd_id
 		");
-		if (mysql_error()) {
-			error_log(mysql_error());
-			mysql_query("rollback");
+		if ($mysqli->error) {
+			error_log($mysqli->error);
+			$mysqli->query("rollback");
 			return false;
 		}
 	}
@@ -273,52 +273,52 @@ function rollRecordBack ($rec_id, $changes) {
 		$rd_val      = $insert["ard_Value"] ? "'" . addslashes($insert["ard_Value"]) . "'" : "null";
 		$rd_file_id  = $insert["ard_UploadedFileID"] ? $insert["ard_UploadedFileID"] : "null";
 		$rd_geo      = $insert["ard_Geo"] ? "geomfromtext('" . $insert["ard_Geo"] . "')" : "null";
-		mysql_query("
+		$mysqli->query("
 			insert into recDetails (dtl_RecID, dtl_DetailTypeID, dtl_Value, dtl_UploadedFileID, dtl_Geo)
 			values ($rec_id, $rd_type, $rd_val, $rd_file_id, $rd_geo)
 		");
-		if (mysql_error()) {
-			error_log(mysql_error());
-			mysql_query("rollback");
+		if ($mysqli->error) {
+			error_log($mysqli->error);
+			$mysqli->query("rollback");
 			return false;
 		}
 	}
 
 	foreach ($changes["deletes"] as $ard_id) {
-		mysql_query("delete from recDetails where dtl_ID = $ard_id");
-		if (mysql_error()) {
-			error_log(mysql_error());
-			mysql_query("rollback");
+		$mysqli->query("delete from recDetails where dtl_ID = $ard_id");
+		if ($mysqli->error) {
+			error_log($mysqli->error);
+			$mysqli->query("rollback");
 			return false;
 		}
 	}
 
 	// update record title if necessary
-	$res = mysql_query("
+	$res = $mysqli->query("
 		select rec_RecTypeID, rty_TitleMask
 		from Records, defRecTypes
 		where rec_ID = $rec_id
 		and rty_ID = rec_RecTypeID
 	");
 	if ($res) {
-		$row = mysql_fetch_row($res);
+		$row = $res->fetch_row();
 		if ($row) {
 			$title = fill_title_mask($row[1], $rec_id, $row[0]);
 			if ($title) {
-				mysql_query("set @suppress_update_trigger := 1");
-				mysql_query("update Records set rec_Title = '" . addslashes($title) . "' where rec_ID = $rec_id");
-				if (mysql_error()) {
-					error_log(mysql_error());
-					mysql_query("rollback");
-					mysql_query("set @suppress_update_trigger := NULL");
+				$mysqli->query("set @suppress_update_trigger := 1");
+				$mysqli->query("update Records set rec_Title = '" . addslashes($title) . "' where rec_ID = $rec_id");
+				if ($mysqli->error) {
+					error_log($mysqli->error);
+					$mysqli->query("rollback");
+					$mysqli->query("set @suppress_update_trigger := NULL");
 					return false;
 				}
-				mysql_query("set @suppress_update_trigger := NULL");
+				$mysqli->query("set @suppress_update_trigger := NULL");
 			}
 		}
 	}
 
-	mysql_query("commit");
+	$mysqli->query("commit");
 	updateCachedRecord($rec_id);
 	return true;
 }

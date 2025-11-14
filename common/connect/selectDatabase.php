@@ -71,7 +71,7 @@
 <div id="loginDiv" style="height:auto; margin-top:44px; overflow-y:auto;text-align:left;">
 <ul class='dbList'>
 <?php
-	$list = mysql__getdatabases(false);
+	$list = mysqli__getdatabases($mysqli, false);
 	foreach ($list as $name) {
             print("<li><a href='".HEURIST_BASE_URL."?db=$name'>$name</a></li>");
 	}

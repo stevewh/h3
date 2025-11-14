@@ -62,7 +62,7 @@ if (!is_logged_in()) {
 	header('Location: ' . HEURIST_BASE_URL . 'common/connect/login.php?db=' . HEURIST_DBNAME);
 	return;
 }
-mysql_connection_select(DATABASE);
+$mysqli = mysqli_connection_select(DATABASE);
 $template = file_get_contents('listRectypeDescriptions.html');
 //$template = str_replace('{PageHeader}', '[literal]'.file_get_contents('menu.html').'[end-literal]', $template);
 $lexer = new Lexer($template);

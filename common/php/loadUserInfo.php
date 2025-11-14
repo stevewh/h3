@@ -53,7 +53,7 @@
 	header('Content-type: text/javascript');
 
 
-	mysql_connection_select(DATABASE);
+	$mysqli = mysqli_connection_select(DATABASE);
 
 	if (is_logged_in()) {
 	?>
@@ -61,9 +61,9 @@
 	top.HEURIST.user = {};
 
 	top.HEURIST.user.savedSearches = [<?php
-		$res = mysql_query('select svs_Name, svs_Query, svs_Query not like "%w=bookmark%" as w_all, svs_ID from usrSavedSearches where svs_UGrpID='.get_user_id().' order by w_all, svs_Name');
+		$res = $mysqli->query('select svs_Name, svs_Query, svs_Query not like "%w=bookmark%" as w_all, svs_ID from usrSavedSearches where svs_UGrpID='.get_user_id().' order by w_all, svs_Name');
 		$first = true;
-		while ($row = mysql_fetch_assoc($res)) {
+		while ($row = $res->fetch_assoc()) {
 			if (! $first) print ",";  print "\n"; $first = false;
 			//this is for searches from  obsolete published-searches table. they start with "q";
 			if (preg_match('/^q/', $row['svs_Query'])) {
@@ -75,9 +75,9 @@
 	];
 
 	top.HEURIST.user.tags = [<?php
-		$res = mysql_query('select distinct tag_Text from usrTags where tag_UGrpID='.get_user_id().' order by tag_Text');
+		$res = $mysqli->query('select distinct tag_Text from usrTags where tag_UGrpID='.get_user_id().' order by tag_Text');
 		$first = true;
-		while ($row = mysql_fetch_row($res)) {
+		while ($row = $res->fetch_row()) {
 			if (! $first) print ",";  print "\n"; $first = false;
 			print "        \"" . slash($row[0]) . "\"";
 		}
@@ -85,10 +85,10 @@
 	];
 	<?php
 
-		$res = mysql_query("select tag_ID, tag_UGrpID, tag_Text from usrTags, ".USERS_DATABASE.".sysUsrGrpLinks, ".USERS_DATABASE.".sysUGrps grp where ugl_GroupID=tag_UGrpID and ugl_GroupID=grp.ugr_ID and ugl_UserID=".get_user_id()." and grp.ugr_Type!='user' order by grp.ugr_Name, tag_Text");
+		$res = $mysqli->query("select tag_ID, tag_UGrpID, tag_Text from usrTags, ".USERS_DATABASE.".sysUsrGrpLinks, ".USERS_DATABASE.".sysUGrps grp where ugl_GroupID=tag_UGrpID and ugl_GroupID=grp.ugr_ID and ugl_UserID=".get_user_id()." and grp.ugr_Type!='user' order by grp.ugr_Name, tag_Text");
 		$rows = array();
 		$ids = array();
-		while ($row = mysql_fetch_row($res)) {
+		while ($row = $res->fetch_row()) {
 			$kwd_id = array_shift($row);
 			$rows[$kwd_id] = $row;
 			array_push($ids, $kwd_id);
@@ -99,10 +99,12 @@
 
 	top.HEURIST.user.topTags = [<?php
 		/* find the top five tags for this user */
-		$res = mysql_query("select tag_Text, count(rtl_ID) as c from usrTags left join usrRecTagLinks on rtl_TagID=tag_ID
-			where tag_UGrpID=".get_user_id()." group by tag_Text order by c desc limit 5");
+    $queryString = "select tag_Text, count(rtl_ID) as c from usrTags left join usrRecTagLinks on rtl_TagID=tag_ID".
+                "	where tag_UGrpID=".get_user_id()." group by tag_Text order by c desc limit 5";
+    error_log($queryString);
+		$res = $mysqli->query($queryString);
 		$first = true;
-		while ($row = mysql_fetch_row($res)) {
+		while ($row = $res->fetch_row()) {
 			if (! $first) print ",";  print " "; $first = false;
 			print "\"" . addslashes($row[0]) . "\"";
 		}
@@ -110,10 +112,10 @@
 
 	top.HEURIST.user.recentTags = [<?php
 		/* find the ten most recently used tags for this user */
-		$res = mysql_query("select distinct(tag_Text) from usrTags left join usrRecTagLinks on rtl_TagID=tag_ID
-			where tag_UGrpID=".get_user_id()." group by rtl_TagID order by max(rtl_ID) desc limit 10");
+		$res = $mysqli->query("select distinct(tag_Text) from usrTags left join usrRecTagLinks on rtl_TagID=tag_ID
+			where tag_UGrpID=".get_user_id()." group by tag_Text order by max(rtl_ID) desc limit 10");
 		$first = true;
-		while ($row = mysql_fetch_row($res)) {
+		while ($row = $res->fetch_row()) {
 			if (! $first) print ",";  print " "; $first = false;
 			print "\"" . addslashes($row[0]) . "\"";
 		}
@@ -125,7 +127,7 @@
 
 /*****DEBUG****///error_log(">>>>>>>>>>>> PREFIX=".HEURIST_SESSION_DB_PREFIX."   ".$query);
 /*****DEBUG****///error_log("session data".print_r($_SESSION[HEURIST_SESSION_DB_PREFIX.'heurist']['user_access'],true));
-			$workgroups = mysql__select_array(USERS_DATABASE.".sysUGrps grp", "grp.ugr_ID", $query);
+			$workgroups = mysqli__select_array($mysqli, USERS_DATABASE.".sysUGrps grp", "grp.ugr_ID", $query);
 			print join(", ", $workgroups);
 		}
 	?> ];
@@ -133,8 +135,8 @@
 	top.HEURIST.user.workgroupSavedSearches = <?php
 		$ws = array();
 		if (@$workgroups) {
-			$res = mysql_query("select svs_UGrpID, svs_ID, svs_Name, svs_Query from usrSavedSearches left join ".USERS_DATABASE.".sysUGrps grp on grp.ugr_ID = svs_UGrpID where svs_UGrpID in (".join(",", $workgroups).") order by grp.ugr_Name, svs_Name");
-			while ($row = mysql_fetch_assoc($res)) {
+			$res = $mysqli->query("select svs_UGrpID, svs_ID, svs_Name, svs_Query from usrSavedSearches left join ".USERS_DATABASE.".sysUGrps grp on grp.ugr_ID = svs_UGrpID where svs_UGrpID in (".join(",", $workgroups).") order by grp.ugr_Name, svs_Name");
+			while ($row = $res->fetch_assoc()) {
 				$wg = $row['svs_UGrpID'];
 				if (! @$ws[$wg])
 					$ws[$wg] = array();
@@ -163,13 +165,13 @@
 	}
 
 
-	$res = mysql_query("select usr.ugr_ID, usr.ugr_Name, concat(usr.ugr_FirstName, ' ', usr.ugr_LastName) as fullname
+	$res = $mysqli->query("select usr.ugr_ID, usr.ugr_Name, concat(usr.ugr_FirstName, ' ', usr.ugr_LastName) as fullname
 		from ".USERS_DATABASE.".sysUGrps usr
 		where usr.ugr_Enabled='y' and usr.ugr_FirstName is not null and usr.ugr_LastName is not null and !usr.ugr_IsModelUser
 	order by fullname");
 	print "    top.HEURIST.allUsers = {\n";
 	$first = true;
-	while ($row = mysql_fetch_row($res)) {
+	while ($row = $res->fetch_row()) {
 		if (! $first) print ",";  print "\n"; $first = false;
 		print "\t\"" . $row[0] . "\":\t[ \"".slash($row[1])."\", \"".slash($row[2])."\" ]";
 	}
@@ -179,8 +181,8 @@
 top.HEURIST.is_registration_allowed = <?=((defined('HEURIST_ALLOW_REGISTRATION') && HEURIST_ALLOW_REGISTRATION) ?"true" :"false")?>;
 top.HEURIST.is_logged_in = function() { return <?= intval(is_logged_in()) ?> > 0; };
 top.HEURIST.get_user_id = function() { return <?= intval(get_user_id()) ?>; };
-top.HEURIST.get_user_name = function() { return "<?= addslashes(get_user_name()) ?>"; };
-top.HEURIST.get_user_username = function() { return "<?= addslashes(get_user_username()) ?>"; };
+top.HEURIST.get_user_name = function() { return "<?= get_user_name()?addslashes(get_user_name()):'guest' ?>"; };
+top.HEURIST.get_user_username = function() { return "<?= get_user_username()?addslashes(get_user_username()):'guest' ?>"; };
 top.HEURIST.is_admin = function() { return <?= intval(is_admin()) ?>; };
 top.HEURIST.is_wgAdmin = function(wgID) {
 var usrID = top.HEURIST.get_user_id(), j, i;

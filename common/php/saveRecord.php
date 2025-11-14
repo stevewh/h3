@@ -81,7 +81,7 @@
         }else{
             array_push($msgInfoSaveRec['error'],$msg);
         }
-        mysql_query("rollback");
+        $mysqli->query("rollback");
     }
     //utility function for recording an error message
     function warnSaveRec($msg){
@@ -97,13 +97,13 @@
     function saveRecord($recordID, $rectype, $url, $notes, $wg, $vis, $personalised, $pnotes, $rating, $tags, $wgTags, $details, $notifyREMOVE, $notifyADD, $commentREMOVE, $commentMOD, $commentADD, &$nonces=null, &$retitleRecs=null, $modeImport=0) {
         global $msgInfoSaveRec;
         $msgInfoSaveRec = array(); // reset the message array
-        mysql_query("start transaction");
+        $mysqli->query("start transaction");
         //	$log = " saving record ($recordID) ";
         $recordID = intval($recordID);
         $wg = intval($wg);
         if (($wg && $wg != get_user_id()) || !is_logged_in()) {// non-member saves are not allowed
-            $res = mysql_query("select * from ".USERS_DATABASE.".sysUsrGrpLinks where ugl_UserID=" . get_user_id() . " and ugl_GroupID=" . $wg);
-            if (mysql_num_rows($res) < 1) {
+            $res = $mysqli->query("select * from ".USERS_DATABASE.".sysUsrGrpLinks where ugl_UserID=" . get_user_id() . " and ugl_GroupID=" . $wg);
+            if ($res->num_rows < 1) {
                 errSaveRec("invalid workgroup $wg for user ".get_user_id().", record save aborted");
                 return $msgInfoSaveRec;
             }
@@ -123,7 +123,7 @@
         // public records data
         if (! $recordID) {//no record ID signals an insert of a new record
             //		$log .= "- inserting record ";
-            mysql__insert("Records", array(
+            mysqli__insert($mysqli, "Records", array(
                     "rec_RecTypeID" => $rectype,
                     "rec_URL" => $url,
                     "rec_ScratchPad" => $notes,
@@ -134,14 +134,14 @@
                     "rec_Modified" => $now,
                     "rec_AddedByImport" => ($modeImport>0?1:0)
                 ));
-            if (mysql_error()) {
-                errSaveRec("database record insert error - " . mysql_error());
+            if ($mysqli->error) {
+                errSaveRec("database record insert error - " . $mysqli->error);
                 return $msgInfoSaveRec;
             }
-            $recordID = mysql_insert_id();
+            $recordID = $mysqli->insert_id;
         }else{
-            $res = mysql_query("select * from Records left join ".USERS_DATABASE.".sysUsrGrpLinks on ugl_GroupID=rec_OwnerUGrpID and ugl_UserID=".get_user_id()." where rec_ID=$recordID");
-            $record = mysql_fetch_assoc($res);
+            $res = $mysqli->query("select * from Records left join ".USERS_DATABASE.".sysUsrGrpLinks on ugl_GroupID=rec_OwnerUGrpID and ugl_UserID=".get_user_id()." where rec_ID=$recordID");
+            $record = $res->fetch_assoc();
             if ($wg != null && $wg != $record["rec_OwnerUGrpID"] && $record["rec_OwnerUGrpID"] != get_user_id() ) {
                 if ($record["rec_OwnerUGrpID"] > 0  &&  $record["ugl_Role"] != "admin") {
                     // user is trying to change the workgroup when they are not an admin
@@ -155,7 +155,7 @@
             }
 
             //		$log .= "- updating record ";
-            mysql__update("Records", "rec_ID=$recordID", array(
+            mysqli__update($mysqli, "Records", "rec_ID=$recordID", array(
                     "rec_RecTypeID" => $rectype,
                     "rec_URL" => $url,
                     "rec_ScratchPad" => $notes,
@@ -164,8 +164,8 @@
                     "rec_FlagTemporary" => 0,
                     "rec_Modified" => $now
                 ));
-            if (mysql_error()) {
-                errSaveRec("database record update error - " . mysql_error());
+            if ($mysqli->error) {
+                errSaveRec("database record update error - " . $mysqli->error);
                 return $msgInfoSaveRec;
             }
         }
@@ -181,14 +181,14 @@
         }
 
         // check that all the required fields are present
-        $res = mysql_query("select rst_ID, rst_DetailTypeID, rst_DisplayName".
+        $res = $mysqli->query("select rst_ID, rst_DetailTypeID, rst_DisplayName".
                             " from defRecStructure".
                             " left join recDetails on dtl_RecID=$recordID and rst_DetailTypeID=dtl_DetailTypeID".
                             " where rst_RecTypeID=$rectype and rst_RequirementType='required' and dtl_ID is null");
-        if (mysql_num_rows($res) > 0) {
+        if ($res->num_rows > 0) {
             //		$log .= "- testing missing detatils ";
             $missed = "";
-            while ($row = mysql_fetch_row($res)) {
+            while ($row = $res->fetch_row()) {
                 $missed = $missed.$row[2]." ";
             }
             /*****DEBUG****///error_log("MISSED ".$missed);
@@ -200,39 +200,39 @@
                 return $msgInfoSaveRec;
             }
         }
-        mysql_query("commit");// if we get to here we have a valid save of the core record.
+        $mysqli->query("commit");// if we get to here we have a valid save of the core record.
 
         // calculate title, do an update
         //	$log .= "- filling titlemask ";
-        $mask = mysql__select_array("defRecTypes", "rty_TitleMask", "rty_ID=$rectype");  $mask = $mask[0];
+        $mask = mysqli__select_array($mysqli, "defRecTypes", "rty_TitleMask", "rty_ID=$rectype");  $mask = $mask[0];
         $title = fill_title_mask($mask, $recordID, $rectype);
 
         /*****DEBUG****///error_log("DEBUG >>>>>>MASK=".$mask."=".$title);
 
         if ($title) {
-            mysql_query("update Records set rec_Title = '" . addslashes($title) . "' where rec_ID = $recordID");
+            $mysqli->query("update Records set rec_Title = '" . addslashes($title) . "' where rec_ID = $recordID");
         }
 
         // Update memcache: we can do this here since it's only the public data that we cache.
         updateCachedRecord($recordID);
 
         // private data
-        $bkmk = @mysql_fetch_row(mysql_query("select bkm_ID from usrBookmarks where bkm_UGrpID=" . get_user_id() . " and bkm_recID=" . $recordID));
+        $bkmk = @mysqli_fetch_row($mysqli->query("select bkm_ID from usrBookmarks where bkm_UGrpID=" . get_user_id() . " and bkm_recID=" . $recordID));
         $bkm_ID = @$bkmk[0];
         if ($personalised) {
             if (! $bkm_ID) {
                 // Record is not yet bookmarked, but we want it to be
-                mysql_query("insert into usrBookmarks (bkm_Added,bkm_Modified,bkm_UGrpID,bkm_recID) values (now(),now(),".get_user_id().",$recordID)");
-                if (mysql_error()) {
-                    warnSaveRec("trying to create a bookmark - database error - " . mysql_error());
+                $mysqli->query("insert into usrBookmarks (bkm_Added,bkm_Modified,bkm_UGrpID,bkm_recID) values (now(),now(),".get_user_id().",$recordID)");
+                if ($mysqli->error) {
+                    warnSaveRec("trying to create a bookmark - database error - " . $mysqli->error);
                 }else{
-                    $bkm_ID = mysql_insert_id();
+                    $bkm_ID = $mysqli->insert_id;
                 }
             }
 
             //		$log .= "- updating bookmark ";
 
-            mysql__update("usrBookmarks", "bkm_ID=$bkm_ID", array(
+            mysqli__update($mysqli, "usrBookmarks", "bkm_ID=$bkm_ID", array(
                     //		"pers_notes" => $pnotes,	//saw TODO: need to add code to place this in a personal woot
                     "bkm_Rating" => $rating,
                     "bkm_Modified" => date('Y-m-d H:i:s')
@@ -247,9 +247,9 @@
             "left join usrTags on tag_ID = rtl_TagID ".
             "where bkm_ID=$bkm_ID and bkm_recID=$recordID and bkm_UGrpID = tag_UGrpID and bkm_UGrpID=" . get_user_id();
             /*****DEBUG****///error_log("saveRecord delete bkmk - q = $query");
-            mysql_query($query);
-            if (mysql_error()) {
-                warnSaveRec("database error while removing bookmark- " . mysql_error());
+            $mysqli->query($query);
+            if ($mysqli->error) {
+                warnSaveRec("database error while removing bookmark- " . $mysqli->error);
             }
             //saw TODO: add code to remove other personal data reminders, personal notes (woots), etc.
         }
@@ -329,11 +329,11 @@
             if (! ($bdtID = intval(substr($dtyID, 2)))) continue;
             array_push($dtyIDs, $bdtID);
         }
-        $dtyVarieties = mysql__select_assoc("defDetailTypes", "dty_ID", "dty_Type", "dty_ID in (" . join($dtyIDs, ",") . ")");
+        $dtyVarieties = mysqli__select_assoc($mysqli, "defDetailTypes", "dty_ID", "dty_Type", "dty_ID in (" . join($dtyIDs, ",") . ")");
         if($modeImport!=2){ //import without check of record type structure
             //TODO saw: need to change this to include min value or perhaps we let it go and allow saving the min across multiple saves.
-            $repeats = mysql__select_assoc("defRecStructure", "rst_DetailTypeID", "rst_MaxValues", "rst_RecTypeID=" . $recordType);
-//            $repeats = mysql__select_assoc("defRecStructure", "rst_DetailTypeID", "rst_MaxValues", "rst_DetailTypeID in (" . join($dtyIDs, ",") . ") and rst_RecTypeID=" . $recordType);
+            $repeats = mysqli__select_assoc($mysqli, "defRecStructure", "rst_DetailTypeID", "rst_MaxValues", "rst_RecTypeID=" . $recordType);
+//            $repeats = mysqli__select_assoc($mysqli, "defRecStructure", "rst_DetailTypeID", "rst_MaxValues", "rst_DetailTypeID in (" . join($dtyIDs, ",") . ") and rst_RecTypeID=" . $recordType);
         }
         /*****DEBUG****///error_log("repeats = ".print_r($repeats,true));
         /*****DEBUG****///error_log("details = ".print_r($details,true));
@@ -355,9 +355,9 @@
                 if (substr($bdID, 0, 3) == "bd:") {// this detail corresponds to an existing recDetails: remember its existing dtl_ID
                     if (! ($bdID = intval(substr($bdID, 3)))) continue; // invalid (non integer) id so skip it
                     // check detail exist for the given record
-                    $resDtl = mysql_query("select dtl_DetailTypeID from recDetails where dtl_RecID = $recordID and dtl_ID = $bdID");
-                    if (mysql_num_rows($resDtl) == 1){
-                        $dtlTypeID = (mysql_fetch_row($resDtl));
+                    $resDtl = $mysqli->query("select dtl_DetailTypeID from recDetails where dtl_RecID = $recordID and dtl_ID = $bdID");
+                    if (mysqli_num_rows($resDtl) == 1){
+                        $dtlTypeID = (mysqli_fetch_row($resDtl));
                         if ($dtlTypeID[0] != $bdtID){// invalid type supplied so skip and give warning
                             warnSaveRec("invalid detail type supplied $bdtID for existing detail, did not update detail id $bdID ignoring");
                             array_push($ignoreIDs,$bdID);
@@ -431,7 +431,7 @@
                     case "relationtype":	//saw TODO: change this to call validateEnumTerm(RectypeID, DetailTypeID) also Term limits
                         // also may need to separate enum from relationtype
                         // validate that the id is for the given detail type.
-                        /*if (mysql_num_rows(mysql_query("select trm_ID from defTerms
+                        /*if (mysqli_num_rows($mysqli->query("select trm_ID from defTerms
                         left join defDetailTypes on dty_NativeVocabID = trm_VocabID
                         where dty_ID=$bdtID and trm_ID='".$val."'")) <= 0) {
                         jsonError("invalid enumeration value \"$val\"");
@@ -456,7 +456,7 @@
                             }
                         }
                         //FIXME :saw  change this to check for superuser and valid recID or valid and viewable record for current user.
-                        if (mysql_num_rows(mysql_query("select rec_ID from Records where (! rec_OwnerUGrpID or rec_OwnerUGrpID=$wg) and rec_ID=".intval($val))) <= 0) {
+                        if (mysqli_num_rows($mysqli->query("select rec_ID from Records where (! rec_OwnerUGrpID or rec_OwnerUGrpID=$wg) and rec_ID=".intval($val))) <= 0) {
                             //	jsonError("invalid resource #".intval($val));
                         }
                         $bdVal = intval($val);
@@ -470,7 +470,7 @@
                             $ulf_ID = register_external($val); //this is URL
                         }
 
-                        if ($ulf_ID==null || mysql_num_rows(mysql_query("select ulf_ID from recUploadedFiles where ulf_ID=".$ulf_ID)) <= 0){
+                        if ($ulf_ID==null || mysqli_num_rows($mysqli->query("select ulf_ID from recUploadedFiles where ulf_ID=".$ulf_ID)) <= 0){
                             errSaveRec("invalid file pointer '".$val."' for detail type '".$bdtID);
                             return array("error" => "recordID = $recordID rectype = $recordType detailtype = $bdtID".
                                 ($bdID ? " detailID = $bdID":""));
@@ -481,8 +481,8 @@
                     case "geo":
                         $geoType = trim(substr($val, 0, 2));
                         $geoVal = trim(substr($val, 2));
-                        $res = mysql_query("select geomfromtext('".addslashes($geoVal)."') = 'Bad object'");
-                        $row = mysql_fetch_row($res);
+                        $res = $mysqli->query("select geomfromtext('".addslashes($geoVal)."') = 'Bad object'");
+                        $row = $res->fetch_row();
                         if ($row[0]) {
                             // bad object!  Go stand in the corner.
                             errSaveRec("invalid geographic value '".$val."' for detail type '".$bdtID);
@@ -521,15 +521,15 @@
         $deleteDetailIDsQuery = "select dtl_ID from recDetails where dtl_RecID=$recordID";
         if (count($updateIDs)) $deleteDetailIDsQuery .= " and dtl_ID not in (" . join(",", $updateIDs) . ")";
         if (count($ignoreIDs)) $deleteDetailIDsQuery .= " and dtl_ID not in (" . join(",", $ignoreIDs) . ")";
-        $resDel = mysql_query($deleteDetailIDsQuery);
-        if (mysql_error()) {
-            errSaveRec("db error while finding details to be deleted for record ID ".$recordID." error : ".mysql_error());
+        $resDel = $mysqli->query($deleteDetailIDsQuery);
+        if ($mysqli->error) {
+            errSaveRec("db error while finding details to be deleted for record ID ".$recordID." error : ".$mysqli->error);
             return array("error" => "recordID = $recordID rectype = $recordType ");
         }
 
         // find details to be deleted
-        if (mysql_num_rows($resDel)) {
-            while ($row = mysql_fetch_row($resDel)) {
+        if (mysqli_num_rows($resDel)) {
+            while ($row = mysqli_fetch_row($resDel)) {
                 array_push($deleteIDs, $row[0]);
             }
         }
@@ -549,9 +549,9 @@
         //update all details to be kept
         if (count($deleteIDs)) {
             $deleteDetailsQuery = "delete from recDetails where dtl_ID in (" . join(",", $deleteIDs) . ")";
-//            mysql_query($deleteDetailsQuery);
-            if (mysql_error()) {
-                errSaveRec("db error while deleteing details (" . join(",", $deleteIDs) . ") for record ID ".$recordID." error : ".mysql_error());
+//            $mysqli->query($deleteDetailsQuery);
+            if ($mysqli->error) {
+                errSaveRec("db error while deleteing details (" . join(",", $deleteIDs) . ") for record ID ".$recordID." error : ".$mysqli->error);
                 return array("error" => "recordID = $recordID rectype = $recordType ");
             }
 //            $retval["deleted"] = $deleteIDs;
@@ -561,9 +561,9 @@
         if (count($updateQueries)) {
             /*****DEBUG****///error_log("in DoInserts updating details ".print_r($updateQueries,true));
             foreach ($updateQueries as $update) {
-                mysql_query($update);
-                if (mysql_error()) {
-                    errSaveRec("db error while running '" . $update . "' for record ID ".$recordID." error : ".mysql_error());
+                $mysqli->query($update);
+                if ($mysqli->error) {
+                    errSaveRec("db error while running '" . $update . "' for record ID ".$recordID." error : ".$mysqli->error);
                     return array("error" => "recordID = $recordID rectype = $recordType ");
                 }
             }
@@ -572,10 +572,10 @@
 
         if (count($insertQueryValues)) {//insert all new details
             /*****DEBUG****///error_log("in DoInserts inserting details ".print_r($inserts,true));
-            mysql_query("insert into recDetails (dtl_RecID, dtl_DetailTypeID, dtl_Value, dtl_UploadedFileID, dtl_Geo, dtl_AddedByImport) values " . join(",", $insertQueryValues));
-            $first_bd_id = mysql_insert_id();
-            if (mysql_error()) {
-                errSaveRec("db error while inserting '" . $insertQueryValues . "' for record ID ".$recordID." error : ".mysql_error());
+            $mysqli->query("insert into recDetails (dtl_RecID, dtl_DetailTypeID, dtl_Value, dtl_UploadedFileID, dtl_Geo, dtl_AddedByImport) values " . join(",", $insertQueryValues));
+            $first_bd_id = $mysqli->insert_id;
+            if ($mysqli->error) {
+                errSaveRec("db error while inserting '" . $insertQueryValues . "' for record ID ".$recordID." error : ".$mysqli->error);
                 return array("error" => "recordID = $recordID rectype = $recordType ");
             }
             $retval["inserted"] = range($first_bd_id, $first_bd_id + count($insertQueryValues) - 1);
@@ -585,12 +585,12 @@
             /*****DEBUG****///error_log("in DoInserts inserting Bad ID details ".print_r($badIdInsertQueryValues,true));
             $j = 0;
             foreach ($badIdInsertQueryValues as $valueSet ) {
-                mysql_query("insert into recDetails (dtl_RecID, dtl_DetailTypeID, dtl_Value, dtl_UploadedFileID, dtl_Geo, dtl_AddedByImport) values " . $valueSet);
-                if (mysql_error()) {
-                    errSaveRec("db error while inserting '" . $valueSet . "' for record ID ".$recordID." error : ".mysql_error());
+                $mysqli->query("insert into recDetails (dtl_RecID, dtl_DetailTypeID, dtl_Value, dtl_UploadedFileID, dtl_Geo, dtl_AddedByImport) values " . $valueSet);
+                if ($mysqli->error) {
+                    errSaveRec("db error while inserting '" . $valueSet . "' for record ID ".$recordID." error : ".$mysqli->error);
                     return array("error" => "recordID = $recordID rectype = $recordType ");
                 }
-                $new_bdID = mysql_insert_id();
+                $new_bdID = $mysqli->insert_id;
                 $translated[$translatedIDs[$j]]['new_bdID'] = $new_bdID;
             }
             $retval["translated"] = $translated;
@@ -602,7 +602,7 @@
     function doTagInsertion($recordID, $bkmkID, $tagString) {
         $usrID = get_user_id();
         //get all existing personal tags for this record
-        $kwds = mysql__select_array("usrRecTagLinks, usrTags",
+        $kwds = mysqli__select_array($mysqli, "usrRecTagLinks, usrTags",
             "tag_Text", "rtl_RecID=$recordID and tag_ID=rtl_TagID and tag_UGrpID=$usrID order by rtl_Order, rtl_ID");
         $existingTagString = join(",", $kwds);
 
@@ -612,7 +612,7 @@
 
         $tags = array_filter(array_map("trim", explode(",", str_replace("\\", "/", $tagString))));     // replace backslashes with forwardslashes
         // create a map of this user's personal tags to tagIDs
-        $tagMap = mysql__select_assoc("usrTags", "trim(lower(tag_Text))", "tag_ID",
+        $tagMap = mysqli__select_assoc($mysqli, "usrTags", "trim(lower(tag_Text))", "tag_ID",
             "tag_UGrpID=".get_user_id()." and tag_Text in (\"".join("\",\"", array_map("addslashes", $tags))."\")");
 
         //create an ordered list of personal tag ids
@@ -621,14 +621,14 @@
             if (@$tagMap[strtolower($tag)]) {// existing tag
                 $tag_id = $tagMap[strtolower($tag)];
             } else { // new tag so add it
-                mysql_query("insert into usrTags (tag_Text, tag_UGrpID) values (\"" . addslashes($tag) . "\", $usrID)");
-                $tag_id = mysql_insert_id();
+                $mysqli->query("insert into usrTags (tag_Text, tag_UGrpID) values (\"" . addslashes($tag) . "\", $usrID)");
+                $tag_id = $mysqli->insert_id;
             }
             array_push($tag_ids, $tag_id);
         }
 
         // Delete all non-workgroup personal tags for this record
-        mysql_query("delete usrRecTagLinks from usrRecTagLinks, usrTags where rtl_RecID=$recordID and tag_ID=rtl_TagID and tag_UGrpID =$usrID");
+        $mysqli->query("delete usrRecTagLinks from usrRecTagLinks, usrTags where rtl_RecID=$recordID and tag_ID=rtl_TagID and tag_UGrpID =$usrID");
 
         if (count($tag_ids) > 0) {
             $query = "";
@@ -637,7 +637,7 @@
                 $query .= "($recordID, ".($i+1).", ".$tag_ids[$i].")";
             }
             $query = "insert into usrRecTagLinks (rtl_RecID, rtl_Order, rtl_TagID) values " . $query;
-            mysql_query($query);
+            $mysqli->query($query);
         }
     }
 
@@ -645,23 +645,23 @@
         if ($wgTagIDs != ""  &&  ! preg_match("/^\\d+(?:,\\d+)*$/", $wgTagIDs)) return;
 
         if ($wgTagIDs) {
-            mysql_query("delete usrRecTagLinks from usrRecTagLinks, usrTags, ".USERS_DATABASE.".sysUsrGrpLinks where rtl_RecID=$recordID and rtl_TagID=tag_ID and tag_UGrpID=ugl_GroupID and ugl_UserID=".get_user_id()." and tag_ID not in ($wgTagIDs)");
-            if (mysql_error()) jsonError("database error - " . mysql_error());
+            $mysqli->query("delete usrRecTagLinks from usrRecTagLinks, usrTags, ".USERS_DATABASE.".sysUsrGrpLinks where rtl_RecID=$recordID and rtl_TagID=tag_ID and tag_UGrpID=ugl_GroupID and ugl_UserID=".get_user_id()." and tag_ID not in ($wgTagIDs)");
+            if ($mysqli->error) jsonError("database error - " . $mysqli->error);
         } else {
-            mysql_query("delete usrRecTagLinks from usrRecTagLinks, usrTags, ".USERS_DATABASE.".sysUsrGrpLinks where rtl_RecID=$recordID and rtl_TagID=tag_ID and tag_UGrpID=ugl_GroupID and ugl_UserID=".get_user_id());
-            if (mysql_error()) jsonError("database error - " . mysql_error());
+            $mysqli->query("delete usrRecTagLinks from usrRecTagLinks, usrTags, ".USERS_DATABASE.".sysUsrGrpLinks where rtl_RecID=$recordID and rtl_TagID=tag_ID and tag_UGrpID=ugl_GroupID and ugl_UserID=".get_user_id());
+            if ($mysqli->error) jsonError("database error - " . $mysqli->error);
             return;
         }
 
-        $existingKeywordIDs = mysql__select_assoc("usrRecTagLinks, usrTags, ".USERS_DATABASE.".sysUsrGrpLinks", "rtl_TagID", "1", "rtl_RecID=$recordID and rtl_TagID=tag_ID and tag_UGrpID=ugl_GroupID and ugl_UserID=".get_user_id());
+        $existingKeywordIDs = mysqli__select_assoc($mysqli, "usrRecTagLinks, usrTags, ".USERS_DATABASE.".sysUsrGrpLinks", "rtl_TagID", "1", "rtl_RecID=$recordID and rtl_TagID=tag_ID and tag_UGrpID=ugl_GroupID and ugl_UserID=".get_user_id());
         $newKeywordIDs = array();
         foreach (explode(",", $wgTagIDs) as $kwdID) {
             if (! @$existingKeywordIDs[$kwdID]) array_push($newKeywordIDs, $kwdID);
         }
 
         if ($newKeywordIDs) {
-            mysql_query("insert into usrRecTagLinks (rtl_TagID, rtl_RecID) select tag_ID, $recordID from usrTags, ".USERS_DATABASE.".sysUsrGrpLinks where tag_UGrpID=ugl_GroupID and ugl_UserID=".get_user_id()." and tag_ID in (" . join(",", $newKeywordIDs) . ")");
-            if (mysql_error()) jsonError("database error - " . mysql_error());
+            $mysqli->query("insert into usrRecTagLinks (rtl_TagID, rtl_RecID) select tag_ID, $recordID from usrTags, ".USERS_DATABASE.".sysUsrGrpLinks where tag_UGrpID=ugl_GroupID and ugl_UserID=".get_user_id()." and tag_ID in (" . join(",", $newKeywordIDs) . ")");
+            if ($mysqli->error) jsonError("database error - " . $mysqli->error);
         }
     }
 
@@ -670,7 +670,7 @@
         // removals are encoded as just the notification ID# ... easy!
         $removals = array_map("intval", $removals);
         if ($removals) {
-            mysql_query("delete from usrReminders where rem_ID in (" . join(",",$removals) . ") and rem_RecID=$recordID and rem_OwnerUGrpID=" . get_user_id());
+            $mysqli->query("delete from usrReminders where rem_ID in (" . join(",",$removals) . ") and rem_RecID=$recordID and rem_OwnerUGrpID=" . get_user_id());
         }
 
         // additions have properties
@@ -702,14 +702,14 @@
             );
 
             if (@$addition["user"]) {
-                if (! mysql__select_array(USERS_DATABASE.".sysUGrps usr", "usr.ugr_ID", "usr.ugr_ID=".intval($addition["user"])." and usr.ugr_Type = 'User' and  and usr.ugr_Enabled='y'")) {
+                if (! mysqli__select_array($mysqli, USERS_DATABASE.".sysUGrps usr", "usr.ugr_ID", "usr.ugr_ID=".intval($addition["user"])." and usr.ugr_Type = 'User' and  and usr.ugr_Enabled='y'")) {
                     array_push($newIDs, array("error" => "invalid recipient"));
                     continue;
                 }
                 $insertVals["rem_ToUserID"] = intval($addition["user"]);
             }
             else if (@$addition["workgroup"]) {
-                if (! mysql__select_array(USERS_DATABASE.".sysUsrGrpLinks", "ugl_ID", "ugl_GroupID=".intval($addition["workgroup"])." and ugl_UserID=" . get_user_id())) {
+                if (! mysqli__select_array($mysqli, USERS_DATABASE.".sysUsrGrpLinks", "ugl_ID", "ugl_GroupID=".intval($addition["workgroup"])." and ugl_UserID=" . get_user_id())) {
                     array_push($newIDs, array("error" => "invalid recipient"));
                     continue;
                 }
@@ -723,8 +723,8 @@
                 continue;
             }
 
-            mysql__insert("usrReminders", $insertVals);
-            array_push($newIDs, array("id" => mysql_insert_id()));
+            mysqli__insert($mysqli, "usrReminders", $insertVals);
+            array_push($newIDs, array("id" => $mysqli->insert_id));
         }
 
         return $newIDs;
@@ -735,7 +735,7 @@
         // removals are encoded as just the comments ID# ... easy.
         if ($removals) {
             $removals = array_map("intval", $removals);
-            mysql_query("update recThreadedComments set cmt_Deleted=1
+            $mysqli->query("update recThreadedComments set cmt_Deleted=1
                 where cmt_OwnerUGrpID=".get_user_id()." and cmt_RecID=$recordID and cmt_ID in (".join(",",$removals).")");
         }
 
@@ -743,7 +743,7 @@
         // .id, .parentComment, .text
         foreach ($modifications as $modification) {
             // note that parentComment (of course) cannot be modified
-            mysql__update("recThreadedComments", "cmt_ID=".intval($modification["id"])." and cmt_OwnerUGrpID=".get_user_id(),
+            mysqli__update($mysqli, "recThreadedComments", "cmt_ID=".intval($modification["id"])." and cmt_OwnerUGrpID=".get_user_id(),
                 array("cmt_Text" => $modification["text"], "cmt_Modified" => date('Y-m-d H:i:s')));
         }
 
@@ -755,7 +755,7 @@
             // do a sanity check first: does this reply make sense?
             $parentTest = $parentID? "cmt_ID=$parentID" : "cmt_ID is null";
 
-            if (! mysql__select_array("Records left join recThreadedComments on rec_ID=cmt_RecID and $parentTest", "rec_ID", "rec_ID=$recordID and $parentTest")) {
+            if (! mysqli__select_array($mysqli, "Records left join recThreadedComments on rec_ID=cmt_RecID and $parentTest", "rec_ID", "rec_ID=$recordID and $parentTest")) {
                 array_push($newIDs, array("error" => "invalid parent comments"));
                 continue;
             }
@@ -764,9 +764,9 @@
                 $parentID = null;
             }
 
-            mysql__insert("recThreadedComments", array("cmt_Text" => $addition["text"], "cmt_Added" => date('Y-m-d H:i:s'), "cmt_OwnerUGrpID" => get_user_id(),
+            mysqli__insert($mysqli, "recThreadedComments", array("cmt_Text" => $addition["text"], "cmt_Added" => date('Y-m-d H:i:s'), "cmt_OwnerUGrpID" => get_user_id(),
                     "cmt_ParentCmtID" => $parentID, "cmt_RecID" => $recordID));
-            array_push($newIDs, array("id" => mysql_insert_id()));
+            array_push($newIDs, array("id" => $mysqli->insert_id));
         }
 
         return $newIDs;

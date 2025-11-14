@@ -78,7 +78,7 @@ if (array_key_exists('clear', $_REQUEST)) {
 }
 
 $rv = array(
-	'count' => count($collection)
+	'count' => (is_array($collection) ? count($collection) : 0)
 );
 
 if (array_key_exists('fetch', $_REQUEST)) {

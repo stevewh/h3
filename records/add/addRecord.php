@@ -79,8 +79,8 @@ if (!is_logged_in()) {
 	return;
 }
 $usrID = get_user_id();
-mysql_connection_overwrite(DATABASE);
-mysql_query("set @logged_in_user_id = $usrID");	//saw TODO: check where else this needs to be used
+$mysqli = mysqli_connection_overwrite(DATABASE);
+$mysqli->query("set @logged_in_user_id = $usrID");	//saw TODO: check where else this needs to be used
 
 $addRecDefaults = @$_SESSION[HEURIST_SESSION_DB_PREFIX.'heurist']["display-preferences"]['addRecDefaults'];
 if ($addRecDefaults){
@@ -147,10 +147,10 @@ if (@$_REQUEST['bkmrk_bkmk_url']) {
 	if (substr($burl, -1) == '/') $burl = substr($burl, 0, strlen($burl)-1);
 
 	/* look up the user's bookmark (usrBookmarks) table, see if they've already got this URL bookmarked -- if so, just edit it */
-	$res = mysql_query('select bkm_ID from usrBookmarks left join Records on rec_ID=bkm_recID where bkm_UGrpID="'.addslashes($usrID).'"
+	$res = $mysqli->query('select bkm_ID from usrBookmarks left join Records on rec_ID=bkm_recID where bkm_UGrpID="'.addslashes($usrID).'"
 							and (rec_URL="'.addslashes($burl).'" or rec_URL="'.addslashes($burl).'/")');
-	if (mysql_num_rows($res) > 0) {
-		$bkmk = mysql_fetch_assoc($res);
+	if ($res->num_rows > 0) {
+		$bkmk = $res->fetch_assoc();
 		$bkm_ID = $bkmk['bkm_ID'];
 		header('Location: ' . HEURIST_BASE_URL . 'records/edit/editRecord.html?db='.HEURIST_DBNAME.'&bkmk_id='.$bkm_ID.'&fromadd=exists' . $outdate);
 		return;
@@ -171,8 +171,8 @@ $wg = "";
 
 // check workgroup permissions
 if (@$_REQUEST['rec_owner'] && $_REQUEST['rec_owner'] != $usrID) {
-	$res = mysql_query("select ugl_GroupID from ".USERS_DATABASE.".sysUsrGrpLinks where ugl_GroupID=".intval($_REQUEST['rec_owner'])." and ugl_UserID=$usrID");
-	if (mysql_num_rows($res) == 0) { // user not a member so add wg to parameters for editRecord
+	$res = $mysqli->query("select ugl_GroupID from ".USERS_DATABASE.".sysUsrGrpLinks where ugl_GroupID=".intval($_REQUEST['rec_owner'])." and ugl_UserID=$usrID");
+	if ($res->num_rows == 0) { // user not a member so add wg to parameters for editRecord
 		$wg = '&wg=' . intval($_REQUEST['rec_owner']);
 //		unset($_REQUEST['rec_owner']); //remove wg request
 	}
@@ -188,8 +188,8 @@ if (@$_REQUEST['tag']  &&  strpos($_REQUEST['tag'], "\\")) {
 		$pos = strpos($tag, "\\");
 		if ($pos !== false) {
 			$grpName = substr($tag, 0, $pos);	//extract the name of the workgroup
-			$res = mysql_query("select grp.ugr_ID from ".USERS_DATABASE.".sysUGrps grp, ".USERS_DATABASE.".sysUsrGrpLinks where grp.ugr_Name='".addslashes($grpName)."' and ugl_GroupID=grp.ugr_ID and ugl_UserID=$usrID");
-			if (mysql_num_rows($res) == 0) { //if the user is not a member
+			$res = $mysqli->query("select grp.ugr_ID from ".USERS_DATABASE.".sysUGrps grp, ".USERS_DATABASE.".sysUsrGrpLinks where grp.ugr_Name='".addslashes($grpName)."' and ugl_GroupID=grp.ugr_ID and ugl_UserID=$usrID");
+			if ($res->num_rows == 0) { //if the user is not a member
 				$wg .= '&wgkwd=' . urlencode($tag);
 				array_push($outTags, str_replace("\\", "", $tag));	//this removes the \ from wgname\tagname to create a personal tag of wgnametagname
 			}else { // put the workgroup tag as is into the output tags
@@ -224,13 +224,13 @@ if (! @$_REQUEST['_submit']  &&  @$_REQUEST['bkmrk_bkmk_url']) {
 	if (! @$rec_id  &&  ! @$force_new) {
 
 		/* look up the records table, see if the requested URL is already in the database; if not, add it */
-		$res = mysql_query('select * from Records where rec_URL = "'.addslashes($url).'" '.
+		$res = $mysqli->query('select * from Records where rec_URL = "'.addslashes($url).'" '.
 								'and (rec_OwnerUGrpID in (0'.(get_user_id()?','.get_user_id():'').')'.
 										' or not rec_NonOwnerVisibility="hidden")');
-		if (($row = mysql_fetch_assoc($res))) { // found record
+		if (($row = $res->fetch_assoc())) { // found record
 			$rec_id = intval($row['rec_ID']);
 			$fav = $_REQUEST["f"];
-			$bd = mysql__select_assoc('recDetails', 'concat(dtl_DetailTypeID, ".", dtl_Value)', '1',
+			$bd = mysqli__select_assoc($mysqli, 'recDetails', 'concat(dtl_DetailTypeID, ".", dtl_Value)', '1',
 				'dtl_RecID='.$rec_id.' and ((dtl_DetailTypeID = '.$doiDT.' and dtl_Value in ("'.join('","', array_map("addslashes", $dois)).'"))'.
 					' or  (dtl_DetailTypeID = '.$webIconDT.' and dtl_Value = "'.addslashes($fav).'"))'.
 					' or  (dtl_DetailTypeID = '.$issnDT.' and dtl_Value in ("'.join('","', array_map("addslashes", $issns)).'"))'.
@@ -243,8 +243,8 @@ if (! @$_REQUEST['_submit']  &&  @$_REQUEST['bkmrk_bkmk_url']) {
 			foreach ($issns as $issn) if (! $bd["$issnDT.$issn"]) array_push($inserts, "($rec_id, $issnDT, '" . addslashes($issn) . "')");
 
 			if ($inserts) {
-				mysql_query("update Records set rec_Modified = now() where rec_ID = $rec_id");
-				mysql_query("insert into recDetails (dtl_RecID, dtl_DetailTypeID, dtl_Value) values " . join(",", $inserts));
+				$mysqli->query("update Records set rec_Modified = now() where rec_ID = $rec_id");
+				$mysqli->query("insert into recDetails (dtl_RecID, dtl_DetailTypeID, dtl_Value) values " . join(",", $inserts));
 			}
 		}
 	}
@@ -286,7 +286,7 @@ if (! @$_REQUEST['_submit']  &&  @$_REQUEST['bkmrk_bkmk_url']) {
 			return;
 		}
 
-		mysql__insert('Records', array('rec_URL' => $url,
+		mysqli__insert($mysqli, 'Records', array('rec_URL' => $url,
 										'rec_Title' => $_REQUEST['bkmrk_bkmk_title'],
 										'rec_ScratchPad' => $description,
 										'rec_Added' => date('Y-m-d H:i:s'),
@@ -300,18 +300,18 @@ if (! @$_REQUEST['_submit']  &&  @$_REQUEST['bkmrk_bkmk_url']) {
 															(@$userDefaultVisibility ? $userDefaultVisibility :
 																(defined('HEURIST_NEWREC_ACCESS') ? HEURIST_NEWREC_ACCESS: 'viewable'))),
 										'rec_FlagTemporary' => ! ($url  ||  $_REQUEST['bkmrk_bkmk_title'])));
-		$rec_id = mysql_insert_id();
+		$rec_id = $mysqli->insert_id;
 
 		// there are sometimes cases where there is no title set (e.g. webpage with no TITLE tag)
 		if (@$_REQUEST['bkmrk_bkmk_title']) {
-			mysql_query('insert into recDetails (dtl_RecID, dtl_DetailTypeID, dtl_Value) values ('.$rec_id.','.$titleDT.',"'.addslashes($_REQUEST['bkmrk_bkmk_title']).'")');
+			$mysqli->query('insert into recDetails (dtl_RecID, dtl_DetailTypeID, dtl_Value) values ('.$rec_id.','.$titleDT.',"'.addslashes($_REQUEST['bkmrk_bkmk_title']).'")');
 		}
 		$inserts = array();
 		foreach ($dois as $doi) array_push($inserts, "($rec_id, $doiDT, '" . addslashes($doi) . "')");
 		if (@$_REQUEST["f"]) array_push($inserts, "($rec_id, $webIconDT, '" . addslashes($_REQUEST["f"]) . "')");
 		foreach ($isbns as $isbn) array_push($inserts, "($rec_id, $isbnDT, '" . addslashes($isbn) . "')");
 		foreach ($issns as $issn) array_push($inserts, "($rec_id, $issnDT, '" . addslashes($issn) . "')");
-		if ($inserts) mysql_query('insert into recDetails (dtl_RecID, dtl_DetailTypeID, dtl_Value) values ' . join(",", $inserts));
+		if ($inserts) $mysqli->query('insert into recDetails (dtl_RecID, dtl_DetailTypeID, dtl_Value) values ' . join(",", $inserts));
 
 		if ($description) insert_woot_content($rec_id, $description);
 
@@ -338,7 +338,7 @@ if (! @$rec_id  and  ! @$_REQUEST['bkmrk_bkmk_url']) {
 		return;
 	}
 
-	mysql__insert('Records', array('rec_Title' => $_REQUEST['bkmrk_bkmk_title'],
+	mysqli__insert($mysqli, 'Records', array('rec_Title' => $_REQUEST['bkmrk_bkmk_title'],
 									'rec_ScratchPad' => $description,
 									'rec_Added' => date('Y-m-d H:i:s'),
 									'rec_Modified' => date('Y-m-d H:i:s'),
@@ -351,10 +351,10 @@ if (! @$rec_id  and  ! @$_REQUEST['bkmrk_bkmk_url']) {
 															(@$userDefaultVisibility ? $userDefaultVisibility :
 																(defined('HEURIST_NEWREC_ACCESS') ? HEURIST_NEWREC_ACCESS: 'viewable'))),
 									'rec_FlagTemporary' => ! ($_REQUEST['bkmrk_bkmk_title']))); // saw BUG???
-/*****DEBUG****///error_log( " after insert error = ". mysql_error());
-	$rec_id = mysql_insert_id();
+/*****DEBUG****///error_log( " after insert error = ". $mysqli->error);
+	$rec_id = $mysqli->insert_id;
 	if (@$_REQUEST['bkmrk_bkmk_title']) {
-		mysql_query('insert into recDetails (dtl_RecID, dtl_DetailTypeID, dtl_Value) values ('.
+		$mysqli->query('insert into recDetails (dtl_RecID, dtl_DetailTypeID, dtl_Value) values ('.
 						$rec_id.','.$titleDT.',"'.addslashes($_REQUEST['bkmrk_bkmk_title']).'")');
 	}
 	$inserts = array();
@@ -362,7 +362,7 @@ if (! @$rec_id  and  ! @$_REQUEST['bkmrk_bkmk_url']) {
 	if (@$_REQUEST["f"]) array_push($inserts, "($rec_id, $webIconDT, '" . addslashes($_REQUEST["f"]) . "')");
 	foreach ($isbns as $isbn) array_push($inserts, "($rec_id, $isbnDT, '" . addslashes($isbn) . "')");
 	foreach ($issns as $issn) array_push($inserts, "($rec_id, $issnDT, '" . addslashes($issn) . "')");
-	if ($inserts) mysql_query('insert into recDetails (dtl_RecID, dtl_DetailTypeID, dtl_Value) values ' . join(",", $inserts));
+	if ($inserts) $mysqli->query('insert into recDetails (dtl_RecID, dtl_DetailTypeID, dtl_Value) values ' . join(",", $inserts));
 
 	if ($description) insert_woot_content($rec_id, $description);
 
@@ -374,12 +374,12 @@ if ($rec_id  &&  ! @$_REQUEST['force_new']) {
 	 * If they do in fact have it bookmarked, redirect to the edit page
 	 * and add the new notes to the end of their existing notes.  FMS
 	 */
-	$res = mysql_query("select * from usrBookmarks where bkm_UGrpID=$usrID and bkm_recID = $rec_id");
-	$bkmk = mysql_fetch_assoc($res);
+	$res = $mysqli->query("select * from usrBookmarks where bkm_UGrpID=$usrID and bkm_recID = $rec_id");
+	$bkmk = $res->fetch_assoc();
 	if ($bkmk  &&  $bkmk['bkm_ID']) {
 		if ($description) {
-			$dres = mysql_query("select rec_ScratchPad from Records where rec_ID = " . $rec_id);
-			$existingDescription = mysql_fetch_row($dres);
+			$dres = $mysqli->query("select rec_ScratchPad from Records where rec_ID = " . $rec_id);
+			$existingDescription = mysqli_fetch_row($dres);
 			$existingDescription = $existingDescription[0];
 
 			$notesIn = $existingDescription? ($existingDescription . "\n\n" . $description) : $description;
@@ -394,7 +394,7 @@ if ($rec_id  &&  ! @$_REQUEST['force_new']) {
 			}
 			$notesOut = preg_replace("/\n\n+/", "\n", $notesOut);
 
-			mysql_query("update Records set rec_ScratchPad = '" . addslashes($notesOut) . "' where rec_ID = $rec_id");
+			$mysqli->query("update Records set rec_ScratchPad = '" . addslashes($notesOut) . "' where rec_ID = $rec_id");
 
 			insert_woot_content($rec_id, $description);
 		}
@@ -409,7 +409,7 @@ if ($rec_id  &&  ! @$_REQUEST['force_new']) {
 if ($rec_id) {
 
 	if ($usrID && !@$bkmk) {
-	mysql__insert('usrBookmarks', array(
+	mysqli__insert($mysqli, 'usrBookmarks', array(
 		'bkm_recID' => $rec_id,
 		'bkm_Added' => date('Y-m-d H:i:s'),
 		'bkm_Modified' => date('Y-m-d H:i:s'),
@@ -417,7 +417,7 @@ if ($rec_id) {
 	));
 	}
 
-	$bkm_ID = mysql_insert_id();
+	$bkm_ID = $mysqli->insert_id;
 
 	// add tag
 	if (@$_REQUEST['tag']) {
@@ -429,26 +429,26 @@ if ($rec_id) {
 				$pos = strpos($tag, "\\");
 				$grpName = substr($tag, 0, $pos);
 				$kwdName = substr($tag, $pos+1);
-				$res = mysql_query("select tag_ID from usrTags, ".USERS_DATABASE.".sysUGrps grp, ".USERS_DATABASE.".sysUsrGrpLinks where tag_Text='".addslashes($kwdName)."' and grp.ugr_Name='".addslashes($grpName)."' and tag_UGrpID=grp.ugr_ID and ugl_GroupID=grp.ugr_ID and ugl_UserID=$usrID");
-				$kwd_id = mysql_fetch_row($res);
+				$res = $mysqli->query("select tag_ID from usrTags, ".USERS_DATABASE.".sysUGrps grp, ".USERS_DATABASE.".sysUsrGrpLinks where tag_Text='".addslashes($kwdName)."' and grp.ugr_Name='".addslashes($grpName)."' and tag_UGrpID=grp.ugr_ID and ugl_GroupID=grp.ugr_ID and ugl_UserID=$usrID");
+				$kwd_id = $res->fetch_row();
 				$kwd_id = $kwd_id[0];
 			}
 			else {
 				//check for existing usr personal tag
-				$res = mysql_query("select tag_ID from usrTags where tag_Text = \"".addslashes($tag)."\" and tag_UGrpID=$usrID");
-				if ($row = mysql_fetch_assoc($res)) {
+				$res = $mysqli->query("select tag_ID from usrTags where tag_Text = \"".addslashes($tag)."\" and tag_UGrpID=$usrID");
+				if ($row = $res->fetch_assoc()) {
 					$kwd_id = $row['tag_ID'];
 				} else {// no existing tag so add it
-					mysql__insert('usrTags', array(
+					mysqli__insert($mysqli, 'usrTags', array(
 						'tag_UGrpID' => $usrID,
 						'tag_Text' => $tag
 					));
-					$kwd_id = mysql_insert_id();
+					$kwd_id = $mysqli->insert_id;
 				}
 			}
 
 			if ($kwd_id) { //tag was found so link it to the record
-				mysql__insert('usrRecTagLinks', array(
+				mysqli__insert($mysqli, 'usrRecTagLinks', array(
 					'rtl_RecID' => $rec_id,
 					'rtl_TagID' => $kwd_id
 				));
@@ -460,21 +460,21 @@ if ($rec_id) {
 		$other_bib_id = $_REQUEST["related"];
 		$reln_type = "IsRelatedTo";
 		if (@$_REQUEST["reltype"]) {
-			mysql_query("select trm_ID,trm_Label from defTerms where trm_Label like '".addslashes($_REQUEST["reltype"])."' limit 1;");
-			if (mysql_num_rows($res) > 0) {
-				$row = mysql_fetch_assoc($res);
+			$mysqli->query("select trm_ID,trm_Label from defTerms where trm_Label like '".addslashes($_REQUEST["reltype"])."' limit 1;");
+			if ($res->num_rows > 0) {
+				$row = $res->fetch_assoc();
 				$reln_type = $row["trm_ID"];	// saw TODO: check that this is aligned with the enum value change
 				// saw TODO check if CONSTRAINTS are fine else give constraint error
 			}
 		}
-		mysql__insert("Records", array(
+		mysqli__insert($mysqli, "Records", array(
 			"rec_Title" => "Relationship ($rec_id $reln_type $other_bib_id)",	// saw TODO: change this to RecTitle Type RecTitle
 					"rec_Added"     => date('Y-m-d H:i:s'),
 					"rec_Modified"  => date('Y-m-d H:i:s'),
 					"rec_RecTypeID"   => RT_RELATION,
 					"rec_AddedByUGrpID" => $usrID
 		));
-		$relnBibID = mysql_insert_id();
+		$relnBibID = $mysqli->insert_id;
 
 		if ($relnBibID > 0) {
 			$query = "insert into recDetails (dtl_RecID, dtl_DetailTypeID, dtl_Value) values ";
@@ -482,7 +482,7 @@ if ($rec_id) {
 			$query .= ", ($relnBibID, $relSrcDT, $rec_id)";
 			$query .= ", ($relnBibID, $relTrgDT, $other_bib_id)";
 			$query .= ", ($relnBibID, $relTypDT, '" . addslashes($reln_type) . "')"; //saw BUG!!! places in label not ID
-			mysql_query($query);
+			$mysqli->query($query);
 		}
 	}
 
@@ -529,8 +529,8 @@ function insert_woot_content($rec_id, $content) {
 }
 
 function check_rectype_exist($rt) {
-	$res = mysql_query("select distinct rty_ID,rty_Name from defRecTypes where rty_ID = $rt");
-	while ($row = mysql_fetch_assoc($res)) {
+	$res = $mysqli->query("select distinct rty_ID,rty_Name from defRecTypes where rty_ID = $rt");
+	while ($row = $res->fetch_assoc()) {
 		if ($row["rty_ID"] == $rt) {
 			return true;
 		}
@@ -546,7 +546,7 @@ function insert_thumbnail_content($recid, $url){
 		$res = generate_thumbnail($url, false);
 
 		if(!array_key_exists("error", $res)){
-			mysql_query('insert into recDetails (dtl_RecID, dtl_DetailTypeID, dtl_UploadedFileID) values ('.$recid.','.DT_THUMBNAIL.','.$res['file']['id'].')');
+			$mysqli->query('insert into recDetails (dtl_RecID, dtl_DetailTypeID, dtl_UploadedFileID) values ('.$recid.','.DT_THUMBNAIL.','.$res['file']['id'].')');
 		}
 	}
 }

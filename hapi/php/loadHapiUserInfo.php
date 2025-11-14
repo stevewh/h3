@@ -61,7 +61,7 @@ if (! ($loc = get_location($_REQUEST["key"]))) {
 }
 define_constants($loc["hl_instance"]);
 */
-mysql_connection_select(DATABASE);
+$mysqli = mysqli_connection_select(DATABASE);
 
 $is_raw = (array_key_exists('raw', $_REQUEST));
 
@@ -74,13 +74,13 @@ if (! is_logged_in()) {
 	return;
 }
 
-$tags = mysql__select_array("usrTags", "distinct tag_Text", "tag_UGrpID=" . get_user_id());
+$tags = mysqli__select_array($mysqli, "usrTags", "distinct tag_Text", "tag_UGrpID=" . get_user_id());
 
-$workgroups = mysql__select_array(USERS_DATABASE.".sysUsrGrpLinks", "distinct ugl_GroupID", "ugl_UserID=" . get_user_id());
+$workgroups = mysqli__select_array($mysqli, USERS_DATABASE.".sysUsrGrpLinks", "distinct ugl_GroupID", "ugl_UserID=" . get_user_id());
 
-$res = mysql_query("select tag_ID, tag_Text, tag_UGrpID from usrTags, ".USERS_DATABASE.".sysUsrGrpLinks where ugl_GroupID=tag_UGrpID and ugl_UserID=" . get_user_id());
+$res = $mysqli->query("select tag_ID, tag_Text, tag_UGrpID from usrTags, ".USERS_DATABASE.".sysUsrGrpLinks where ugl_GroupID=tag_UGrpID and ugl_UserID=" . get_user_id());
 $workgroupTags = array();
-while ($row = mysql_fetch_row($res)) { array_push($workgroupTags, $row); }
+while ($row = $res->fetch_row()) { array_push($workgroupTags, $row); }
 
 $currentUser = array(get_user_id(), is_admin(), $workgroups, @$_SESSION[HEURIST_SESSION_DB_PREFIX."heurist"]["display-preferences"]);
 

@@ -35,8 +35,8 @@
 	require_once(dirname(__FILE__).'/../../common/php/getRecordInfoLibrary.php');
 	//require_once(dirname(__FILE__).'/../../common/connect/applyCredentials.php');
 
-	//mysql_connection_select(DATABASE);
-	mysql_connection_overwrite(DATABASE);
+	//$mysqli = mysqli_connection_select(DATABASE);
+	$mysqli = mysqli_connection_overwrite(DATABASE);
 
 	$res = array();
 
@@ -75,10 +75,10 @@
 			" and d2.rst_DetailTypeID=".DT_ANNOTATION_RESOURCE;
 			///"d2.rst_DetailTypeID in (select dty_ID from defDetailTypes where dty_Type=\"resource\")";
 
-			$fres = mysql_query($query);
+			$fres = $mysqli->query($query);
 
 
-			while ($row = mysql_fetch_assoc($fres)) {
+			while ($row = mysqli_fetch_assoc($fres)) {
 				array_push($result, $row);
 			}
 
@@ -130,10 +130,10 @@
 		$res = deleteRecord($rec_id);
 		/*****DEBUG****///error_log(">>>>".print_r($res, true));
 		if( array_key_exists("error", $res) ){
-			mysql_query("rollback");
+			$mysqli->query("rollback");
 		}else{
 			updateRecTypeUsageCount();
-			mysql_query("commit");
+			$mysqli->query("commit");
 		}
 
 		return $res;

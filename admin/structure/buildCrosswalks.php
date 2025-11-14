@@ -110,7 +110,7 @@
 		$isNewDB = false;
 		$tempDBName = "temp_".$dbname;
 		// Deals with all the database connections stuff
-		mysql_connection_insert(DATABASE);
+		$mysqli = mysqli_connection_insert(DATABASE);
 
 	} // existing database
 
@@ -140,14 +140,14 @@
 	}
 
 	if ($isExistingDB) {
-		$res = mysql_query("select lck_UGrpID from sysLocks where lck_Action='buildcrosswalks'");
+		$res = $mysqli->query("select lck_UGrpID from sysLocks where lck_Action='buildcrosswalks'");
 		// 6/9/11 $res is not being recognised as a valid MySQL result, and always returns false. This appear to be identical
 		// to example in help. So the following test is not being processed and the lock is ignored. The query works in MySQL
 		// TODO: get this locking mechanism to work
 
-		if (($res && mysql_num_rows($res)>0)) { // SQL OK and there is a lock record
+		if (($res && $res->num_rows>0)) { // SQL OK and there is a lock record
 			// error log says supplied argument is not a valid MySQL result resources
-			@$row = mysql_fetch_array($res);
+			@$row = $res->fetch_array();
 			if ( @$row && $row[0] != 0 && $row[0] != get_user_id()){
 				error_log("row = ".print_r($row,true));
 				echo "Definitions are already being modified or SQL failure on lock check.";
@@ -157,12 +157,12 @@
 		} // detect lock and shuffle out
 
 		// Mark database definitons as being modified by adminstrator
-		mysql_connection_insert(DATABASE);
+		$mysqli = mysqli_connection_insert(DATABASE);
 		$query = "insert into sysLocks (lck_UGrpID, lck_Action) VALUES (".(function_exists('get_user_id') ? get_user_id(): 0).", 'buildcrosswalks')";
-		$res = mysql_query($query); // create sysLock
+		$res = $mysqli->query($query); // create sysLock
 		// Create the Heurist structure for the temp database, using a stripepd version of the new database template
-		mysql_query("DROP DATABASE IF EXISTS`" . $tempDBName . "`");	// database might exist from previous use
-		mysql_query("CREATE DATABASE `" . $tempDBName . "`"); // TODO: should check database is created
+		$mysqli->query("DROP DATABASE IF EXISTS`" . $tempDBName . "`");	// database might exist from previous use
+		$mysqli->query("CREATE DATABASE `" . $tempDBName . "`"); // TODO: should check database is created
 		$cmdline="mysql -u".ADMIN_DBUSERNAME." -p".ADMIN_DBUSERPSWD.
 		" -D$tempDBName < ../setup/createDefinitionTablesOnly.sql"; // subset of, and must be kept in sync with, blankDBStructure.sql
 		$output2 = exec($cmdline . ' 2>&1', $output, $res2);
@@ -172,7 +172,7 @@
 		}
 	}
 
-	mysql_connection_insert($tempDBName); // Use temp database
+	$mysqli = mysqli_connection_insert($tempDBName); // Use temp database
 
 
 	// ------Find and set the source database-----------------------------------------------------------------------
@@ -293,7 +293,7 @@
 
 	// insert the arrays into the corresonding tables (new db) or temp tables (existing)
 	$query = "SET SESSION sql_mode='NO_AUTO_VALUE_ON_ZERO'";
-	mysql_query($query);
+	$mysqli->query($query);
 	processRecTypeGroups($recTypeGroups);
 	processDetailTypeGroups($detailTypeGroups);
 	processOntologies($ontologies);
@@ -305,7 +305,7 @@
 	processFileExtToMimetype($fileExtToMimetype);
 	processTranslations($translations);
 	$query = "SET SESSION sql_mode=''";
-	mysql_query($query);
+	$mysqli->query($query);
 
 	// TODO: Make sure all values are written correctly (especially the NULL values)
 
@@ -324,9 +324,9 @@
 			include "crosswalk/defRecTypesFields.inc";
 			//  debugStop($dataSet);
 			$query = "INSERT INTO `defRecTypes` ($flds) VALUES" . $dataSet;
-			mysql_query($query);
-			if(mysql_error()) {
-				echo "RECTYPES Error inserting data: " . mysql_error() . "<p>FIELDS:$flds<br /><p>VALUES:$dataSet<p>";
+			$mysqli->query($query);
+			if($mysqli->error) {
+				echo "RECTYPES Error inserting data: " . $mysqli->error . "<p>FIELDS:$flds<br /><p>VALUES:$dataSet<p>";
 				$errorCreatingTables = TRUE;
 			}
 		} // END Imported first set of data to temp table: defRectypes
@@ -338,9 +338,9 @@
 		if(!(($dataSet == "") || (strlen($dataSet) <= 2))) { // no action if no data
 			include "crosswalk/defDetailTypesFields.inc";
 			$query = "INSERT INTO `defDetailTypes` ($flds) VALUES" . $dataSet;
-			mysql_query($query);
-			if(mysql_error()) {
-				echo "DETAILTYPES Error inserting data: " . mysql_error() . "<br />";
+			$mysqli->query($query);
+			if($mysqli->error) {
+				echo "DETAILTYPES Error inserting data: " . $mysqli->error . "<br />";
 				$errorCreatingTables = TRUE;
 			}
 		} // END Imported first set of data to temp table: defDetailTypes
@@ -353,9 +353,9 @@
 		if(!(($dataSet == "") || (strlen($dataSet) <= 2))) { // no action if no data
 			include "crosswalk/defRecStructureFields.inc";
 			$query = "INSERT INTO `defRecStructure` ($flds) VALUES " . $dataSet;
-			mysql_query($query);
-			if(mysql_error()) {
-				echo "RECSTRUCTURE Error inserting data: " . mysql_error() . "<br />";
+			$mysqli->query($query);
+			if($mysqli->error) {
+				echo "RECSTRUCTURE Error inserting data: " . $mysqli->error . "<br />";
 				$errorCreatingTables = TRUE;
 			}
 		} // END Imported first set of data to temp table: defRecStructure
@@ -368,15 +368,15 @@
 		if(!(($dataSet == "") || (strlen($dataSet) <= 2))) { // no action if no data
 			include "crosswalk/defTermsFields.inc";
 			$query = "SET FOREIGN_KEY_CHECKS = 0;";
-			mysql_query($query);
+			$mysqli->query($query);
 			$query = "INSERT INTO `defTerms` ($flds) VALUES " . $dataSet;
-			mysql_query($query);
-			if(mysql_error()) {
-				echo "TERMS Error inserting data: " . mysql_error() . "<br />";
+			$mysqli->query($query);
+			if($mysqli->error) {
+				echo "TERMS Error inserting data: " . $mysqli->error . "<br />";
 				$errorCreatingTables = TRUE;
 			}
 			$query = "SET FOREIGN_KEY_CHECKS = 1;";
-			mysql_query($query);
+			$mysqli->query($query);
 		} // END Imported first set of data to temp table: defTerms
 	} // processTerms
 
@@ -385,9 +385,9 @@
 		if(!(($dataSet == "") || (strlen($dataSet) <= 2))) { // no action if no data
 			include "crosswalk/defOntologiesFields.inc";
 			$query = "INSERT INTO `defOntologies` ($flds) VALUES " . $dataSet;
-			mysql_query($query);
-			if(mysql_error()) {
-				echo "ONTOLOGIES Error inserting data: " . mysql_error() . "<br />";
+			$mysqli->query($query);
+			if($mysqli->error) {
+				echo "ONTOLOGIES Error inserting data: " . $mysqli->error . "<br />";
 				$errorCreatingTables = TRUE;
 			}
 		} // END Imported first set of data to temp table: defOntologies
@@ -400,9 +400,9 @@
 		if(!(($dataSet == "") || (strlen($dataSet) <= 2))) { // no action if no data
 			include "crosswalk/defRelationshipConstraintsFields.inc";
 			$query = "INSERT INTO `defRelationshipConstraints` ($flds) VALUES " . $dataSet;
-			mysql_query($query);
-			if(mysql_error()) {
-				echo "RELATIONSHIPCONSTRAINTS Error inserting data: " . mysql_error() . "<br />";
+			$mysqli->query($query);
+			if($mysqli->error) {
+				echo "RELATIONSHIPCONSTRAINTS Error inserting data: " . $mysqli->error . "<br />";
 				$errorCreatingTables = TRUE;
 			}
 		} // END Imported first set of data to temp table: defRelationshipConstraints
@@ -415,9 +415,9 @@
 		if(!(($dataSet == "") || (strlen($dataSet) <= 2))) { // no action if no data
 			include "crosswalk/defFileExtToMimetypeFields.inc";
 			$query = "INSERT INTO `defFileExtToMimetype` ($flds) VALUES " . $dataSet;
-			mysql_query($query);
-			if(mysql_error()) {
-				echo "FILEEXTTOMIMETYPE Error inserting data: " . mysql_error() . "<br />";
+			$mysqli->query($query);
+			if($mysqli->error) {
+				echo "FILEEXTTOMIMETYPE Error inserting data: " . $mysqli->error . "<br />";
 				$errorCreatingTables = TRUE;
 			}
 		} // END Imported first set of data to temp table: defFileExtToMimetype
@@ -430,9 +430,9 @@
 		if(!(($dataSet == "") || (strlen($dataSet) <= 2))) { // no action if no data
 			include "crosswalk/defRecTypeGroupsFields.inc";
 			$query = "INSERT INTO `defRecTypeGroups` ($flds) VALUES " . $dataSet;
-			mysql_query($query);
-			if(mysql_error()) {
-				echo "RECTYPEGROUPS Error inserting data: " . mysql_error() . "<br />";
+			$mysqli->query($query);
+			if($mysqli->error) {
+				echo "RECTYPEGROUPS Error inserting data: " . $mysqli->error . "<br />";
 				$errorCreatingTables = TRUE;
 			}
 		} // END Imported first set of data to temp table: defRecTypeGroups
@@ -445,9 +445,9 @@
 		if(!(($dataSet == "") || (strlen($dataSet) <= 2))) { // no action if no data
 			include "crosswalk/defDetailTypeGroupsFields.inc";
 			$query = "INSERT INTO `defDetailTypeGroups` ($flds) VALUES " . $dataSet;
-			mysql_query($query);
-			if(mysql_error()) {
-				echo "DETAILTYPEGROUPS Error inserting data: " . mysql_error() . "<br /><br />" . $dataSet . "<br />";
+			$mysqli->query($query);
+			if($mysqli->error) {
+				echo "DETAILTYPEGROUPS Error inserting data: " . $mysqli->error . "<br /><br />" . $dataSet . "<br />";
 				$errorCreatingTables = TRUE;
 			}
 		} // END Imported first set of data to temp table: defDetailTypeGroups
@@ -458,9 +458,9 @@
 		if(!(($dataSet == "") || (strlen($dataSet) <= 2))) { // no action if no data
 			include "crosswalk/defTranslationsFields.inc";
 			$query = "INSERT INTO `defTranslations` ($flds) VALUES " . $dataSet;
-			mysql_query($query);
-			if(mysql_error()) {
-				echo "TRANSLATIONS Error inserting data: " . mysql_error() . "<br />";
+			$mysqli->query($query);
+			if($mysqli->error) {
+				echo "TRANSLATIONS Error inserting data: " . $mysqli->error . "<br />";
 				$errorCreatingTables = TRUE;
 			}
 		} // END Imported first set of data to temp table: defTranslations
@@ -468,10 +468,10 @@
 
 	function unlockDatabase($isdroptemp=true) {
 		if($isdroptemp && $tempDBName){
-			mysql_query("DROP DATABASE IF EXISTS`" . $tempDBName . "`");
+			$mysqli->query("DROP DATABASE IF EXISTS`" . $tempDBName . "`");
 		}
-		mysql_connection_insert(DATABASE); // Use logged into DB
-		$res = mysql_query("delete from sysLocks where lck_Action='buildcrosswalks'"); // Remove sysLock
+		$mysqli = mysqli_connection_insert(DATABASE); // Use logged into DB
+		$res = $mysqli->query("delete from sysLocks where lck_Action='buildcrosswalks'"); // Remove sysLock
 	}
 
 

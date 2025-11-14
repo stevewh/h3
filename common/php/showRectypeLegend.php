@@ -75,9 +75,9 @@ require_once(dirname(__FILE__).'/../connect/applyCredentials.php');
      <h3>Reference types</h3>
 <?php
 require_once("dbMySqlWrappers.php");
-	mysql_connection_select(DATABASE);
-	$res = mysql_query('select rty_ID, rty_Name from  defRecTypes order by rty_ID');
-	while ($row = mysql_fetch_row($res)) {
+	$mysqli = mysqli_connection_select(DATABASE);
+	$res = $mysqli->query('select rty_ID, rty_Name from  defRecTypes order by rty_ID');
+	while ($row = $res->fetch_row()) {
 ?>
      <div>
      	<table><tr>

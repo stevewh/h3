@@ -108,7 +108,7 @@ require_once(dirname(__FILE__).'/../search/getSearchResults.php');
 require_once(dirname(__FILE__).'/../common/php/getRecordInfoLibrary.php');
 require_once(dirname(__FILE__).'/../records/files/uploadFile.php');
 
-mysql_connection_select(DATABASE);
+$mysqli = mysqli_connection_select(DATABASE);
 
 
 //----------------------------------------------------------------------------//
@@ -125,8 +125,8 @@ $TL = array();	//term lookup
 $TLV = array();	//term lookup by value
 // record type labels
 $query = 'SELECT rty_ID, rty_Name FROM defRecTypes';
-$res = mysql_query($query);
-while ($row = mysql_fetch_assoc($res)) {
+$res = $mysqli->query($query);
+while ($row = $res->fetch_assoc()) {
 	$RTN[$row['rty_ID']] = $row['rty_Name'];
 	foreach (getRectypeFields($row['rty_ID']) as $rst_DetailTypeID => $rdr) {
 	// type-specific names for detail types
@@ -136,29 +136,29 @@ while ($row = mysql_fetch_assoc($res)) {
 /*****DEBUG****///error_log(print_r($RQS,true));
 // base names, varieties for detail types
 $query = 'SELECT dty_ID, dty_Name, dty_Type FROM defDetailTypes';
-$res = mysql_query($query);
-while ($row = mysql_fetch_assoc($res)) {
+$res = $mysqli->query($query);
+while ($row = $res->fetch_assoc()) {
 	$DTN[$row['dty_ID']] = $row['dty_Name'];
 	$DTT[$row['dty_ID']] = $row['dty_Type'];
 }
 
-$INV = mysql__select_assoc('defTerms',	//saw Enum change just assoc id to related id
+$INV = mysqli__select_assoc($mysqli, 'defTerms',	//saw Enum change just assoc id to related id
 							'trm_ID',
 							'trm_InverseTermID',
 							'1');
 
 // lookup detail type enum values
 $query = 'SELECT trm_ID, trm_Label, trm_ParentTermID, trm_OntID FROM defTerms';
-$res = mysql_query($query);
-while ($row = mysql_fetch_assoc($res)) {
+$res = $mysqli->query($query);
+while ($row = $res->fetch_assoc()) {
 	$TL[$row['trm_ID']] = $row;
 	$TLV[$row['trm_Label']] = $row;
 }
 
 /// group names
-mysql_connection_select(USERS_DATABASE) or die(mysql_error());
-$WGN = mysql__select_assoc('sysUGrps grp', 'grp.ugr_ID', 'grp.ugr_Name', "ugr_Type ='workgroup'");
-mysql_connection_select(DATABASE) or die(mysql_error());
+$mysqli = mysqli_connection_select(USERS_DATABASE) or die($mysqli->error);
+$WGN = mysqli__select_assoc($mysqli, 'sysUGrps grp', 'grp.ugr_ID', 'grp.ugr_Name', "ugr_Type ='workgroup'");
+$mysqli = mysqli_connection_select(DATABASE) or die($mysqli->error);
 
 
 $GEO_TYPES = array(
@@ -223,7 +223,7 @@ $MAX_DEPTH = (@$_REQUEST['depth'] ? intval($_REQUEST['depth']) :
 //----------------------------------------------------------------------------//
 
 require_once(dirname(__FILE__).'/../common/connect/applyCredentials.php');
-$ACCESSABLE_OWNER_IDS = mysql__select_array('sysUsrGrpLinks left join sysUGrps grp on grp.ugr_ID=ugl_GroupID', 'ugl_GroupID',
+$ACCESSABLE_OWNER_IDS = mysqli__select_array($mysqli, 'sysUsrGrpLinks left join sysUGrps grp on grp.ugr_ID=ugl_GroupID', 'ugl_GroupID',
 								'ugl_UserID='.get_user_id().' and grp.ugr_Type != "User" order by ugl_GroupID');
 if (is_logged_in()){
 	array_push($ACCESSABLE_OWNER_IDS,get_user_id());
@@ -262,9 +262,9 @@ global $ACCESSABLE_OWNER_IDS;
 
 /*****DEBUG****///error_log("find d $depth pointer q = $query");
 /*****DEBUG****///echo "\n $query\n";
-	$res = mysql_query($query);
+	$res = $mysqli->query($query);
 /*****DEBUG****///error_log("mysql error = ".mysql_error($res));
-	while ($res && $row = mysql_fetch_assoc($res)) {
+	while ($res && $row = $res->fetch_assoc()) {
 		// if target is not in the result
 /*****DEBUG****///echo "\n".print_r($row);
 		$nlrIDs[$row['trgRecID']] = 1;	//save it for next level query
@@ -370,8 +370,8 @@ global $REVERSE, $ACCESSABLE_OWNER_IDS, $relRT;
 								'OR trg.rec_NonOwnerVisibility = "public")');
 
 /*****DEBUG****///error_log("find  d $depth rev pointer q = $query");
-	$res = mysql_query($query);
-	while ($res && $row = mysql_fetch_assoc($res)) {
+	$res = $mysqli->query($query);
+	while ($res && $row = $res->fetch_assoc()) {
 		// if target is not in the result
 		$nlrIDs[$row['trgRecID']] = 1;	//save it for next level query
 		if (!@$recSet['infoByDepth'][$depth]['ptrtypes']) {
@@ -478,8 +478,8 @@ function findRelatedRecords($qrec_ids, &$recSet, $depth, $rtyIDs, $relTermIDs) {
 				($relTermIDs && count($relTermIDs)>0 ? 'AND (trm.trm_ID in ('.join(',', $relTermIDs).') OR trm.trm_InverseTermID in ('.join(',', $relTermIDs).')) ' : '');
 /*****DEBUG****///error_log("find  d $depth related q = $query");
 //echo $query;
-	$res = mysql_query($query);
-	while ($res && $row = mysql_fetch_assoc($res)) {
+	$res = $mysqli->query($query);
+	while ($res && $row = $res->fetch_assoc()) {
 		if (!$row['relType'] && ! $row['invRelType']){ // no type information invalid relationship
 			continue;
 		}
@@ -616,8 +616,8 @@ function buildFilteredGraphStructure($rec_ids, &$recSet, $depth = 0) {
 					'AND rec_RecTypeID in ('.join(",",$rtfilter).')';
 //echo "query = $query <br/>\n";
 		$filteredIDs = array();
-		$res = mysql_query($query);
-		while ($res && $row = mysql_fetch_row($res)) {
+		$res = $mysqli->query($query);
+		while ($res && $row = $res->fetch_row()) {
 			$filteredIDs[$row[0]] =1;
 		}
 		$rec_ids = array_keys($filteredIDs);

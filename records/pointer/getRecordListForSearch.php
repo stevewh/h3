@@ -56,7 +56,7 @@ require_once(dirname(__FILE__)."/../../common/connect/applyCredentials.php");
 require_once(dirname(__FILE__)."/../../common/php/dbMySqlWrappers.php");
 require_once(dirname(__FILE__).'/../../search/parseQueryToSQL.php');
 
-mysql_connection_select(DATABASE);
+$mysqli = mysqli_connection_select(DATABASE);
 
 if (! array_key_exists('q', @$_REQUEST)  ||  (@$_REQUEST['ver'] && intval(@$_REQUEST['ver']) < SEARCH_VERSION))
 	construct_legacy_search();	// migration path
@@ -70,7 +70,7 @@ $searchID = "search";
 if (@$_REQUEST["searchID"]) $searchID = $_REQUEST["searchID"];
 
 $colNames = array("rec_ID", "rec_Title", "rec_URL", "rec_RecTypeID");
-$query = REQUEST_to_query("select " . join(", ", $colNames) . " ", BOTH);
+$query = REQUEST_to_query($mysqli, "select " . join(", ", $colNames) . " ", BOTH);
 if (@$_REQUEST["r"] == "recent") {
 	$query = preg_replace("/\\swhere\\s/", " where (TOPBIBLIO.rec_ID in (select distinct rre_RecID from usrRecentRecords where rre_UGrpID = " . get_user_id() . ")) and ", $query);
 	// saw CHECK ME: this code assumes order by is last clause of query
@@ -89,9 +89,9 @@ header("Content-type: text/javascript");
 
 	"records": [
 <?php
-	$res = mysql_query($query);
+	$res = $mysqli->query($query);
 	$first = true;
-	while ($row = mysql_fetch_row($res)) {
+	while ($row = $res->fetch_row()) {
 		if (! $first) print ",\n"; $first = false;
 		print "[ \"" . join("\", \"", array_map("slash", $row)) . "\" ]";
 	}

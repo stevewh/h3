@@ -328,7 +328,7 @@ function buildform($rt_id) {
  */
 function createRecordLookup($rtIDs) {
 	$emptyLookup = "<item>\n" . "<label>\"no records found for rectypes '$rtIDs'\"</label>\n" . "<value>0</value>\n" . "</item>\n";
-	$recs = mysql__select_assoc("Records", "rec_ID", "rec_Title", "rec_RecTypeID in ($rtIDs) order by rec_Title");
+	$recs = mysqli__select_assoc($mysqli, "Records", "rec_ID", "rec_Title", "rec_RecTypeID in ($rtIDs) order by rec_Title");
 	if (!count($recs)) {
 		return $emptyLookup;
 	}

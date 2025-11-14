@@ -52,7 +52,7 @@ require_once(dirname(__FILE__)."/../../common/php/dbMySqlWrappers.php");
 require_once(dirname(__FILE__)."/../../common/connect/applyCredentials.php");
 if (! is_logged_in()) return;
 
-mysql_connection_overwrite(DATABASE);
+$mysqli = mysqli_connection_overwrite(DATABASE);
 
 header("Content-type: text/javascript");
 
@@ -79,17 +79,17 @@ if ($rec_id  &&  $actions) {
 	}
 
 	if (count($deletions) > 0){
-		mysql_query("delete from usrRecTagLinks where rtl_RecID=$rec_id and rtl_TagID in (" . join($deletions,",") . ")");
+		$mysqli->query("delete from usrRecTagLinks where rtl_RecID=$rec_id and rtl_TagID in (" . join($deletions,",") . ")");
 	}
 	if (count($additions) > 0){
 		$query = "insert into usrRecTagLinks (rtl_TagID, rtl_RecID) values (" . join(",$rec_id), (", $additions) . ",$rec_id)";
-		mysql_query($query);
+		$mysqli->query($query);
 	}
 
 
-	$res = mysql_query("select tag_ID from usrRecTagLinks, usrTags where rtl_TagID=tag_ID and rtl_RecID=$rec_id");
+	$res = $mysqli->query("select tag_ID from usrRecTagLinks, usrTags where rtl_TagID=tag_ID and rtl_RecID=$rec_id");
 	$kwd_ids = array();
-	while ($row = mysql_fetch_row($res)) array_push($kwd_ids, $row[0]);
+	while ($row = $res->fetch_row()) array_push($kwd_ids, $row[0]);
 
 	print "(" . json_format($kwd_ids) . ")";
 }

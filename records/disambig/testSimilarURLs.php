@@ -33,9 +33,9 @@ function exist_similar($url) {
 	$noproto_url = preg_replace('!^http://(?:www[.])?([^/]*).*!', '\1', $url);	// URL minus the protocol + possibly www.
 											// and minus slash onwards
 
-	$res = mysql_query('select rec_ID from Records where rec_URL like "http://'.addslashes($noproto_url).'%"
+	$res = $mysqli->query('select rec_ID from Records where rec_URL like "http://'.addslashes($noproto_url).'%"
 	                                                 or rec_URL like "http://www.'.addslashes($noproto_url).'%"');
-	if (mysql_num_rows($res)) return true;
+	if ($res->num_rows) return true;
 	else return false;
 }
 
@@ -46,7 +46,7 @@ function similar_urls($url) {
 
 	$noproto_url = preg_replace('!^http://(?:www[.])?!', '', $url);	// URL minus the protocol + possibly www.
 
-	$new_matches = mysql__select_array('Records', 'rec_ID', 'rec_URL like "http://'.addslashes($noproto_url).'%"
+	$new_matches = mysqli__select_array($mysqli, 'Records', 'rec_ID', 'rec_URL like "http://'.addslashes($noproto_url).'%"
 	                                                     or rec_URL like "http://www.'.addslashes($noproto_url).'%"');
 	if (count($new_matches) >= 10) return $new_matches;
 
@@ -56,7 +56,7 @@ function similar_urls($url) {
 	$qpos = strpos($noproto_url, '?');
 	if ($qpos) {
 		$noproto_url = substr($noproto_url, 0, $qpos);
-		$new_matches = mysql__select_array('Records', 'rec_ID', 'rec_URL like "http://'.addslashes($noproto_url).'%"
+		$new_matches = mysqli__select_array($mysqli, 'Records', 'rec_ID', 'rec_URL like "http://'.addslashes($noproto_url).'%"
 		                                                     or rec_URL like "http://www.'.addslashes($noproto_url).'%"');
 		if (count($new_matches) >= 20) return $matches;
 
@@ -67,7 +67,7 @@ function similar_urls($url) {
 	}
 	while (($spos = strrpos($noproto_url, '/'))) {
 		$noproto_url = substr($noproto_url, 0, $spos);
-		$new_matches = mysql__select_array('Records', 'rec_ID', 'rec_URL like "http://'.addslashes($noproto_url).'/%"
+		$new_matches = mysqli__select_array($mysqli, 'Records', 'rec_ID', 'rec_URL like "http://'.addslashes($noproto_url).'/%"
 		                                                     or rec_URL like "http://www.'.addslashes($noproto_url).'/%"');
 		if (count($new_matches) >= 20) {
 			if ($matches) return $matches;
@@ -85,7 +85,7 @@ function similar_urls($url) {
 	}
 
 	/* try it without the trailing slash */
-	$new_matches = mysql__select_array('Records', 'rec_ID', 'rec_URL like "http://'.addslashes($noproto_url).'%"
+	$new_matches = mysqli__select_array($mysqli, 'Records', 'rec_ID', 'rec_URL like "http://'.addslashes($noproto_url).'%"
 	                                                     or rec_URL like "http://www.'.addslashes($noproto_url).'%"');
 	if (count($new_matches) >= 20) return $matches;
 
@@ -103,14 +103,14 @@ function site_urls($url) {
 		// just the host name
 /*****DEBUG****///error_log($sitename);
 
-	$res = mysql_query('select rec_URL, rec_ID, rec_Title from Records where
+	$res = $mysqli->query('select rec_URL, rec_ID, rec_Title from Records where
 	                           rec_URL like "http://'.addslashes($sitename).'/%"
 	                        or rec_URL like "http://www.'.addslashes($sitename).'/%"
 	                        or rec_URL = "http://'.addslashes($sitename).'"
 	                        or rec_URL = "http://www.'.addslashes($sitename).'"
 	                           order by rec_URL');
 	$matches = array();
-	while ($row = mysql_fetch_row($res))
+	while ($row = $res->fetch_row())
 		$matches[$row[0]] = array($row[1], $row[2]);
 	return $matches;
 }

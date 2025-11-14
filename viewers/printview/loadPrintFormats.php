@@ -86,13 +86,13 @@
 		foreach($arr_files as $filename){
 			//if file is a stylesheet file
 			$filePath = DIR."/".$filename;
-			if (eregi ('.xsl', $filename)){
+			if (preg_match('/.xsl/', $filename)){
 				//read the required contents of the file.
 				$handle = fopen(DIR."/".$filename, "rb");
 				$contents = fread($handle, filesize($filePath));
 				fclose($handle);
 
-				if (eregi('<xsl:comment>', $contents)){
+				if (preg_match('/<xsl:comment>/i', $contents)){
 
 					$out1 = explode('[output]', $contents);
 					$out = explode ('[/output]', $out1[1]);

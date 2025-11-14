@@ -134,7 +134,7 @@
 	}
 
 	if($ids!=""){
-		mysql_connection_overwrite(DATABASE);
+		$mysqli = mysqli_connection_overwrite(DATABASE);
 
 		$query = "select ulf_ID, ulf_OrigFileName, ulf_Added, ulf_MimeExt, ulf_FileSizeKB, ulf_FilePath, ulf_FileName from recUploadedFiles where ulf_ID in ".$ids.")";
 
@@ -142,8 +142,8 @@
 
 		$files_arr = array();
 
-		$res = mysql_query($query);
-		while ($row = mysql_fetch_row($res)) { //mysql_fetch_assoc
+		$res = $mysqli->query($query);
+		while ($row = $res->fetch_row()) { //mysqli_fetch_assoc
 			/*****DEBUG****///DEBUG error_log(">>>> ".HEURIST_UPLOAD_DIR."/".$row[0]);
 
 			if ($row[6]) {

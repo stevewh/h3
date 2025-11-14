@@ -48,12 +48,12 @@ require_once(dirname(__FILE__).'/../../common/php/dbMySqlWrappers.php');
 define('dirname(__FILE__)', dirname(__FILE__));	// this line can be removed on new versions of PHP as dirname(__FILE__) is a magic constant
 require_once(dirname(__FILE__)."/../../common/php/dbMySqlWrappers.php");
 
-/* mysql_connection_select("heuristdb");	//FIXME:  need to use a configured value */
-mysql_connection_select(DATABASE);
+/* $mysqli = mysqli_connection_select("heuristdb");	//FIXME:  need to use a configured value */
+$mysqli = mysqli_connection_select(DATABASE);
 
 $woots = array();
-$res = mysql_query("select * from woots");// where woot_Title='record:96990'");
-while ($row = mysql_fetch_assoc($res)) {
+$res = $mysqli->query("select * from woots");// where woot_Title='record:96990'");
+while ($row = $res->fetch_assoc()) {
 	array_push($woots, $row);
 }
 ?>
@@ -79,8 +79,8 @@ foreach ($woots as $woot) {
 
 	//print "\n\nchecking woot \"" . $woot["woot_Title"] . "\"... ";
 
-	$res = mysql_query("select * from woot_Chunks where chunk_WootID = " . $woot["woot_ID"] . " and chunk_IsLatest and not chunk_Deleted");
-	while ($row = mysql_fetch_assoc($res)) {
+	$res = $mysqli->query("select * from woot_Chunks where chunk_WootID = " . $woot["woot_ID"] . " and chunk_IsLatest and not chunk_Deleted");
+	while ($row = $res->fetch_assoc()) {
 		$err = check($row["chunk_Text"]);
 		if ($err) {
 			$valid = false;

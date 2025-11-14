@@ -71,8 +71,8 @@
 
 <?php
 
-mysql_connection_overwrite(DATABASE);
-if(mysql_error()) {
+$mysqli = mysqli_connection_overwrite(DATABASE);
+if($mysqli->error) {
 	die("Sorry, could not connect to the database (mysql_connection_overwrite error)");
 }
 
@@ -117,7 +117,7 @@ if(array_key_exists('mode', $_REQUEST) && $_REQUEST['mode']=='2'){
 	$query1 = "alter table recUploadedFiles ".
 	"ADD ulf_FilePath varchar(1024) default NULL COMMENT 'The path where the uploaded file is stored', ".
 	"ADD ulf_FileName varchar(512) default NULL COMMENT 'The filename for the uploaded file'"; // new fields to hold path and updated filename
-	$res1 = mysql_query($query1);
+	$res1 = $mysqli->query($query1);
 	if (!$res1) {
 		print ("<p><b>Sorry, unable to alter table structure, assume it has been done already ?? </b>");
 	} else {
@@ -125,15 +125,15 @@ if(array_key_exists('mode', $_REQUEST) && $_REQUEST['mode']=='2'){
 	};
 
 	$query1 = "SELECT * from recUploadedFiles"; // get a list of all the files
-	$res1 = mysql_query($query1);
-	if (!$res1 || mysql_num_rows($res1) == 0) {
+	$res1 = $mysqli->query($query1);
+	if (!$res1 || mysqli_num_rows($res1) == 0) {
 		die ("<p><b>Sorry, no uploaded files");
 	}
 	else {
-		print "<p>Number of files to process: ".mysql_num_rows($res1)."<br>";
+		print "<p>Number of files to process: ".mysqli_num_rows($res1)."<br>";
 	}
 
-	while ($row1 = mysql_fetch_assoc($res1)) {
+	while ($row1 = mysqli_fetch_assoc($res1)) {
 		$ulf_ID=$row1['ulf_ID']; // current name of file in the uploaded files directory for thsi database
 		$ulf_OrigFileName=$row1['ulf_OrigFileName']; // the original file name
 
@@ -154,8 +154,8 @@ if(array_key_exists('mode', $_REQUEST) && $_REQUEST['mode']=='2'){
 		} else { // successful copy, rewrite entry in database
 			$queryUpdatePath = "update recUploadedFiles set ulf_FilePath = '$newPath' where ulf_ID = $ulf_ID";
 			$queryUpdateName = "update recUploadedFiles set ulf_FileName = '$newName' where ulf_ID = $ulf_ID";
-			$res2 = mysql_query($queryUpdatePath);
-			$res3 = mysql_query($queryUpdateName);
+			$res2 = $mysqli->query($queryUpdatePath);
+			$res3 = $mysqli->query($queryUpdateName);
 			if (!$res3) { // one check will do, suirely
 				die ("<p><b>Sorry, unable to update the new file name in the recUploaded files table");
 			} // failed sql update

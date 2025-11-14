@@ -46,15 +46,15 @@ define('dirname(__FILE__)', dirname(__FILE__));	// this line can be removed on n
 require_once(dirname(__FILE__).'/../../common/connect/applyCredentials.php');
 require_once(dirname(__FILE__).'/../../common/php/dbMySqlWrappers.php');
 
-mysql_connection_select(DATABASE);
+$mysqli = mysqli_connection_select(DATABASE);
 
 $invalidChars = array(chr(0),chr(1),chr(2),chr(3),chr(4),chr(5),chr(6),chr(7),chr(8),chr(11),chr(12),chr(14),chr(15),chr(16),chr(17),chr(18),chr(19),chr(20),chr(21),chr(22),chr(23),chr(24),chr(25),chr(26),chr(27),chr(28),chr(29),chr(30),chr(31)); // invalid chars that need to be stripped from the data.
 $replacements = array("?","?","?","?","?","?","?","?","?","?","?","?","?","?","?","?","?","?","?","?","?","?","?"," ","?","?","?","?","?");
 $textDetails = array();
-$res = mysql_query("SELECT dtl_ID,dtl_RecID,dtl_Value,dty_Name ".
+$res = $mysqli->query("SELECT dtl_ID,dtl_RecID,dtl_Value,dty_Name ".
 					"FROM recDetails left join defDetailTypes on dtl_DetailTypeID = dty_ID  ".
 					"WHERE dty_Type in ('freetext','blocktext') ORDER BY dtl_RecID");
-while ($row = mysql_fetch_assoc($res)) {
+while ($row = $res->fetch_assoc()) {
 	array_push($textDetails, $row);
 }
 ?>

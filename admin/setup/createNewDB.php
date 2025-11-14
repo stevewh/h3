@@ -192,7 +192,7 @@
 		$isExtended = ($_POST['dbtype']=='1');
 
 		/*verify that database name is unique
-		$list = mysql__getdatabases();
+		$list = mysqli__getdatabases($mysqli);
 		$dbname = $_POST['uname']."_".$_POST['dbname'];
 		if(array_key_exists($dbname, $list)){
 			echo "<h3>Database '".$dbname."' already exists. Choose different name</h3>";
@@ -439,21 +439,21 @@
 				$password = crypt($password, $salt);
 
 			}else{
-				mysql_connection_insert(DATABASE);
-				$query = mysql_query("SELECT ugr_LongName, ugr_FirstName, ugr_LastName, ugr_eMail, ugr_Name, ugr_Password, ugr_Department, ugr_Organisation, ugr_City, ugr_State, ugr_Postcode, ugr_Interests FROM sysUGrps WHERE ugr_ID=".get_user_id());
-				$details = mysql_fetch_row($query);
-				$longName = mysql_escape_string($details[0]);
-				$firstName = mysql_escape_string($details[1]);
-				$lastName = mysql_escape_string($details[2]);
-				$eMail = mysql_escape_string($details[3]);
-				$name = mysql_escape_string($details[4]);
-				$password = mysql_escape_string($details[5]);
-				$department = mysql_escape_string($details[6]);
-				$organisation = mysql_escape_string($details[7]);
-				$city = mysql_escape_string($details[8]);
-				$state = mysql_escape_string($details[9]);
-				$postcode = mysql_escape_string($details[10]);
-				$interests = mysql_escape_string($details[11]);
+				$mysqli = mysqli_connection_insert(DATABASE);
+				$res = $mysqli->query("SELECT ugr_LongName, ugr_FirstName, ugr_LastName, ugr_eMail, ugr_Name, ugr_Password, ugr_Department, ugr_Organisation, ugr_City, ugr_State, ugr_Postcode, ugr_Interests FROM sysUGrps WHERE ugr_ID=".get_user_id());
+				$details = $res->fetch_row();
+				$longName = $mysqli->real_escape_string($details[0]);
+				$firstName = $mysqli->real_escape_string($details[1]);
+				$lastName = $mysqli->real_escape_string($details[2]);
+				$eMail = $mysqli->real_escape_string($details[3]);
+				$name = $mysqli->real_escape_string($details[4]);
+				$password = $mysqli->real_escape_string($details[5]);
+				$department = $mysqli->real_escape_string($details[6]);
+				$organisation = $mysqli->real_escape_string($details[7]);
+				$city = $mysqli->real_escape_string($details[8]);
+				$state = $mysqli->real_escape_string($details[9]);
+				$postcode = $mysqli->real_escape_string($details[10]);
+				$interests = $mysqli->real_escape_string($details[11]);
 			}
 
 			//	 todo: code location of upload directory into sysIdentification, remove from edit form (should not be changed)
@@ -517,20 +517,20 @@
 			}
 
 			// Prepare to write to the newly created database
-			mysql_connection_insert($newname);
+			$mysqli = mysqli_connection_insert($newname);
 
 			// Update file locations
 			$query='update sysIdentification
 			    set sys_hmlOutputDirectory = "'.$uploadPath.'/hml-output",
 			    sys_htmlOutputDirectory = "'.$uploadPath.'/html-output"';
-  			mysql_query($query);
-			if (mysql_error()) {
+  			$mysqli->query($query);
+			if ($mysqli->error) {
 				echo "<h3>Warning: </h3> Unable to update sysIdentification table - please go to DBAdmin > Databases > Properties &".
-				" Advanced Properties, and check the path to the upload, hml and html directories. (".mysql_error().")";
+				" Advanced Properties, and check the path to the upload, hml and html directories. (".$mysqli->error.")";
 			}
 
 			// Make the current user the owner and admin of the new database
-			mysql_query('UPDATE sysUGrps SET ugr_LongName="'.$longName.'", ugr_FirstName="'.$firstName.'",
+			$mysqli->query('UPDATE sysUGrps SET ugr_LongName="'.$longName.'", ugr_FirstName="'.$firstName.'",
 			ugr_LastName="'.$lastName.'", ugr_eMail="'.$eMail.'", ugr_Name="'.$name.'",
 			ugr_Password="'.$password.'", ugr_Department="'.$department.'", ugr_Organisation="'.$organisation.'",
 			ugr_City="'.$city.'", ugr_State="'.$state.'", ugr_Postcode="'.$postcode.'",

@@ -58,9 +58,9 @@ $userID = intval($_REQUEST["u"]);
 
 if (! $userID) return "";
 
-mysql_connection_select(DATABASE);
+$mysqli = mysqli_connection_select(DATABASE);
 // get a list of tags linked to any of the 'blog entry' records for this user
-$res = mysql_query("select rec_ID, group_concat(tag_Text)
+$res = $mysqli->query("select rec_ID, group_concat(tag_Text)
 					  from Records, usrRecTagLinks, usrTags
 					 where rec_RecTypeID = ".(defined('RT_BLOG_ENTRY')?RT_BLOG_ENTRY:0).
 					 " and rtl_RecID = rec_ID
@@ -69,7 +69,7 @@ $res = mysql_query("select rec_ID, group_concat(tag_Text)
 					group by rec_ID");
 
 $tags = array();
-while ($row = mysql_fetch_array($res)) {
+while ($row = $res->fetch_array()) {
 	$tags[$row[0]] = explode(",", $row[1]);
 }
 

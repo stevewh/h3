@@ -61,7 +61,7 @@
 
 $rps_ID = (array_key_exists('id',$_REQUEST)) ? $_REQUEST['id'] :0;
 
-mysql_connection_select(DATABASE);
+$mysqli = mysqli_connection_select(DATABASE);
 
 if(array_key_exists('publish',$_REQUEST)){
 	$publish = intval($_REQUEST['publish']);
@@ -72,18 +72,18 @@ $format = (array_key_exists('mode',$_REQUEST) && $_REQUEST['mode']=="js") ?"js":
 
 if($rps_ID==0){
 	//regenerate all reports
-	$res = mysql_query('select * from usrReportSchedule');
-	while ($row = mysql_fetch_assoc($res)) {
+	$res = $mysqli->query('select * from usrReportSchedule');
+	while ($row = $res->fetch_assoc()) {
 		doReport($row);
 	}
 
 }else{
 	//load one
-	$res = mysql_query("select * from usrReportSchedule where rps_ID=".$rps_ID);
-	if(mysql_error()){
-		error_log("ERROR=".mysql_error());
+	$res = $mysqli->query("select * from usrReportSchedule where rps_ID=".$rps_ID);
+	if($mysqli->error){
+		error_log("ERROR=".$mysqli->error);
 	}else{
-		$row = mysql_fetch_assoc($res);
+		$row = $res->fetch_assoc();
 		if($row){
 			doReport($row);
 		}

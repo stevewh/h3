@@ -61,18 +61,18 @@
 	}
 */
 
-	mysql_connection_insert(DATABASE); // Connect to the current database (the one being registered)
+	$mysqli = mysqli_connection_insert(DATABASE); // Connect to the current database (the one being registered)
 
 	// Look up current user email from sysUGrps table in the current database (the one being registered)
 	// Registering user must be a real user so that there is an email address and password to attach to the registration record.
 	// which rules out using the Database Managers group. Since other users will be unable to login and edit this record, it's better
 	// to only allow the creator (user #2) to register the db, to avoid problems down the track knowing who registered it.
-	$res = mysql_query("select ugr_eMail, ugr_Password,ugr_Name,ugr_FirstName,ugr_LastName from sysUGrps where `ugr_ID`='$user_id'");
-	if(mysql_num_rows($res) == 0) {
+	$res = $mysqli->query("select ugr_eMail, ugr_Password,ugr_Name,ugr_FirstName,ugr_LastName from sysUGrps where `ugr_ID`='$user_id'");
+	if($res->num_rows == 0) {
 		$sError = "Warning<br/><br/>Unable to read your email address from user table. Note: not currently supporting deferred users database";
 	}else{
 
-			$row = mysql_fetch_row($res);
+			$row = $res->fetch_row();
 			$usrEmail = $row[0]; // Get the current user's email address from UGrps table
 			$usrPassword = $row[1];
 			$usrName = $row[2];
@@ -118,7 +118,7 @@
 
 			<?php
 
-				$res = mysql_query("select sys_dbRegisteredID, sys_dbName, sys_dbDescription, sys_OwnerGroupID from sysIdentification where `sys_ID`='1'");
+				$res = $mysqli->query("select sys_dbRegisteredID, sys_dbName, sys_dbDescription, sys_OwnerGroupID from sysIdentification where `sys_ID`='1'");
 
 				// Start by hiding the registration/title edit form
 				echo '<script type="text/javascript">';
@@ -132,7 +132,7 @@
 					return;
 				}
 
-				$row = mysql_fetch_row($res); // Get system information for current database
+				$row = $res->fetch_row(); // Get system information for current database
 				$dbID = $row[0];
 				$dbName = $row[1];
 				$dbDescription = $row[2];
@@ -190,10 +190,10 @@
 						echo $msg . "<br />";
 						return;
 					} else if($dbID == -1) { // old title update function, should no longer be called
-						$res = mysql_query("update sysIdentification set `sys_dbDescription`='$dbDescription' where `sys_ID`='1'");
+						$res = $mysqli->query("update sysIdentification set `sys_dbDescription`='$dbDescription' where `sys_ID`='1'");
 						echo "<div class='input-row'><div class='input-header-cell'>Database description (updated):</div><div class='input-cell'>". $dbDescription."</div></div>";
 					} else { // We have got a new dbID, set the assigned dbID in sysIdentification
-						$res = mysql_query("update sysIdentification set `sys_dbRegisteredID`='$dbID', `sys_dbDescription`='$dbDescription' where `sys_ID`='1'");
+						$res = $mysqli->query("update sysIdentification set `sys_dbRegisteredID`='$dbID', `sys_dbDescription`='$dbDescription' where `sys_ID`='1'");
 						if($res) {
 							echo "<div class='input-row'><div class='input-header-cell'>Database:</div><div class='input-cell'>".DATABASE."</div></div>";
 							echo "<div class='input-row'><div class='input-header-cell'>Registration successful, database ID allocated is</div><div class='input-cell'>" . $dbID . "</div></div>";

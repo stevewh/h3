@@ -37,7 +37,7 @@
 
   if (! is_logged_in()) return;
 
-  mysql_connection_select(DATABASE);
+  $mysqli = mysqli_connection_select(DATABASE);
 
   $addRecDefaults = @$_SESSION[HEURIST_SESSION_DB_PREFIX.'heurist']["display-preferences"]["addRecordDefaults"];
   if ($addRecDefaults) {
@@ -291,7 +291,7 @@
         <div class="input-header-cell">Record type:</div>
         <div class="input-cell">
           <?php
-            $res = mysql_query("select distinct rty_ID,rty_Name,rty_Description, rtg_Name
+            $res = $mysqli->query("select distinct rty_ID,rty_Name,rty_Description, rtg_Name
               from defRecTypes left join defRecTypeGroups on rtg_ID = rty_RecTypeGroupID
             where rty_ShowInLists = 1 order by rtg_Order, rtg_Name, rty_OrderInGroup, rty_Name");
           ?>
@@ -299,7 +299,7 @@
             <option selected disabled value="0">(select record type)</option>
             <?php
               $section = "";
-              while ($row = mysql_fetch_assoc($res)) {
+              while ($row = $res->fetch_assoc()) {
                 if ($row["rtg_Name"] != $section) {
                   if ($section) print "</optgroup>\n";
                   $section = $row["rtg_Name"];
@@ -335,9 +335,9 @@
 
                 <?php
                   print "      <option value=".get_user_id().(@$_REQUEST['wg_id']==get_user_id() ? " selected" : "").">".htmlspecialchars(get_user_name())." </option>\n";
-                  $res = mysql_query('select '.GROUPS_ID_FIELD.', '.GROUPS_NAME_FIELD.' from '.USERS_DATABASE.'.'.USER_GROUPS_TABLE.' left join '.USERS_DATABASE.'.'.GROUPS_TABLE.' on '.GROUPS_ID_FIELD.'='.USER_GROUPS_GROUP_ID_FIELD.' where '.USER_GROUPS_USER_ID_FIELD.'='.get_user_id().' and '.GROUPS_TYPE_FIELD.'!="Usergroup" order by '.GROUPS_NAME_FIELD);
+                  $res = $mysqli->query('select '.GROUPS_ID_FIELD.', '.GROUPS_NAME_FIELD.' from '.USERS_DATABASE.'.'.USER_GROUPS_TABLE.' left join '.USERS_DATABASE.'.'.GROUPS_TABLE.' on '.GROUPS_ID_FIELD.'='.USER_GROUPS_GROUP_ID_FIELD.' where '.USER_GROUPS_USER_ID_FIELD.'='.get_user_id().' and '.GROUPS_TYPE_FIELD.'!="Usergroup" order by '.GROUPS_NAME_FIELD);
                   $wgs = array();
-                  while ($row = mysql_fetch_row($res)) {
+                  while ($row = $res->fetch_row()) {
                     print "      <option value=".$row[0].(@$_REQUEST['wg_id']==$row[0] ? " selected" : "").">".htmlspecialchars($row[1])." </option>\n";
                     array_push($wgs, $row[0]);
                   }

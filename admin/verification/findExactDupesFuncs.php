@@ -52,15 +52,15 @@ require_once(dirname(__FILE__).'/../../common/php/dbMySqlWrappers.php');
 if (! is_admin()) return;
 
 
-mysql_connection_overwrite(DATABASE);
+$mysqli = mysqli_connection_overwrite(DATABASE);
 
 
 /* Necessary but insufficient condition is for the rec_Hash to be the same */
 
-$bibIDs = mysql__select_array("Records", "group_concat(rec_ID), count(rec_ID) C", "1 group by rec_Hash having C > 1");
-print mysql_error();
+$bibIDs = mysqli__select_array($mysqli, "Records", "group_concat(rec_ID), count(rec_ID) C", "1 group by rec_Hash having C > 1");
+print $mysqli->error;
 
-$res = mysql_query("select A.rec_Hash, A.rec_ID, B.rec_ID, count(BB.dtl_ID) as C
+$res = $mysqli->query("select A.rec_Hash, A.rec_ID, B.rec_ID, count(BB.dtl_ID) as C
                       from Records A left join recDetails AA on AA.dtl_RecID = A.rec_ID,
                            Records B left join recDetails BB on BB.dtl_RecID = B.rec_ID
                      where AA.dtl_DetailTypeID = BB.dtl_DetailTypeID and AA.dtl_Value = BB.dtl_Value and A.rec_Hash = B.rec_Hash
@@ -73,7 +73,7 @@ $res = mysql_query("select A.rec_Hash, A.rec_ID, B.rec_ID, count(BB.dtl_ID) as C
 $prev_hhash = NULL;
 $prev_count = 0;
 $bibs = array();
-print mysql_error() . "\n";
+print $mysqli->error . "\n";
 
 ?>
 <style>
@@ -82,10 +82,10 @@ td:first-child { text-align: right; }
 </style>
 <?php
 
-mysql_query("start transaction");
+$mysqli->query("start transaction");
 
 print "<table><tr><th>master bib ID</th><th>#records</th><th>#references</th><th>#bkmk</th><th>#kwd</th><th>#reminders</th><th>errors</th></tr>";
-while ($bib = mysql_fetch_row($res)) {
+while ($bib = $res->fetch_row()) {
 	if ($prev_hhash === $bib[0]) {
 		// same hhash and count as previous entry; start grouping
 		if ($prev_count === $bib[3]) $bibs[$bib[2]] = $bib[2];
@@ -106,7 +106,7 @@ if (count($bibs) > 1) {
 }
 print "</table>";
 
-mysql_query("commit");
+$mysqli->query("commit");
 
 
 function do_fix_dupe($bibIDs) {
@@ -116,7 +116,7 @@ function do_fix_dupe($bibIDs) {
 	 * and retrofit all pointers to the other records to point at that one.
 	 */
 	$bibIDlist = join(",", $bibIDs);
-	$mostPopular = mysql_fetch_row(mysql_query("select rec_ID from Records where rec_ID in ($bibIDlist) order by rec_Popularity desc limit 1"));
+	$mostPopular = mysqli_fetch_row($mysqli->query("select rec_ID from Records where rec_ID in ($bibIDlist) order by rec_Popularity desc limit 1"));
 		$mostPopular = $mostPopular[0];
 
 	// remove mostPopular from the bibID list
@@ -124,25 +124,25 @@ function do_fix_dupe($bibIDs) {
 	$masterBibID = $mostPopular;
 
 		$errors = "";
-	mysql_query("update Records set rec_Modified=now(), rec_replaced_by_rec_id=$masterBibID where rec_ID in ($bibIDlist)");
-        $bibCount = mysql_affected_rows();
-		$errors .= mysql_error() . ' ';
+	$mysqli->query("update Records set rec_Modified=now(), rec_replaced_by_rec_id=$masterBibID where rec_ID in ($bibIDlist)");
+        $bibCount = $mysqli->affected_rows;
+		$errors .= $mysqli->error . ' ';
 
-        mysql_query("update recDetails left join defDetailTypes on dty_ID=dtl_DetailTypeID
+        $mysqli->query("update recDetails left join defDetailTypes on dty_ID=dtl_DetailTypeID
                                              set dtl_Value=$masterBibID
                                            where dtl_Value in ($bibIDlist) and dty_Type='resource'");
-	$bdCount = mysql_affected_rows();
-		$errors .= mysql_error() . ' ';
+	$bdCount = $mysqli->affected_rows;
+		$errors .= $mysqli->error . ' ';
 
-        mysql_query("update ignore usrBookmarks set bkm_recID=$masterBibID where bkm_recID in ($bibIDlist)");
-	$bkmkCount = mysql_affected_rows();
-		$errors .= mysql_error() . ' ';
-        mysql_query("update ignore usrRecTagLinks set rtl_RecID=$masterBibID where rtl_RecID in ($bibIDlist)");
-	$kwiCount = mysql_affected_rows();
-		$errors .= mysql_error() . ' ';
-        mysql_query("update ignore usrReminders set rem_RecID=$masterBibID where rem_RecID in ($bibIDlist)");
-	$remCount = mysql_affected_rows();
-		$errors .= mysql_error() . ' ';
+        $mysqli->query("update ignore usrBookmarks set bkm_recID=$masterBibID where bkm_recID in ($bibIDlist)");
+	$bkmkCount = $mysqli->affected_rows;
+		$errors .= $mysqli->error . ' ';
+        $mysqli->query("update ignore usrRecTagLinks set rtl_RecID=$masterBibID where rtl_RecID in ($bibIDlist)");
+	$kwiCount = $mysqli->affected_rows;
+		$errors .= $mysqli->error . ' ';
+        $mysqli->query("update ignore usrReminders set rem_RecID=$masterBibID where rem_RecID in ($bibIDlist)");
+	$remCount = $mysqli->affected_rows;
+		$errors .= $mysqli->error . ' ';
 
 	print "<!-- $bibIDlist -->\n";
 	print "<tr><td><b>$masterBibID</b></td><td>$bibCount</td><td>$bdCount</td><td>$bkmkCount</td><td>$kwiCount</td><td>$remCount</td><td>$errors</td></tr>\n";

@@ -57,11 +57,11 @@
 	$recsGivenNames = array();
 	$dupeDifferences = array();
 
-	mysql_connection_insert(DATABASE);
+	$mysqli = mysqli_connection_insert(DATABASE);
 
 
-	$res = mysql_query('select snd_SimRecsList from recSimilarButNotDupes');
-	while ($row = mysql_fetch_assoc($res)){
+	$res = $mysqli->query('select snd_SimRecsList from recSimilarButNotDupes');
+	while ($row = $res->fetch_assoc()){
 		array_push($dupeDifferences,$row['snd_SimRecsList']);
 	}
 
@@ -69,15 +69,15 @@
 		foreach($_REQUEST['dupeDiffHash'] as $diffHash){
 			if (! in_array($diffHash,$dupeDifferences)){
 				array_push($dupeDifferences,$diffHash);
-				$res = mysql_query('insert into recSimilarButNotDupes values("'.$diffHash.'")');
+				$res = $mysqli->query('insert into recSimilarButNotDupes values("'.$diffHash.'")');
 			}
 		}
 	}
 
-	mysql_connection_select(DATABASE);
-	//mysql_connection_select("`heuristdb-nyirti`");   //for debug
+	$mysqli = mysqli_connection_select(DATABASE);
+	//$mysqli = mysqli_connection_select("`heuristdb-nyirti`");   //for debug
 	//FIXME  allow user to select a single record type
-	//$res = mysql_query('select rec_ID, rec_RecTypeID, rec_Title, dtl_Value from Records left join recDetails on dtl_RecID=rec_ID and dtl_DetailTypeID=160 where rec_RecTypeID != 52 and rec_RecTypeID != 55 and not rec_FlagTemporary order by rec_RecTypeID desc');
+	//$res = $mysqli->query('select rec_ID, rec_RecTypeID, rec_Title, dtl_Value from Records left join recDetails on dtl_RecID=rec_ID and dtl_DetailTypeID=160 where rec_RecTypeID != 52 and rec_RecTypeID != 55 and not rec_FlagTemporary order by rec_RecTypeID desc');
 
 	$crosstype = false;
 	$personMatch = false;
@@ -92,19 +92,19 @@
 	}
 	if (@$_REQUEST['personmatch']){
 		$personMatch = true;
-		$res = mysql_query("select rec_ID, rec_RecTypeID, rec_Title, dtl_Value from Records left join recDetails on dtl_RecID=rec_ID and dtl_DetailTypeID=$surnameDT where rec_RecTypeID = $perRT and not rec_FlagTemporary order by rec_ID desc");    //Given Name
-		while ($row = mysql_fetch_assoc($res)) {
+		$res = $mysqli->query("select rec_ID, rec_RecTypeID, rec_Title, dtl_Value from Records left join recDetails on dtl_RecID=rec_ID and dtl_DetailTypeID=$surnameDT where rec_RecTypeID = $perRT and not rec_FlagTemporary order by rec_ID desc");    //Given Name
+		while ($row = $res->fetch_assoc()) {
 			$recsGivenNames[$row['rec_ID']] = $row['dtl_Value'];
 		}
-		$res = mysql_query("select rec_ID, rec_RecTypeID, rec_Title, dtl_Value from Records left join recDetails on dtl_RecID=rec_ID and dtl_DetailTypeID=$titleDT where rec_RecTypeID = $perRT and not rec_FlagTemporary order by dtl_Value asc");    //Family Name
+		$res = $mysqli->query("select rec_ID, rec_RecTypeID, rec_Title, dtl_Value from Records left join recDetails on dtl_RecID=rec_ID and dtl_DetailTypeID=$titleDT where rec_RecTypeID = $perRT and not rec_FlagTemporary order by dtl_Value asc");    //Family Name
 
 	} else{
-		$res = mysql_query("select rec_ID, rec_RecTypeID, rec_Title, dtl_Value from Records left join recDetails on dtl_RecID=rec_ID and dtl_DetailTypeID=$titleDT where rec_RecTypeID != $relRT and not rec_FlagTemporary order by rec_RecTypeID desc");
+		$res = $mysqli->query("select rec_ID, rec_RecTypeID, rec_Title, dtl_Value from Records left join recDetails on dtl_RecID=rec_ID and dtl_DetailTypeID=$titleDT where rec_RecTypeID != $relRT and not rec_FlagTemporary order by rec_RecTypeID desc");
 	}
 
-	$rectypes = mysql__select_assoc('defRecTypes', 'rty_ID', 'rty_Name', '1');
+	$rectypes = mysqli__select_assoc($mysqli, 'defRecTypes', 'rty_ID', 'rty_Name', '1');
 
-	while ($row = mysql_fetch_assoc($res)) {
+	while ($row = $res->fetch_assoc()) {
 		if ($personMatch){
 			if($row['dtl_Value']) $val = $row['dtl_Value'] . ($recsGivenNames[$row['rec_ID']]? " ". $recsGivenNames[$row['rec_ID']]: "" );
 		}else {
@@ -213,8 +213,8 @@
 						print '</div>';
 						print '<ul>';
 						foreach ($bibs[$key] as $rec_id => $vals) {
-							$res = mysql_query('select rec_URL from Records where rec_ID = ' . $rec_id);
-							$row = mysql_fetch_assoc($res);
+							$res = $mysqli->query('select rec_URL from Records where rec_ID = ' . $rec_id);
+							$row = $res->fetch_assoc();
 							print '<li>'.($crosstype ? $vals['type'].'&nbsp;&nbsp;' : '').
 							'<a target="_new" href="'.HEURIST_BASE_URL.'records/view/viewRecord.php?db='.HEURIST_DBNAME.'&saneopen=1&recID='.$rec_id.'">'.$rec_id.': '.htmlspecialchars($vals['val']).'</a>';
 							if ($row['rec_URL'])

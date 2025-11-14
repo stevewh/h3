@@ -63,16 +63,16 @@ if($label && $ssid){
 	jsonError("missing argument (id or label) for saved search deletion");
 }
 
-mysql_connection_overwrite(DATABASE);
+$mysqli = mysqli_connection_overwrite(DATABASE);
 
 if($ssid>0){
-	mysql_query("delete from usrSavedSearches where svs_ID=$ssid");
+	$mysqli->query("delete from usrSavedSearches where svs_ID=$ssid");
 }else if ($wg > 0) { //OLD WAY
-	mysql_query("delete from usrSavedSearches where svs_Name='$label' and svs_UGrpID=$wg");
+	$mysqli->query("delete from usrSavedSearches where svs_Name='$label' and svs_UGrpID=$wg");
 } else {
-	mysql_query("delete from usrSavedSearches where svs_Name='$label' and svs_UGrpID=".get_user_id());
+	$mysqli->query("delete from usrSavedSearches where svs_Name='$label' and svs_UGrpID=".get_user_id());
 }
 
-print "{\"deleted\":" . (mysql_affected_rows() > 0 ? "true" : "false") . "}";
+print "{\"deleted\":" . ($mysqli->affected_rows > 0 ? "true" : "false") . "}";
 
 ?>

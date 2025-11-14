@@ -48,8 +48,8 @@
     }
 
 
-	mysql_connection_overwrite(DATABASE);
-	if(mysql_error()) {
+	$mysqli = mysqli_connection_overwrite(DATABASE);
+	if($mysqli->error) {
 		die("<h2>Error</h2>Sorry, could not connect to the database (mysql_connection_overwrite error)");
 	}
 ?>
@@ -170,7 +170,7 @@
 			return false;
 		} // rejecting illegal characters in db name
 
-		$list = mysql__getdatabases();
+		$list = mysqli__getdatabases($mysqli);
 		if(in_array($targetdbname, $list)){
 			echo "<h3>Error: database '".$targetdbname."' already exists. Choose different name</h3>";
 			return false;
@@ -224,9 +224,9 @@
 
 		// RESET register db ID
 		$query1 = "update $newname.sysIdentification set sys_dbRegisteredID=0 where sys_ID=1";
-		$res1 = mysql_query($query1);
-		if (mysql_error())  { //(mysql_num_rows($res1) == 0)
-			print "<p><h4>Warning</h4><b>Unable to reset sys_dbRegisteredID in sysIdentification table. (".mysql_error().")<br> Please reset the registration ID manually</b></p>";
+		$res1 = $mysqli->query($query1);
+		if ($mysqli->error)  { //(mysqli_num_rows($res1) == 0)
+			print "<p><h4>Warning</h4><b>Unable to reset sys_dbRegisteredID in sysIdentification table. (".$mysqli->error.")<br> Please reset the registration ID manually</b></p>";
 		}
 
 		/* Actually not a bad idea to leave the file in the directory

@@ -52,7 +52,7 @@ require_once(dirname(__FILE__).'/../../common/php/dbMySqlWrappers.php');
 header('Content-type: text/javascript');
 
 
-mysql_connection_select(DATABASE);
+$mysqli = mysqli_connection_select(DATABASE);
 
 
 /*****DEBUG****///error_log(">>>>>>>>>>>>>>> ".$_SERVER['QUERY_STRING']);
@@ -106,8 +106,8 @@ if (is_logged_in() || $metod=="getuser") {
 
 /*****DEBUG****///error_log(">>>>>>>>>>>>>>> QUERY =".$query);
 
-		$res = mysql_query($query);
-		while ($row = mysql_fetch_row($res)) {
+		$res = $mysqli->query($query);
+		while ($row = $res->fetch_row()) {
 			$userGrp['userslist'][$row[1]] = $row;
 		}
 
@@ -158,9 +158,9 @@ if (is_logged_in() || $metod=="getuser") {
 
 /*****DEBUG****///error_log(">>>>>>>>>>>>>>>>>>".$query);
 
-		$res = mysql_query($query);
+		$res = $mysqli->query($query);
 
-		while ($row = mysql_fetch_assoc($res)) {
+		while ($row = $res->fetch_assoc()) {
 				$workgroups[$row["grpID"]] = array(
 							"name" => $row["grpName"],
 							"longname" => $row["grpLongName"],
@@ -178,7 +178,7 @@ if (is_logged_in() || $metod=="getuser") {
 
 		//load list of admins for each group
 
-		$res = mysql_query("select gl1.ugl_GroupID, concat(b.ugr_FirstName,' ',b.ugr_LastName) as name, b.ugr_eMail, b.ugr_ID
+		$res = $mysqli->query("select gl1.ugl_GroupID, concat(b.ugr_FirstName,' ',b.ugr_LastName) as name, b.ugr_eMail, b.ugr_ID
 						  from ".USERS_DATABASE.".sysUGrps grp
 					 left join ".USERS_DATABASE.".sysUsrGrpLinks gl1 on gl1.ugl_GroupID = grp.ugr_ID
 					 left join ".USERS_DATABASE.".sysUGrps b on b.ugr_ID = gl1.ugl_UserID $filter1
@@ -188,7 +188,7 @@ if (is_logged_in() || $metod=="getuser") {
 					  order by gl1.ugl_GroupID, b.ugr_LastName, b.ugr_FirstName");
 
 		$grp_id = 0;
-		while ($row = mysql_fetch_assoc($res)) {
+		while ($row = $res->fetch_assoc()) {
 			if ($grp_id == 0   ||  $grp_id != $row["ugl_GroupID"]) {
 				if ($workgroups[$row["ugl_GroupID"]])
 					$workgroups[$row["ugl_GroupID"]]["admins"] = array();
@@ -239,8 +239,8 @@ if (is_logged_in() || $metod=="getuser") {
 
 /*****DEBUG****///error_log(">>>>>>>>>>>>>>> QUERY =".$query);
 		if($query){
-			$res = mysql_query($query);
-			while ($row = mysql_fetch_row($res)) {
+			$res = $mysqli->query($query);
+			while ($row = $res->fetch_row()) {
 				$userGrp['groups'][$row[0]] = $row;
 
 				if($sAdminOnly){
@@ -251,11 +251,11 @@ if (is_logged_in() || $metod=="getuser") {
 							".sysUsrGrpLinks g, ".USERS_DATABASE.".sysUGrps u where u.ugr_ID=g.ugl_UserID and g.ugl_GroupID=".$row[0];
 				}
 
-				$res2 = mysql_query($query);
+				$res2 = $mysqli->query($query);
 
 				$admins = array();
 				$members = array();
-				while ($row2 = mysql_fetch_assoc($res2)) {
+				while ($row2 = mysqli_fetch_assoc($res2)) {
 					if($sAdminOnly){
 						array_push($admins, $row2["ugl_UserID"]);
 					}else{
@@ -316,15 +316,15 @@ if (is_logged_in() || $metod=="getuser") {
 
 /*****DEBUG****///error_log(">>>>>>>>>>>>>>> QUERY =".$query);
 		if($query){
-			$res = mysql_query($query);
-			while ($row = mysql_fetch_row($res)) {
+			$res = $mysqli->query($query);
+			while ($row = $res->fetch_row()) {
 				$userGrp['users'][$row[0]] = $row;
 			}
 		}
 
 		if(!is_logged_in()){
-			$query = mysql_query("SELECT ugr_FirstName, ugr_LastName, ugr_eMail FROM sysUGrps WHERE ugr_ID=2");
-			$details = mysql_fetch_row($query);
+			$query = $mysqli->query("SELECT ugr_FirstName, ugr_LastName, ugr_eMail FROM sysUGrps WHERE ugr_ID=2");
+			$details = mysqli_fetch_row($query);
 			$fullName = $details[0] . " " . $details[1];
 			$eMail = $details[2];
 			$userGrp['adminName'] = $fullName;

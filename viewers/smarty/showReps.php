@@ -92,7 +92,7 @@ function executeSmartyTemplate($params){
 
 	global $smarty, $outputfile, $isJSout, $rtStructs, $dtStructs, $dtTerms, $gparams;
 
-	mysql_connection_overwrite(DATABASE); //AO: mysql_connection_select - does not work since there is no access to stored procedures(getTemporalDateString) Steve uses in some query
+	$mysqli = mysqli_connection_overwrite(DATABASE); //AO: $mysqli = mysqli_connection_select - does not work since there is no access to stored procedures(getTemporalDateString) Steve uses in some query
 											//TODO SAW  grant ROuser EXECUTE on getTemporalDate and any other readonly procs
 
 	//load definitions (USE CACHE)
@@ -447,26 +447,26 @@ function getRecordForSmarty($rec, $recursion_depth, $order){
 
 			$dtValue = array();
 
-			$from_res = mysql_query('select recDetails.*
+			$from_res = $mysqli->query('select recDetails.*
 	                           from recDetails
 	                      left join Records on rec_ID = dtl_RecID
 	                          where dtl_DetailTypeID = '.$relSrcDT.
 	                           ' and rec_RecTypeID = '.$relRT.
 	                           ' and dtl_Value = ' . $record["recID"]);        //primary resource
-			$to_res = mysql_query('select recDetails.*
+			$to_res = $mysqli->query('select recDetails.*
 	                         from recDetails
 	                    left join Records on rec_ID = dtl_RecID
 	                        where dtl_DetailTypeID = '.$relTrgDT.
 	                         ' and rec_RecTypeID = '.$relRT.
 	                         ' and dtl_Value = ' . $record["recID"]);          //linked resource
 
-			if (mysql_num_rows($from_res) > 0  ||  mysql_num_rows($to_res) > 0) {
+			if (mysqli_num_rows($from_res) > 0  ||  mysqli_num_rows($to_res) > 0) {
 
-					while ($reln = mysql_fetch_assoc($from_res)) {
+					while ($reln = mysqli_fetch_assoc($from_res)) {
 						$bd = fetch_relation_details($reln['dtl_RecID'], true);
 						array_push($dtValue, $bd);
 					}
-					while ($reln = mysql_fetch_assoc($to_res)) {
+					while ($reln = mysqli_fetch_assoc($to_res)) {
 						$bd = fetch_relation_details($reln['dtl_RecID'], false);
 						array_push($dtValue, $bd);
 					}
@@ -485,9 +485,9 @@ function getRecordForSmarty($rec, $recursion_depth, $order){
 				$rel_query = "select r2.dtl_Value as id from recDetails r1 left join recDetails r2 on r1.dtl_RecID = r2.dtl_RecID and r2.dtl_DetailTypeID = $relTrgDT
 where r1.dtl_DetailTypeID = $relSrcDT and r1.dtl_Value = ".$record["recID"];
 
-				$to_res = mysql_query($rel_query);
+				$to_res = $mysqli->query($rel_query);
 
-				while ($reln = mysql_fetch_assoc($to_res)) {
+				while ($reln = mysqli_fetch_assoc($to_res)) {
 					array_push($dtValue, $reln);
 					$k++;
 				}//while
@@ -499,9 +499,9 @@ where r1.dtl_DetailTypeID = $relSrcDT and r1.dtl_Value = ".$record["recID"];
 				$rel_query = "select r2.dtl_Value as id from recDetails r1 left join recDetails r2 on r1.dtl_RecID = r2.dtl_RecID and r2.dtl_DetailTypeID = $relSrcDT
 where r1.dtl_DetailTypeID = $relTrgDT and r1.dtl_Value = ".$record["recID"];
 
-				$to_res = mysql_query($rel_query);
+				$to_res = $mysqli->query($rel_query);
 
-				while ($reln = mysql_fetch_assoc($to_res)) {
+				while ($reln = mysqli_fetch_assoc($to_res)) {
 					array_push($dtValue, $reln);
 					$k++;
 				}//while

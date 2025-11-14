@@ -93,12 +93,12 @@ You will first be asked to log in with the new password above.
 
 
 if (@$_REQUEST['username']) {
-	mysql_connection_overwrite(USERS_DATABASE);
+	$mysqli = mysqli_connection_overwrite(USERS_DATABASE);
 
 	$username = addslashes($_REQUEST['username']);
 
-	$res = mysql_query('select ugr_ID,ugr_eMail,ugr_FirstName,ugr_Name from sysUGrps usr where usr.ugr_Name = "'.$username.'" or ugr_eMail = "'.$username.'"');
-	$row = mysql_fetch_assoc($res);
+	$res = $mysqli->query('select ugr_ID,ugr_eMail,ugr_FirstName,ugr_Name from sysUGrps usr where usr.ugr_Name = "'.$username.'" or ugr_eMail = "'.$username.'"');
+	$row = $res->fetch_assoc();
 	$username = $row['ugr_Name'];
 	$user_id = $row['ugr_ID'];
 	$email = $row['ugr_eMail'];
@@ -106,7 +106,7 @@ if (@$_REQUEST['username']) {
 
 	if ($user_id) {
 		$new_passwd = generate_passwd();
-		mysql_query('update sysUGrps usr set ugr_Password = "'.hash_it($new_passwd).'" where ugr_ID = ' . $user_id);
+		$mysqli->query('update sysUGrps usr set ugr_Password = "'.hash_it($new_passwd).'" where ugr_ID = ' . $user_id);
 
 		email_user($user_id, $firstname, $email, $new_passwd, $username);
 

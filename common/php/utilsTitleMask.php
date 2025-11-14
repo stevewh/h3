@@ -34,7 +34,7 @@
 
 require_once('Temporal.php');
 
-//mysql_connection_select(DATABASE);
+//$mysqli = mysqli_connection_select(DATABASE);
 
 function check_title_mask($mask, $rt) {
 	return check_title_mask2($mask, $rt, false);
@@ -311,11 +311,11 @@ function _title_mask__get_field_value($field_name, $rec_id, $rt)
 		return $rec_id;
 	}
 	if (!$rt || $field_name=='Modified') { // lookup the rectype of this
-		$resRec = mysql_query("select rec_RecTypeID, rec_Modified  from Records where rec_ID=$rec_id");
-		if (mysql_error()) {
+		$resRec = $mysqli->query("select rec_RecTypeID, rec_Modified  from Records where rec_ID=$rec_id");
+		if ($mysqli->error) {
 			return '';
 		}
-		$rt = mysql_fetch_row($resRec);
+		$rt = mysqli_fetch_row($resRec);
 		if($field_name=='Modified'){
 			return $rt[1];
 		}
@@ -374,13 +374,13 @@ function _title_mask__get_field_value($field_name, $rec_id, $rt)
 				return '"title" field not defined for rectype '.$rt;
 			}else if (!@$rdt_id || strtolower($field_name) === "rectitle") {
 
-				$resRec = mysql_query("select rec_Title from Records where rec_ID=$rec_id");
-				if (mysql_error()) {
+				$resRec = $mysqli->query("select rec_Title from Records where rec_ID=$rec_id");
+				if ($mysqli->error) {
 					return '';
 				}else if (@$rtd_id) {
 					return 'error - reserved word "rectitle" used as field name in rectype '.$rt;
 				}
-				$title = mysql_fetch_row($resRec);
+				$title = mysqli_fetch_row($resRec);
 				$title = $title[0];
 				return $title;
 			}
@@ -405,7 +405,7 @@ function _title_mask__get_field_value($field_name, $rec_id, $rt)
 	$rt_id = @$rdr[$rt][$rdt_id]['rst_PtrFilteredIDs'];
 	$rt_id = $rt_id ? explode(",",$rt_id) : 0;
 
-	$res = mysql_query('select dtl_Value from recDetails
+	$res = $mysqli->query('select dtl_Value from recDetails
 							left join defDetailTypes on dty_ID=dtl_DetailTypeID
 							where dtl_RecID='.$rec_id.' and dty_ID='.$rdt_id.' order by dtl_ID asc');
 	$value = '';
@@ -414,7 +414,7 @@ function _title_mask__get_field_value($field_name, $rec_id, $rt)
 	//TODO: error $rt_id could be array
 	//todo: need to adjust the following code to check if dty Typei is Author or Editor
 		if ($rt_id != $authRT) {	// not an AuthorEditor
-			while ($inner_rec_id = mysql_fetch_row($res)) {
+			while ($inner_rec_id = $res->fetch_row()) {
 				$inner_rec_id = $inner_rec_id[0];
 				$new_value = _title_mask__get_field_value($inner_field_name, $inner_rec_id, $rt_id);
 				if ($value) $value .= ', ' . $new_value;
@@ -422,8 +422,8 @@ function _title_mask__get_field_value($field_name, $rec_id, $rt)
 			}
 			return $value;
 
-		} else if (mysql_num_rows($res) == 1) {	// an AuthorEditor
-			$inner_rec_id = mysql_fetch_row($res); $inner_rec_id = $inner_rec_id[0];
+		} else if ($res->num_rows == 1) {	// an AuthorEditor
+			$inner_rec_id = $res->fetch_row(); $inner_rec_id = $inner_rec_id[0];
 			if ($inner_rec_id == 'anonymous'  ||  ! intval($inner_rec_id)) {
 				if ($inner_field_name == $surnameDT  ||  strtolower($inner_field_name) == 'given names')
 					return 'Anonymous';
@@ -432,8 +432,8 @@ function _title_mask__get_field_value($field_name, $rec_id, $rt)
 			$inner_rec_id = intval($inner_rec_id);
 			return _title_mask__get_field_value($inner_field_name, $inner_rec_id, $rt_id);
 
-		} else if (mysql_num_rows($res) > 1) {	// multiple AuthorEditors
-			$inner_rec_id = mysql_fetch_row($res); $inner_rec_id = $inner_rec_id[0];
+		} else if ($res->num_rows > 1) {	// multiple AuthorEditors
+			$inner_rec_id = $res->fetch_row(); $inner_rec_id = $inner_rec_id[0];
 
 			if ($inner_rec_id == 'anonymous'  ||  ! intval($inner_rec_id)) {
 				if ($inner_field_name == $surnameDT  ||  strtolower($inner_field_name) == 'given names')
@@ -451,9 +451,9 @@ function _title_mask__get_field_value($field_name, $rec_id, $rt)
 			}
 		}
 
-	} else if(!mysql_error()){
+	} else if(!$mysqli->error){
 		// an unconstrained pointer - don't do any of the craziness above.
-		while ($inner_rec_id = mysql_fetch_row($res)) {
+		while ($inner_rec_id = $res->fetch_row()) {
 			$inner_rec_id = $inner_rec_id[0];
 			$new_value = _title_mask__get_field_value($inner_field_name, $inner_rec_id, $rt_id);
 			if ($value) $value .= ', ' . $new_value;
@@ -472,15 +472,15 @@ function _title_mask__get_enum_value($rec_id, $rdt_id, $enum_param_name)
 	$resval = null;
 
 	//find enum values in details
-	$res = mysql_query('
+	$res = $mysqli->query('
 		select rd.dtl_value from recDetails rd, defDetailTypes dt where dtl_DetailTypeId=dty_Id and dtl_RecId='.
 		intval($rec_id).' and dt.dty_Type="enum" and dty_Id='.intval($rdt_id) );
 
-	while ($rd = mysql_fetch_array($res)) {
+	while ($rd = $res->fetch_array()) {
 
-		$ress = mysql_query("select trm_id, trm_label, trm_code, concat(trm_OriginatingDBID, '-', trm_IDInOriginatingDB) as trm_conceptid from defTerms where trm_ID = ".$rd[0]);
-		if(!mysql_error()){
-			$relval = mysql_fetch_assoc($ress);
+		$ress = $mysqli->query("select trm_id, trm_label, trm_code, concat(trm_OriginatingDBID, '-', trm_IDInOriginatingDB) as trm_conceptid from defTerms where trm_ID = ".$rd[0]);
+		if(!$mysqli->error){
+			$relval = mysqli_fetch_assoc($ress);
 			$str = $relval['trm_'.$enum_param_name];
 
 			if ($resval==null)
@@ -516,10 +516,10 @@ function _title_mask__get_rec_detail($rec_id, $rdt_id)
 
 	$rec_details[$rec_id] = array();
 
-	$res = mysql_query('select recDetails.* from recDetails'.
+	$res = $mysqli->query('select recDetails.* from recDetails'.
 						' where dtl_RecID = ' . intval($rec_id) . ' order by dtl_ID asc');
 
-	while ($rd = mysql_fetch_assoc($res)) {
+	while ($rd = $res->fetch_assoc()) {
 		$rdt_type = $rdt[$rd['dtl_DetailTypeID']]['dty_Type'];
 
 		if ($rdt_type == 'file') {	/* handle files specially */
@@ -595,9 +595,9 @@ function _title_mask__get_rec_detail($rec_id, $rdt_id)
 				$rec_details[$rec_id][$rd['dtl_DetailTypeID']] = $str;
 		} else {
 			if ($rdt_type == 'enum' || $rdt_type == 'relationtype'){ //substitute term for it's id
-				$ress = mysql_query("select trm_Label from defTerms where trm_ID = ".$rd['dtl_Value']);
-				if(!mysql_error()){
-					$relval = mysql_fetch_assoc($ress);
+				$ress = $mysqli->query("select trm_Label from defTerms where trm_ID = ".$rd['dtl_Value']);
+				if(!$mysqli->error){
+					$relval = mysqli_fetch_assoc($ress);
 					$rd['dtl_Value'] = $relval['trm_Label'];
 				}
 
@@ -630,7 +630,7 @@ function _title_mask__get_rec_types($rt) {
 
 		$cond = ($rt) ?'rty_ID='.$rt :'1';
 
-		$rct = mysql__select_assoc('defRecTypes', 'rty_ID', 'rty_Name', $cond);
+		$rct = mysqli__select_assoc($mysqli, 'defRecTypes', 'rty_ID', 'rty_Name', $cond);
 /*****DEBUG****///error_log("rt ".print_r($rct,true));
 	}
 	return $rct;
@@ -645,12 +645,12 @@ function _title_mask__get_rec_detail_requirements() {
 	if (! $rdr) {
 		$rdr = array();
 
-		$res = mysql_query('select rst_RecTypeID, dty_ID, lower(dty_Name) as dty_Name, lower(rst_DisplayName) as rst_DisplayName,
+		$res = $mysqli->query('select rst_RecTypeID, dty_ID, lower(dty_Name) as dty_Name, lower(rst_DisplayName) as rst_DisplayName,
 									if(rst_PtrFilteredIDs,rst_PtrFilteredIDs, dty_PtrTargetRectypeIDs) as rst_PtrFilteredIDs
 								from defRecStructure left join defDetailTypes on rst_DetailTypeID=dty_ID
 								where rst_RequirementType in ("required", "recommended", "optional")
 								order by rst_RecTypeID, dty_ID' );
-		while ($row = mysql_fetch_assoc($res)) {
+		while ($row = $res->fetch_assoc()) {
 			if (@$rdr[$row['rst_RecTypeID']]) {
 				$rdr[$row['rst_RecTypeID']][$row['dty_ID']] = $row;
 				$rdr[$row['rst_RecTypeID']][$row['dty_Name']] = $row;
@@ -678,8 +678,8 @@ function _title_mask__get_rec_detail_types() {
 	if (! $rdt) {
 		$rdt = array();
 
-		$res = mysql_query('select dty_ID, lower(dty_Name) as dty_Name, dty_Type, dty_PtrTargetRectypeIDs from defDetailTypes');
-		while ($row = mysql_fetch_assoc($res)) {
+		$res = $mysqli->query('select dty_ID, lower(dty_Name) as dty_Name, dty_Type, dty_PtrTargetRectypeIDs from defDetailTypes');
+		while ($row = $res->fetch_assoc()) {
 			$rdt[$row['dty_ID']] = $row;
 			$rdt[strtolower($row['dty_Name'])] = $row;
 		}

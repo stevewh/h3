@@ -63,10 +63,10 @@ if (! $wg_id) {
 }
 
 
-mysql_connection_select(DATABASE);
+$mysqli = mysqli_connection_select(DATABASE);
 
-$res = mysql_query("select ugl_UserID from ".USERS_DATABASE.".sysUsrGrpLinks where ugl_UserID=".get_user_id()." and ugl_GroupID=".$wg_id);
-if (mysql_num_rows($res) < 1) {
+$res = $mysqli->query("select ugl_UserID from ".USERS_DATABASE.".sysUsrGrpLinks where ugl_UserID=".get_user_id()." and ugl_GroupID=".$wg_id);
+if ($res->num_rows < 1) {
 	print '({ "error": "User unauthorised to fetch workgroup data for workgroup '.$wg_id.'" })';
 	return;
 }
@@ -74,14 +74,14 @@ if (mysql_num_rows($res) < 1) {
 
 {
 	"members": [<?php
-$res = mysql_query("select usr.ugr_ID, concat(usr.ugr_FirstName,' ',usr.ugr_LastName) as name, usr.ugr_eMail
+$res = $mysqli->query("select usr.ugr_ID, concat(usr.ugr_FirstName,' ',usr.ugr_LastName) as name, usr.ugr_eMail
 					  from ".USERS_DATABASE.".sysUsrGrpLinks
 				 left join ".USERS_DATABASE.".sysUGrps usr on usr.ugr_ID = ugl_UserID
 					 where usr.ugl_GroupID = ".$wg_id."
 					   and usr.ugr_Enabled = 'y'
 				  order by usr.ugr_LastName");
 $first = true;
-while ($row = mysql_fetch_row($res)) {
+while ($row = $res->fetch_row()) {
 	if (! $first) print ",";  print "\n"; $first = false;
 	print "\t\t{ \"id\": ".slash($row[0]).", \"name\": \"".slash($row[1])."\", \"email\": \"".slash($row[2])."\" }";
 }
@@ -90,12 +90,12 @@ while ($row = mysql_fetch_row($res)) {
 	],
 
 	"savedSearches": [ <?php
-$res = mysql_query("select svs_Name, ss_url, ss_url not like '%w=bookmark%' as w_all
+$res = $mysqli->query("select svs_Name, ss_url, ss_url not like '%w=bookmark%' as w_all
 					  from usrSavedSearches
 					 where svs_UGrpID=".$wg_id."
 				  order by svs_Name");
 $first = true;
-while ($row = mysql_fetch_assoc($res)) {
+while ($row = $res->fetch_assoc()) {
     if (! $first) print ",";  print "\n"; $first = false;
     print "\t\t[ \"" . addslashes($row['svs_Name']) . "\", \"" . addslashes($row['ss_url']) . "\", 0, " . intval($row['w_all']) . " ]";
 }
@@ -104,12 +104,12 @@ while ($row = mysql_fetch_assoc($res)) {
 	],
 
 	"publishedSearches": [ <?php
-$res = mysql_query("select pub_id, pub_name
+$res = $mysqli->query("select pub_id, pub_name
 					  from published_searches
 					 where pub_wg_id=".$wg_id."
                      order by pub_name");
 $first = true;
-while ($row = mysql_fetch_assoc($res)) {
+while ($row = $res->fetch_assoc()) {
     if (! $first) print ",";  print "\n"; $first = false;
     print "\t\t{ \"id\": \"".addslashes($row['pub_id'])."\", \"label\": \"".addslashes($row['pub_name'])."\" }";
 }

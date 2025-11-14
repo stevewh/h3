@@ -42,7 +42,7 @@
     return;
   }
 
-  mysql_connection_select(DATABASE);
+  $mysqli = mysqli_connection_select(DATABASE);
 
   // May be best to avoid the possibility of somebody harvesting ulf_ID=1, 2, 3, ...
   // so the files are indexed by the SHA-1 hash of the concatenation of the ulf_ID and a random integer.

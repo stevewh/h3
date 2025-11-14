@@ -39,26 +39,26 @@ if (!is_logged_in()) {
 }
 /*****DEBUG****///error_log(print_r($LOOKUPS, 1));
 
-mysql_connection_overwrite(DATABASE);
+$mysqli = mysqli_connection_overwrite(DATABASE);
 $template = file_get_contents('viewRecordTags.html');
 $template = str_replace('[logged-in-user-id]', intval(get_user_id()), $template);
 
-$wg_ids = mysql__select_array(USERS_DATABASE.'.sysUsrGrpLinks', 'ugl_GroupID', 'ugl_UserID='.get_user_id());
+$wg_ids = mysqli__select_array($mysqli, USERS_DATABASE.'.sysUsrGrpLinks', 'ugl_GroupID', 'ugl_UserID='.get_user_id());
 array_push($wg_ids, get_user_id());
 
 if (@$_REQUEST['bkmk_id']) {
-	$res = mysql_query('select * from usrBookmarks where bkm_ID = '.intval($_REQUEST['bkmk_id']));
-	$bkmk = mysql_fetch_assoc($res);
-	$res = mysql_query('select Records.* from usrBookmarks left join Records on bkm_recID=rec_ID '.
+	$res = $mysqli->query('select * from usrBookmarks where bkm_ID = '.intval($_REQUEST['bkmk_id']));
+	$bkmk = $res->fetch_assoc();
+	$res = $mysqli->query('select Records.* from usrBookmarks left join Records on bkm_recID=rec_ID '.
 						'where bkm_ID = '.$bkmk['bkm_ID'].
 						' and (rec_OwnerUGrpID in ('.join(',', $wg_ids).') or not rec_NonOwnerVisibility="hidden")');
-	$bib = mysql_fetch_assoc($res);
+	$bib = $res->fetch_assoc();
 	$_REQUEST['recID'] = $bib['rec_ID'];
 }else if (@$_REQUEST['recID']) {
-	$res = mysql_query('select * from usrBookmarks where bkm_recID = '.intval($_REQUEST['recID']).' and bkm_UGrpID = '.get_user_id());
-	$bkmk = mysql_fetch_assoc($res);
-	$res = mysql_query('select * from Records where rec_ID = '.intval($_REQUEST['recID']).' and (rec_OwnerUGrpID in ('.join(',', $wg_ids).') or not rec_NonOwnerVisibility="hidden")');
-	$bib = mysql_fetch_assoc($res);
+	$res = $mysqli->query('select * from usrBookmarks where bkm_recID = '.intval($_REQUEST['recID']).' and bkm_UGrpID = '.get_user_id());
+	$bkmk = $res->fetch_assoc();
+	$res = $mysqli->query('select * from Records where rec_ID = '.intval($_REQUEST['recID']).' and (rec_OwnerUGrpID in ('.join(',', $wg_ids).') or not rec_NonOwnerVisibility="hidden")');
+	$bib = $res->fetch_assoc();
 	$_REQUEST['bkmk_id'] = $bkmk['bkm_ID'];
 }
 /*****DEBUG****///error_log("bookmark is ".print_r($bkmk,true));
@@ -73,9 +73,9 @@ $body->global_vars['LINKED_BIBLIO-ID'] = $_REQUEST['recID'];
 $body->global_vars['rec_ID'] = $_REQUEST['recID'];
 $body->global_vars['bkm_ID'] = $_REQUEST['bkm_ID'];
 
-$my_kwds = mysql__select_array('usrRecTagLinks left join usrTags on rtl_TagID=tag_ID', 'tag_Text', 'rtl_RecID='.$bib['rec_ID']);
+$my_kwds = mysqli__select_array($mysqli, 'usrRecTagLinks left join usrTags on rtl_TagID=tag_ID', 'tag_Text', 'rtl_RecID='.$bib['rec_ID']);
 
-$tags = mysql__select_assoc('usrRecTagLinks left join usrTags on rtl_TagID=tag_ID'.
+$tags = mysqli__select_assoc($mysqli, 'usrRecTagLinks left join usrTags on rtl_TagID=tag_ID'.
 								' left join '.USERS_DATABASE.'.sysUGrps usr on usr.ugr_ID=tag_UGrpID',
 								'tag_Text', 'count(tag_ID) as kcount',
 								'rtl_RecID='.$_REQUEST['recID'].
@@ -85,7 +85,7 @@ $tags = mysql__select_assoc('usrRecTagLinks left join usrTags on rtl_TagID=tag_I
 								' order by kcount desc, tag_Text');
 
 /*
-$res = mysql_query('select concat(ugr_FirstName," ",ugr_LastName) as bkmk_user, tag_Text
+$res = $mysqli->query('select concat(ugr_FirstName," ",ugr_LastName) as bkmk_user, tag_Text
 					from usrBookmarks
 					left join usrRecTagLinks on bkm_RecID=rtl_RecID
 					left join usrTags on rtl_TagID=tag_ID
@@ -93,7 +93,7 @@ $res = mysql_query('select concat(ugr_FirstName," ",ugr_LastName) as bkmk_user, 
 					where bkm_recID='.$bib['rec_ID'].' and rtl_ID is not null order by bkmk_user, tag_Text');
 
 $user_tags = array();
-while ($row = mysql_fetch_assoc($res)) {
+while ($row = $res->fetch_assoc()) {
 	$bkmk_user = $row['bkmk_user'];
 	$kwd_name = $row['tag_Text'];
 
@@ -115,7 +115,7 @@ if ($tags) {
 											. "</a>&nbsp;</td>\n";
 
 		$kwd_list .= "  <td style=\"vertical-align: top;\">\n";
-		$res = mysql_query('select usr.ugr_ID, concat(usr.ugr_FirstName," ",usr.ugr_LastName) as bkmk_user
+		$res = $mysqli->query('select usr.ugr_ID, concat(usr.ugr_FirstName," ",usr.ugr_LastName) as bkmk_user
 							from usrBookmarks
 							left join usrRecTagLinks on bkm_RecID=rtl_RecID
 							left join usrTags on rtl_TagID=tag_ID
@@ -126,7 +126,7 @@ if ($tags) {
 							and usr.ugr_Enabled="Y"
 							order by bkmk_user');
 		$i = 0;
-		while ($row = mysql_fetch_assoc($res)) {
+		while ($row = $res->fetch_assoc()) {
 			if ($i++ == 3) {
 				$kwd_list .= '   <span class="collapsed"><span class="hide_on_collapse">'."\n";
 			}
@@ -150,7 +150,7 @@ if ($tags) {
 $body->global_vars['tag-list'] = $kwd_list;
 
 
-$res = mysql_query('
+$res = $mysqli->query('
    select usr.ugr_ID, concat(usr.ugr_FirstName," ",usr.ugr_LastName) as bkmk_user
      from Records
 left join usrBookmarks on bkm_recID=rec_ID
@@ -164,10 +164,10 @@ left join '.USERS_DATABASE.'.sysUGrps usr on usr.ugr_ID=bkm_UGrpID
 	  and usr.ugr_Enabled="Y"
  order by bkmk_user;');
 
-if (mysql_num_rows($res)) {
+if ($res->num_rows) {
 	$body->global_vars['other-users'] .= "<tr><td>No tags</td><td>\n";
 	$i = 0;
-	while ($row = mysql_fetch_assoc($res)) {
+	while ($row = $res->fetch_assoc()) {
 		if ($i++ == 3) {
 			$body->global_vars['other-users'] .= ' <span class="collapsed"><span class="hide_on_collapse">'."\n";
 		}

@@ -38,7 +38,7 @@ require_once(dirname(__FILE__).'/../../common/connect/applyCredentials.php');
 require_once(dirname(__FILE__).'/../../common/php/dbMySqlWrappers.php');
 require_once(dirname(__FILE__).'/../../common/php/Temporal.php');
 
-mysql_connection_select(DATABASE);
+$mysqliro = mysqli_connection_select(DATABASE);
 
 require_once(dirname(__FILE__).'/../../common/php/getRecordInfoLibrary.php');
 require_once(dirname(__FILE__).'/../../records/woot/woot.php');
@@ -51,7 +51,8 @@ $noclutter = array_key_exists('noclutter', $_REQUEST);
 $terms = getTerms();
 
 // get a list of workgroups the user belongs to. - ARTEM - NOT USED
-$ACCESSABLE_OWNER_IDS = mysql__select_array('sysUsrGrpLinks left join sysUGrps grp on grp.ugr_ID=ugl_GroupID',
+$ACCESSABLE_OWNER_IDS = mysqli__select_array($mysqliro,
+                                            'sysUsrGrpLinks left join sysUGrps grp on grp.ugr_ID=ugl_GroupID',
                                             'ugl_GroupID',
                                             'ugl_UserID=' . get_user_id() . ' and grp.ugr_Type != "user" order by ugl_GroupID');
 if (is_logged_in()) {
@@ -61,19 +62,23 @@ if (is_logged_in()) {
     }
 }
 
+if (is_array($ACCESSABLE_OWNER_IDS)) {
+  error_log('ACCESSABLE OWNER IDS array');
+  error_log('number of records = '.count($ACCESSABLE_OWNER_IDS));
+}
 
 // if we get a record id then see if there is a personal bookmark for it.
 if (@$_REQUEST['recID'] && !@$_REQUEST['bkmk_id']) {
-	$res = mysql_query('select * from usrBookmarks where bkm_recID = '.intval($_REQUEST['recID']).' and bkm_UGrpID = '.get_user_id());
-	if (mysql_num_rows($res)>0) {
-		$row = mysql_fetch_assoc($res);
+	$res = $mysqliro->query('select * from usrBookmarks where bkm_recID = '.intval($_REQUEST['recID']).' and bkm_UGrpID = '.get_user_id());
+	if ($res->num_rows>0) {
+		$row = $res->fetch_assoc();
 		$_REQUEST['bkmk_id'] = $row['bkm_ID'];
 	}
 }
 $bkm_ID = intval(@$_REQUEST['bkmk_id']);
 $rec_id = intval(@$_REQUEST['recID']);
 ?>
-<html>
+<html lang="en">
 <head>
 	<link rel="stylesheet" type="text/css" href="<?=HEURIST_SITE_PATH?>common/css/global.css">
 	<script src="../../external/jquery/jquery-1.6.min.js"></script>
@@ -193,13 +198,21 @@ function add_sid() {
 <?php
 
 if ($bkm_ID) {
-	$res = mysql_query('select * from usrBookmarks left join Records on bkm_recID=rec_ID left join defRecTypes on rec_RecTypeID=rty_ID where bkm_ID='.$bkm_ID.' and bkm_UGrpID='.get_user_id().' and (not rec_FlagTemporary or rec_FlagTemporary is null)');
-	$bibInfo = mysql_fetch_assoc($res);
-	print_details($bibInfo);
+	$res = $mysqliro->query('select * from usrBookmarks left join Records on bkm_recID=rec_ID left join defRecTypes on rec_RecTypeID=rty_ID where bkm_ID='.$bkm_ID.' and bkm_UGrpID='.get_user_id().' and (not rec_FlagTemporary or rec_FlagTemporary is null)');
+	$bibInfo = $res->fetch_assoc();
+  if ($bibInfo) {
+	  print_details($bibInfo);
+  } else {
+    print 'No details found';
+  }
 } else if ($rec_id) {
-	$res = mysql_query('select * from Records left join defRecTypes on rec_RecTypeID=rty_ID where rec_ID='.$rec_id.' and not rec_FlagTemporary');
-	$bibInfo = mysql_fetch_assoc($res);
-	print_details($bibInfo);
+	$res = $mysqliro->query('select * from Records left join defRecTypes on rec_RecTypeID=rty_ID where rec_ID='.$rec_id.' and not rec_FlagTemporary');
+	$bibInfo = $res->fetch_assoc();
+  if ($bibInfo) {
+	  print_details($bibInfo);
+  } else {
+    print 'No details found';
+  }
 } else {
 	print 'No details found';
 }
@@ -226,12 +239,13 @@ function print_details($bib) {
 
 // this functions outputs the header line of icons and links for managing the record.
 function print_header_line($bib) {
+  global $mysqliro;
 	$rec_id = $bib['rec_ID'];
 	$url = $bib['rec_URL'];
 	if ($url  &&  ! preg_match('!^[^\\/]+:!', $url))
 		$url = 'http://' . $url;
 
-	$webIcon = @mysql_fetch_row(mysql_query("select dtl_Value from recDetails where dtl_RecID=" . $bib['rec_ID'] . " and dtl_DetailTypeID=347"));  //MAGIC NUMBER
+	$webIcon = @mysqli_fetch_row($mysqliro->query("select dtl_Value from recDetails where dtl_RecID=" . $bib['rec_ID'] . " and dtl_DetailTypeID=347"));  //MAGIC NUMBER
 	$webIcon = @$webIcon[0];
 //
 ?>
@@ -266,18 +280,19 @@ function print_header_line($bib) {
 //this  function displays private info if there is any.
 function print_private_details($bib) {
 
-	$res = mysql_query('select grp.ugr_Name,grp.ugr_Type,concat(grp.ugr_FirstName," ",grp.ugr_LastName) from Records, '
+  global $mysqliro;
+	$res = $mysqliro->query('select grp.ugr_Name,grp.ugr_Type,concat(grp.ugr_FirstName," ",grp.ugr_LastName) from Records, '
                       .USERS_DATABASE.'.sysUGrps grp where grp.ugr_ID=rec_OwnerUGrpID and rec_ID='.$bib['rec_ID']);
 	$workgroup_name = NULL;
 	// check to see if this record is owned by a workgroup
-	if (mysql_num_rows($res) > 0) {
-		$row = mysql_fetch_row($res);
+	if ($res->num_rows > 0) {
+		$row = $res->fetch_row();
 		$workgroup_name = $row[1] == 'user'? $row[2] : $row[0];
 	}
 	// check for workgroup tags
-	$res = mysql_query('select grp.ugr_Name, tag_Text from usrRecTagLinks left join usrTags on rtl_TagID=tag_ID left join '.USERS_DATABASE.'.sysUGrps grp on tag_UGrpID=grp.ugr_ID left join '.USERS_DATABASE.'.sysUsrGrpLinks on ugl_GroupID=ugr_ID and ugl_UserID='.get_user_id().' where rtl_RecID='.$bib['rec_ID'].' and tag_UGrpID is not null and ugl_ID is not null order by rtl_Order');
+	$res = $mysqliro->query('select grp.ugr_Name, tag_Text from usrRecTagLinks left join usrTags on rtl_TagID=tag_ID left join '.USERS_DATABASE.'.sysUGrps grp on tag_UGrpID=grp.ugr_ID left join '.USERS_DATABASE.'.sysUsrGrpLinks on ugl_GroupID=ugr_ID and ugl_UserID='.get_user_id().' where rtl_RecID='.$bib['rec_ID'].' and tag_UGrpID is not null and ugl_ID is not null order by rtl_Order');
 	$kwds = array();
-	while ($row = mysql_fetch_row($res)) array_push($kwds, $row);
+	while ($row = $res->fetch_row()) array_push($kwds, $row);
 	if ( $workgroup_name || count($kwds) || $bib['bkm_ID']) {
 ?>
 <div class=detailRowHeader>Private
@@ -350,9 +365,11 @@ function print_private_details($bib) {
 
 	//this function outputs the personal information from the bookmark
 	function print_personal_details($bkmk) {
+    global $mysqliro;
+
 		$bkm_ID = $bkmk['bkm_ID'];
 		$rec_ID = $bkmk['bkm_RecID'];
-		$tags = mysql__select_array('usrRecTagLinks, usrTags',
+		$tags = mysqli__select_array($mysqliro, 'usrRecTagLinks, usrTags',
 									'tag_Text',
 									"rtl_TagID=tag_ID and rtl_RecID=$rec_ID and tag_UGrpID = ".
 									$bkmk['bkm_UGrpID']." order by rtl_Order");
@@ -384,21 +401,23 @@ function print_private_details($bib) {
 	function print_public_details($bib) {
 
 		global $terms, $ACCESSABLE_OWNER_IDS;
+    global $mysqliro;
 
-		$bds_res = mysql_query('select dty_ID,
+		$bds_res = $mysqliro->query('select dty_ID,
 		                               ifnull(rdr.rst_DisplayName, dty_Name) as name,
 		                               dtl_Value as val,
 		                               dtl_UploadedFileID,
 		                               dty_Type,
-		                               if(dtl_Geo is not null, astext(dtl_Geo), null) as dtl_Geo,
-		                               if(dtl_Geo is not null, astext(envelope(dtl_Geo)), null) as bd_geo_envelope
+		                               if(dtl_Geo is not null, ST_AsText(dtl_Geo), null) as dtl_Geo,
+		                               if(dtl_Geo is not null, ST_AsText(ST_Envelope(dtl_Geo)), null) as bd_geo_envelope
 		                          from recDetails
 		                            left join defDetailTypes on dty_ID = dtl_DetailTypeID
 		                            left join defRecStructure rdr on rdr.rst_DetailTypeID = dtl_DetailTypeID
 		                                                          and rdr.rst_RecTypeID = '.$bib['rec_RecTypeID'].'
 		                          where dtl_RecID = ' . $bib['rec_ID'] .'
-                                and (rdr.rst_NonOwnerVisibility != "hidden" or '.$bib['rec_OwnerUGrpID'].' in ('.join(",",$ACCESSABLE_OWNER_IDS).'))
-		                          order by rdr.rst_DisplayOrder is null,
+                                and (rdr.rst_NonOwnerVisibility != "hidden"'.
+                                    ( $bib['rec_OwnerUGrpID'] && is_array($ACCESSABLE_OWNER_IDS) && count($ACCESSABLE_OWNER_IDS) > 0 ?' or '.$bib['rec_OwnerUGrpID'].' in ('.join(",",$ACCESSABLE_OWNER_IDS).'))':')').
+		                          'order by rdr.rst_DisplayOrder is null,
 		                               rdr.rst_DisplayOrder,
 		                               dty_ID,
 		                               dtl_ID');
@@ -406,7 +425,7 @@ function print_private_details($bib) {
 		$bds = array();
 		$thumbs = array();
 
-		while ($bd = mysql_fetch_assoc($bds_res)) {
+		while ($bd = mysqli_fetch_assoc($bds_res)) {
 
 			if ($bd['dty_ID'] == 603) { //DT_FULL_IMAG_URL
 				array_push($thumbs, array(
@@ -434,8 +453,8 @@ function print_private_details($bib) {
 
 			}else if ($bd['dty_Type'] == 'resource') {
 
-				$res = mysql_query('select rec_Title from Records where rec_ID='.intval($bd['val']));
-				$row = mysql_fetch_row($res);
+				$res = $mysqliro->query('select rec_Title from Records where rec_ID='.intval($bd['val']));
+				$row = $res->fetch_row();
 				$bd['val'] = '<a target="_new" href="'.HEURIST_SITE_PATH.'records/view/renderRecordData.php?db='.HEURIST_DBNAME.'&recID='.$bd['val'].(defined('use_alt_db')? '&alt' : '').'" onclick="return link_open(this);">'.htmlspecialchars($row[0]).'</a>';
 			}
 			else if ($bd['dty_Type'] == 'file'  &&  $bd['dtl_UploadedFileID']) {
@@ -472,8 +491,8 @@ function print_private_details($bib) {
 				}
 
 				/* OLD WAY
-				$res = mysql_query('select * from recUploadedFiles left join defFileExtToMimetype on ulf_MimeExt = fxm_Extension where ulf_ID='.intval($bd['dtl_UploadedFileID']));
-				$file = mysql_fetch_assoc($res);
+				$res = $mysqliro->query('select * from recUploadedFiles left join defFileExtToMimetype on ulf_MimeExt = fxm_Extension where ulf_ID='.intval($bd['dtl_UploadedFileID']));
+				$file = $res->fetch_assoc();
 				if ($file) {
 					$img_url = HEURIST_SITE_PATH.'records/files/downloadFile.php/'.$file['ulf_OrigFileName'].'?db='.HEURIST_DBNAME.'&ulf_ID='.$file['ulf_ObfuscatedFileID'];
 					if ($file['fxm_MimeType'] == 'image/jpeg'  ||  $file['fxm_MimeType'] == 'image/gif'  ||  $file['fxm_MimeType'] == 'image/png') {
@@ -587,8 +606,9 @@ $relTrgDT = (defined('DT_TARGET_RESOURCE')?DT_TARGET_RESOURCE:0);
 function print_relation_details($bib) {
 
 	global $relRT,$relSrcDT,$relTrgDT,$ACCESSABLE_OWNER_IDS;
+  global $mysqliro;
 
-	$from_res = mysql_query('select recDetails.*
+	$from_res = $mysqliro->query('select recDetails.*
 	                           from recDetails
 	                      left join Records on rec_ID = dtl_RecID
 	                          where dtl_DetailTypeID = '.$relSrcDT.
@@ -596,21 +616,21 @@ function print_relation_details($bib) {
 	                           ' and dtl_Value = ' . $bib['rec_ID']);        //primary resource
 
 
-	$to_res = mysql_query('select recDetails.*
+	$to_res = $mysqliro->query('select recDetails.*
 	                         from recDetails
 	                    left join Records on rec_ID = dtl_RecID
 	                        where dtl_DetailTypeID = '.$relTrgDT.
 	                         ' and rec_RecTypeID = '.$relRT.
 	                         ' and dtl_Value = ' . $bib['rec_ID']);          //linked resource
 
-	if (mysql_num_rows($from_res) <= 0  &&  mysql_num_rows($to_res) <= 0) return;
+	if (mysqli_num_rows($from_res) <= 0  &&  mysqli_num_rows($to_res) <= 0) return;
 ?>
 </div>
 <div class=detailRowHeader>Related
 <?php
   $accessCondition = (count($ACCESSABLE_OWNER_IDS)>0?'(rec_OwnerUGrpID in ('.join(',', $ACCESSABLE_OWNER_IDS).') ':'(0 ').
                      (is_logged_in()?'OR NOT rec_NonOwnerVisibility = "hidden")':'OR rec_NonOwnerVisibility = "public")');
-	while ($reln = mysql_fetch_assoc($from_res)) {
+	while ($reln = mysqli_fetch_assoc($from_res)) {
 		$bd = fetch_relation_details($reln['dtl_RecID'], true);
 
     // check related record
@@ -618,7 +638,7 @@ function print_relation_details($bib) {
       continue;
     }
     $relatedRecID = $bd['RelatedRecID']['rec_ID'];
-    if (count(mysql__select_array("Records","rec_ID","rec_ID = $relatedRecID and $accessCondition")) == 0) { //related is not accessable
+    if (count(mysqli__select_array($mysqliro, "Records","rec_ID","rec_ID = $relatedRecID and $accessCondition")) == 0) { //related is not accessable
     error_log("condition = $accessCondition with related = ".print_r($bd,true));
       continue;
     }
@@ -639,7 +659,7 @@ function print_relation_details($bib) {
 		if (@$bd['EndDate']) print ' until ' . htmlspecialchars(temporalToHumanReadableString($bd['EndDate']));
 		print '</div></div>';
 	}
-	while ($reln = mysql_fetch_assoc($to_res)) {
+	while ($reln = mysqli_fetch_assoc($to_res)) {
 		$bd = fetch_relation_details($reln['dtl_RecID'], false);
 
     // check related record
@@ -647,7 +667,7 @@ function print_relation_details($bib) {
       continue;
     }
     $relatedRecID = $bd['RelatedRecID']['rec_ID'];
-    if (count(mysql__select_array("Records","rec_ID","rec_ID = $relatedRecID and $accessCondition")) == 0) { //related is not accessable
+    if (count(mysqli__select_array($mysqliro, "Records","rec_ID","rec_ID = $relatedRecID and $accessCondition")) == 0) { //related is not accessable
       continue;
     }
 
@@ -671,7 +691,9 @@ function print_relation_details($bib) {
 
 
 function print_linked_details($bib) {
-global $relRT,$ACCESSABLE_OWNER_IDS;
+  global $relRT,$ACCESSABLE_OWNER_IDS;
+  global $mysqliro;
+
 	$query = 'select * '.
 	         'from recDetails '.
 	          'left join defDetailTypes on dty_ID = dtl_DetailTypeID '.
@@ -683,9 +705,9 @@ global $relRT,$ACCESSABLE_OWNER_IDS;
                'and '.(count($ACCESSABLE_OWNER_IDS)>0?'(rec_OwnerUGrpID in ('.join(',', $ACCESSABLE_OWNER_IDS).') ':'(0 ').
                (is_logged_in()?'OR NOT rec_NonOwnerVisibility = "hidden")':'OR rec_NonOwnerVisibility = "public")');
   error_log("in renderRecData with query link = $query");
-  $res = mysql_query($query);
+  $res = $mysqliro->query($query);
 
-	if (mysql_num_rows($res) <= 0) return;
+	if ($res->num_rows <= 0) return;
 ?>
 <div class=detailRowHeader>Linked from
 
@@ -697,7 +719,7 @@ global $relRT,$ACCESSABLE_OWNER_IDS;
 <?php
 	$rectypesStructure = getAllRectypeStructures();
 
-	while ($row = mysql_fetch_assoc($res)) {
+	while ($row = $res->fetch_assoc()) {
 
 		print '<div class=detailRow>';
 		print '<div class=detailType>Linked from</div>';

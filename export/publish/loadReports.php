@@ -71,7 +71,7 @@ if (! is_logged_in()) {
 
 	if($metod=="searchreports"){
 
-		mysql_connection_select(DATABASE);
+		$mysqli = mysqli_connection_select(DATABASE);
 
 		//search the list of users by specified parameters
 		$f_id 	= @$_REQUEST['recID'];
@@ -89,9 +89,9 @@ if (! is_logged_in()) {
 			$query = $query." where rps_Title like '%".$f_name."%'";
 		}
 
-		$res = mysql_query($query);
+		$res = $mysqli->query($query);
 
-		while ($row = mysql_fetch_assoc($res)) {
+		while ($row = $res->fetch_assoc()) {
 
 			$row['status'] = getStatus($row);
 
@@ -102,7 +102,7 @@ if (! is_logged_in()) {
 
 	}else if($metod=="getreport"){ //-----------------
 
-		mysql_connection_select(DATABASE);
+		$mysqli = mysqli_connection_select(DATABASE);
 
 		$groupID = @$_REQUEST['recID'];
 		if ($groupID==null) {
@@ -125,8 +125,8 @@ if (! is_logged_in()) {
 
 /*****DEBUG****///error_log(">>>>>>>>>>>>>>> QUERY =".$query);
 		if($query){
-			$res = mysql_query($query);
-			while ($row = mysql_fetch_row($res)) {
+			$res = $mysqli->query($query);
+			while ($row = $res->fetch_row()) {
 				$records['records'][$row[0]] = $row;
 			}
 		}
@@ -136,7 +136,7 @@ if (! is_logged_in()) {
 
 	}else if($metod=="savereport"){ //-----------------
 
-		$db = mysqli_connection_overwrite(DATABASE);
+		$mysqli = mysqli_connection_overwrite(DATABASE);
 
 		$data  = json_decode(urldecode(@$_REQUEST['data']), true);
 		$recID  = @$_REQUEST['recID'];
@@ -222,20 +222,20 @@ exit();
 	**/
 	function deleteReportSchedule($recID) {
 
-		$db = mysqli_connection_overwrite(DATABASE);
+		$mysqli = mysqli_connection_overwrite(DATABASE);
 
 		$ret = array();
 
 		//delete references from user-group link table
 		$query = "delete from usrReportSchedule where rps_ID=$recID";
-		$rows = execSQL($db, $query, null, true);
+		$rows = execSQL($mysqli, $query, null, true);
 		if (is_string($rows) ) {
 			$ret['error'] = "db error deleting record from report schedules - ".$rows;
 		}else{
 			$ret['result'] = $recID;
 		}
 
-		$db->close();
+		$mysqli->close();
 
 		return $ret;
 	}
@@ -249,13 +249,13 @@ exit();
 	*/
 	function updateReportSchedule($colNames, $recID, $values){
 
-		global $db, $sys_usrReportSchedule_ColumnNames;
+		global $mysqli, $sys_usrReportSchedule_ColumnNames;
 
 		$ret = null;
 
 		if (count($colNames) && count($values)){
 
-			$db = mysqli_connection_overwrite(DATABASE);
+			$mysqli = mysqli_connection_overwrite(DATABASE);
 
 			$isInsert = ($recID<0);
 
@@ -292,14 +292,14 @@ exit();
 					$query = "update usrReportSchedule set ".$query." where rps_ID = $recID";
 				}
 
-				$rows = execSQL($db, $query, $parameters, true);
+				$rows = execSQL($mysqli, $query, $parameters, true);
 
 				if ($rows==0 || is_string($rows) ) {
 					$oper = (($isInsert)?"inserting":"updating");
 					$ret = "error $oper in updateReportSchedule - ".$rows; //$msqli->error;
 				} else {
 					if($isInsert){
-						$recID = $db->insert_id;
+						$recID = $mysqli->insert_id;
 						$ret = -$recID;
 
 					}//if $isInsert
@@ -311,7 +311,7 @@ exit();
 
 
 
-			$db->close();
+			$mysqli->close();
 		}//if column names
 
 

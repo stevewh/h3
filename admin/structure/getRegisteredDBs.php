@@ -47,12 +47,12 @@
 	}
 	require_once(dirname(__FILE__)."/../../common/config/initialise.php");
 	require_once(dirname(__FILE__).'/../../common/php/dbMySqlWrappers.php');
-	mysql_connection_select("hdb_H3MasterIndex");
+	$mysqli = mysqli_connection_select("hdb_H3MasterIndex");
 
 	// Return all registered databases as a json string
-	$res = mysql_query("select rec_ID, rec_URL, rec_Title, rec_Popularity, dtl_value as version from Records left join recDetails on rec_ID=dtl_RecID and dtl_DetailTypeID=335 where `rec_RecTypeID`=22");
+	$res = $mysqli->query("select rec_ID, rec_URL, rec_Title, rec_Popularity, dtl_value as version from Records left join recDetails on rec_ID=dtl_RecID and dtl_DetailTypeID=335 where `rec_RecTypeID`=22");
 	$registeredDBs = Array();
-	while($registeredDB = mysql_fetch_array($res, MYSQL_ASSOC)) {
+	while($registeredDB = $res->fetch_array(MYSQL_ASSOC)) {
 		array_push($registeredDBs, $registeredDB);
 	}
 	$jsonRegisteredDBs = json_encode($registeredDBs);

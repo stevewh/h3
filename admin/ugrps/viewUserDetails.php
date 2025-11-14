@@ -49,7 +49,7 @@ if (!is_logged_in()) {
 	return;
 }
 
-mysql_connection_overwrite(DATABASE);
+$mysqli = mysqli_connection_overwrite(DATABASE);
 
 $refurl = HEURIST_BASE_URL."admin/ugrps/showSimilarUsers.php?db=".HEURIST_DBNAME;
 
@@ -60,12 +60,12 @@ $table = USERS_DATABASE.'.'.USERS_TABLE;
 $fields = "ugr_FirstName, ugr_LastName, ugr_Department, ugr_Organisation, ugr_eMail";
 $condition = USERS_ID_FIELD.'='.$ugr_ID;
 
-$res = mysql_query("SELECT $fields FROM $table WHERE $condition");
+$res = $mysqli->query("SELECT $fields FROM $table WHERE $condition");
 if (!$res) {
 	print "<html><body>user not found</body></html>";
 	return;
 }
-$row = mysql_fetch_array($res);
+$row = $res->fetch_array();
 
 $ugr_FullName = $row[0]." ".$row[1];
 $ugr_Department = $row[2];
@@ -74,7 +74,7 @@ $ugr_eMail = $row[4];
 
 $tags = '';
 
-$res = mysql_query('select tag_Text,count(rtl_ID) as bkmks
+$res = $mysqli->query('select tag_Text,count(rtl_ID) as bkmks
                       from usrRecTagLinks
                  left join usrTags on rtl_TagID=tag_ID
                      where tag_UGrpID='.$_REQUEST['Id'].'
@@ -84,7 +84,7 @@ $res = mysql_query('select tag_Text,count(rtl_ID) as bkmks
 
 $tags .= '<span id="top10">'."\n";
 $i = 0;
-while ($row = mysql_fetch_assoc($res)) {
+while ($row = $res->fetch_assoc()) {
 	if ($i == 10)
 		$tags .= "</span>\n".'<span id="top20" style="display: none;">'."\n";
 	if ($i == 20)

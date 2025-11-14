@@ -36,7 +36,7 @@ require_once(dirname(__FILE__)."/../../common/php/dbMySqlWrappers.php");
 require_once(dirname(__FILE__)."/../../common/connect/applyCredentials.php");
 if (! is_logged_in()) return;
 
-mysql_connection_overwrite(DATABASE);
+$mysqli = mysqli_connection_overwrite(DATABASE);
 
 
 header("Content-type: text/javascript");
@@ -51,11 +51,11 @@ if ($cmt_id) {
 	if (array_key_exists("delete", $_POST))
 		$updates["cmt_Deleted"] = true;
 
-	mysql__update("recThreadedComments", "cmt_ID=$cmt_id and cmt_OwnerUGrpID=".get_user_id(), $updates);
-	if (mysql_error()) $error = mysql_error();
+	mysqli__update($mysqli, "recThreadedComments", "cmt_ID=$cmt_id and cmt_OwnerUGrpID=".get_user_id(), $updates);
+	if ($mysqli->error) $error = $mysqli->error;
 
-	$res = mysql_query("select * from recThreadedComments left join ".USERS_DATABASE.".sysUGrps usr on cmt_OwnerUGrpID=usr.ugr_ID where cmt_ID=$cmt_id and ! cmt_Deleted");
-	$cmt = mysql_fetch_assoc($res);
+	$res = $mysqli->query("select * from recThreadedComments left join ".USERS_DATABASE.".sysUGrps usr on cmt_OwnerUGrpID=usr.ugr_ID where cmt_ID=$cmt_id and ! cmt_Deleted");
+	$cmt = $res->fetch_assoc();
 }
 else if ($rec_id) {
 	$inserts = array("cmt_Text" => $_POST["text"], "cmt_Added" => array("now()"), "cmt_OwnerUGrpID" => get_user_id(), "cmt_RecID" => $rec_id);
@@ -63,11 +63,11 @@ else if ($rec_id) {
 		$inserts["cmt_ParentCmtID"] = $owner;
 	}
 
-	mysql__insert("recThreadedComments", $inserts);
-	if (mysql_error()) $error = mysql_error();
+	mysqli__insert($mysqli, "recThreadedComments", $inserts);
+	if ($mysqli->error) $error = $mysqli->error;
 
-	$res = mysql_query("select * from recThreadedComments left join ".USERS_DATABASE.".sysUGrps usr on cmt_OwnerUGrpID=usr.ugr_ID where cmt_ID=".mysql_insert_id());
-	$cmt = mysql_fetch_assoc($res);
+	$res = $mysqli->query("select * from recThreadedComments left join ".USERS_DATABASE.".sysUGrps usr on cmt_OwnerUGrpID=usr.ugr_ID where cmt_ID=".$mysqli->insert_id);
+	$cmt = $res->fetch_assoc();
 }
 
 

@@ -35,7 +35,7 @@
   require_once(dirname(__FILE__).'/../../common/php/utilsTitleMask.php');
 
   if (!@$ACCESSABLE_OWNER_IDS) {
-    $ACCESSABLE_OWNER_IDS = mysql__select_array('sysUsrGrpLinks left join sysUGrps grp on grp.ugr_ID=ugl_GroupID', 'ugl_GroupID', 'ugl_UserID=' . get_user_id() . ' and grp.ugr_Type != "user" order by ugl_GroupID');
+    $ACCESSABLE_OWNER_IDS = mysqli__select_array($mysqli, 'sysUsrGrpLinks left join sysUGrps grp on grp.ugr_ID=ugl_GroupID', 'ugl_GroupID', 'ugl_UserID=' . get_user_id() . ' and grp.ugr_Type != "user" order by ugl_GroupID');
     array_push($ACCESSABLE_OWNER_IDS, get_user_id());
     if (!in_array(0, $ACCESSABLE_OWNER_IDS)) {
         array_push($ACCESSABLE_OWNER_IDS, 0);
@@ -58,7 +58,7 @@
     }
     $passedRecIDCnt = count(@$recIDs);
     if ($passedRecIDCnt) {//check editable access for passed records
-      $recIDs = mysql__select_array('Records','rec_ID',"rec_ID in (".join(",",$recIDs).") and rec_OwnerUGrpID in (".join(",",$ACCESSABLE_OWNER_IDS).")");
+      $recIDs = mysqli__select_array($mysqli, 'Records','rec_ID',"rec_ID in (".join(",",$recIDs).") and rec_OwnerUGrpID in (".join(",",$ACCESSABLE_OWNER_IDS).")");
       $inAccessableRecCnt = $passedRecIDCnt - count(@$recIDs);
     }
 // user chose add by rectype not recIDs so calc recID set
@@ -67,11 +67,11 @@
       if (is_array($rtyID)){
         $rtyID = $rtyID[0];// limit to single type for now
       }
-      $recIDs = mysql__select_array('Records','rec_ID',"rec_RecTypeID = $rtyID and rec_OwnerUGrpID in (".join(",",$ACCESSABLE_OWNER_IDS).")");
-      $totalRecTypeCnt = mysql_num_rows(mysql_query("select * from Records where rec_RecTypeID = $rtyID"));
+      $recIDs = mysqli__select_array($mysqli, 'Records','rec_ID',"rec_RecTypeID = $rtyID and rec_OwnerUGrpID in (".join(",",$ACCESSABLE_OWNER_IDS).")");
+      $totalRecTypeCnt = mysqli_num_rows($mysqli->query("select * from Records where rec_RecTypeID = $rtyID"));
       $inAccessableRecCnt = $totalRecTypeCnt - count($recIDs);
     }
-//error_log("recIDs ".print_r($recIDs,true). " ".mysql_error());
+//error_log("recIDs ".print_r($recIDs,true). " ".$mysqli->error);
     $result['count'] = array('passed'=> ($passedRecIDCnt?$passedRecIDCnt:0),
                               'rtyRecs'=> (@$totalRecTypeCnt?$totalRecTypeCnt:0),
                               'noAccess'=> (@$inAccessibleRecCnt?$inAccessibleRecCnt:0));
@@ -81,13 +81,13 @@
       $result['none'] = "No editable records found in current set". ($inAccessableRecCnt ? " ($inAccessableRecCnt inaccessable records).":".");
       return result;
     }else{
-      $rtyIDs = mysql__select_array('Records','distinct(rec_RecTypeID)',"rec_ID in (".join(",",$recIDs).")");
+      $rtyIDs = mysqli__select_array($mysqli, 'Records','distinct(rec_RecTypeID)',"rec_ID in (".join(",",$recIDs).")");
     }
-//error_log("rectypes ".print_r($rtyIDs,true). " ".mysql_error());
+//error_log("rectypes ".print_r($rtyIDs,true). " ".$mysqli->error);
     $dtyID = $data['dtyID'];
     $dtyName = (@$data['dtyName'] ? "'".$data['dtyName']."'" : "(".$data['dtyID'].")");
-    $rtyLimits = mysql__select_assoc("defRecStructure","rst_RecTypeID","rst_MaxValues","rst_DetailTypeID = $dtyID and rst_RecTypeID in (".join(",",$rtyIDs).")");
-//error_log("rectypeLimits ".print_r($rtyLimits,true). " ".mysql_error());
+    $rtyLimits = mysqli__select_assoc($mysqli, "defRecStructure","rst_RecTypeID","rst_MaxValues","rst_DetailTypeID = $dtyID and rst_RecTypeID in (".join(",",$rtyIDs).")");
+//error_log("rectypeLimits ".print_r($rtyLimits,true). " ".$mysqli->error);
 
     $now = date('Y-m-d H:i:s');
     $dtl = Array('dtl_DetailTypeID'  => $dtyID,
@@ -106,7 +106,7 @@
     $processedRecIDs = array();
     $limittedRecIDs = array();
     $insertErrors = array();
-    mysql_connection_overwrite(DATABASE);
+    $mysqli = mysqli_connection_overwrite(DATABASE);
     foreach ($recIDs as $recID) {
       //check field limit for this record
       $query = "select rec_RecTypeID, tmp.cnt from Records ".
@@ -114,9 +114,9 @@
                             "from recDetails ".
                             "where dtl_RecID = $recID and dtl_DetailTypeID = $dtyID group by dtl_RecID) as tmp on rec_ID = tmp.recID ".
                 "where rec_ID = $recID";
-      $res = mysql_query($query);
-      $row = mysql_fetch_row($res);
-//error_log("recID $recID - detailcount ".print_r($row,true). " ".mysql_error());
+      $res = $mysqli->query($query);
+      $row = $res->fetch_row();
+//error_log("recID $recID - detailcount ".print_r($row,true). " ".$mysqli->error);
       if (!array_key_exists($row[0],$rtyLimits)) {
           array_push($undefinedFieldsRecIDs, $recID);
           continue;
@@ -126,9 +126,9 @@
       }
       //limit ok so insert field
       $dtl['dtl_RecID'] = $recID;
-      mysql__insert('recDetails', $dtl);
-      if (mysql_error()) {
-        $insertErrors[$recID] = "Database problem - inserting field type $dtyName for record ($recID) error - ". mysql_error();
+      mysqli__insert($mysqli, 'recDetails', $dtl);
+      if ($mysqli->error) {
+        $insertErrors[$recID] = "Database problem - inserting field type $dtyName for record ($recID) error - ". $mysqli->error;
         continue;
       }
       array_push($processedRecIDs, $recID);
@@ -197,7 +197,7 @@
     }
     $passedRecIDCnt = count(@$recIDs);
     if ($passedRecIDCnt) {//check editable access for passed records
-      $recIDs = mysql__select_array('Records','rec_ID',"rec_ID in (".join(",",$recIDs).") and rec_OwnerUGrpID in (".join(",",$ACCESSABLE_OWNER_IDS).")");
+      $recIDs = mysqli__select_array($mysqli, 'Records','rec_ID',"rec_ID in (".join(",",$recIDs).") and rec_OwnerUGrpID in (".join(",",$ACCESSABLE_OWNER_IDS).")");
       $inAccessableRecCnt = $passedRecIDCnt - count(@$recIDs);
     }
 // user chose add by rectype not recIDs so calc recID set
@@ -206,11 +206,11 @@
       if (is_array($rtyID)){
         $rtyID = $rtyID[0];// limit to single type for now
       }
-      $recIDs = mysql__select_array('Records','rec_ID',"rec_RecTypeID = $rtyID and rec_OwnerUGrpID in (".join(",",$ACCESSABLE_OWNER_IDS).")");
-      $totalRecTypeCnt = mysql_num_rows(mysql_query("select * from Records where rec_RecTypeID = $rtyID"));
+      $recIDs = mysqli__select_array($mysqli, 'Records','rec_ID',"rec_RecTypeID = $rtyID and rec_OwnerUGrpID in (".join(",",$ACCESSABLE_OWNER_IDS).")");
+      $totalRecTypeCnt = mysqli_num_rows($mysqli->query("select * from Records where rec_RecTypeID = $rtyID"));
       $inAccessableRecCnt = $totalRecTypeCnt - count($recIDs);
     }
-//error_log("recIDs ".print_r($recIDs,true). " ".mysql_error());
+//error_log("recIDs ".print_r($recIDs,true). " ".$mysqli->error);
     $result['count'] = array('passed'=> ($passedRecIDCnt?$passedRecIDCnt:0),
                               'rtyRecs'=> (@$totalRecTypeCnt?$totalRecTypeCnt:0),
                               'noAccess'=> (@$inAccessibleRecCnt?$inAccessibleRecCnt:0));
@@ -219,13 +219,13 @@
       $result['none'] = "No editable records found in current set". ($inAccessableRecCnt ? " ($inAccessableRecCnt inaccessable records).":".");
       return $result;
     }else{
-      $rtyIDs = mysql__select_array('Records','distinct(rec_RecTypeID)',"rec_ID in (".join(",",$recIDs).")");
+      $rtyIDs = mysqli__select_array($mysqli, 'Records','distinct(rec_RecTypeID)',"rec_ID in (".join(",",$recIDs).")");
     }
-//error_log("rectypes ".print_r($rtyIDs,true). " ".mysql_error());
+//error_log("rectypes ".print_r($rtyIDs,true). " ".$mysqli->error);
     $dtyID = $data['dtyID'];
     $dtyName = (@$data['dtyName'] ? "'".$data['dtyName']."'" : "(".$data['dtyID'].")");
 
-    $basetype = mysql__select_array('defDetailTypes','dty_Type',"dty_ID = $dtyID");
+    $basetype = mysqli__select_array($mysqli, 'defDetailTypes','dty_Type',"dty_ID = $dtyID");
     $basetype = $basetype[0];
     switch ($basetype) {
       case "freetext":
@@ -252,19 +252,19 @@
     $updateErrors = array();
     $detailCnt = 0;
     $detailErrorCnt = 0;
-    mysql_connection_overwrite(DATABASE);
+    $mysqli = mysqli_connection_overwrite(DATABASE);
     foreach ($recIDs as $recID) {
       //get matching detail value for record if there is one
       $query = "select dtl_ID, dtl_Value from recDetails ".
                 "where dtl_RecID = $recID and dtl_DetailTypeID = $dtyID and $searchClause";
-      $res = mysql_query($query);
-      if (mysql_num_rows($res)==0) {
+      $res = $mysqli->query($query);
+      if ($res->num_rows==0) {
         array_push($nonMatchingFieldsRecIDs, $recID);
         continue;
       }
       //update the details
       $recDetailWasUpdated = false;
-      while ($row = mysql_fetch_row($res)) {
+      while ($row = $res->fetch_row()) {
 //error_log("recID $recID - matching detail info ".print_r($row,true). " ".mysql_error($res));
         $dtlID = @$row[0];
         if ($partialReplace) {// need to replace sVal with rVal
@@ -273,11 +273,11 @@
         }else{
           $newVal = $data['rVal'];
         }
-        mysql_query("update recDetails set dtl_Value = '$newVal' where dtl_ID = $dtlID");
-//error_log("dtlID $dtlID - updating with $newVal ".mysql_error());
-        if (mysql_error()) {
+        $mysqli->query("update recDetails set dtl_Value = '$newVal' where dtl_ID = $dtlID");
+//error_log("dtlID $dtlID - updating with $newVal ".$mysqli->error);
+        if ($mysqli->error) {
           $detailErrorCnt++;
-          $updateErrors[$recID] = "Database problem - finding field type $dtyName for record ($recID) error - ". mysql_error();
+          $updateErrors[$recID] = "Database problem - finding field type $dtyName for record ($recID) error - ". $mysqli->error;
           continue;
         } else {
           $recDetailWasUpdated = true;
@@ -348,7 +348,7 @@
     }
     $passedRecIDCnt = count(@$recIDs);
     if ($passedRecIDCnt) {//check editable access for passed records
-      $recIDs = mysql__select_array('Records','rec_ID',"rec_ID in (".join(",",$recIDs).") and rec_OwnerUGrpID in (".join(",",$ACCESSABLE_OWNER_IDS).")");
+      $recIDs = mysqli__select_array($mysqli, 'Records','rec_ID',"rec_ID in (".join(",",$recIDs).") and rec_OwnerUGrpID in (".join(",",$ACCESSABLE_OWNER_IDS).")");
       $inAccessableRecCnt = $passedRecIDCnt - count(@$recIDs);
     }
 // user chose add by rectype not recIDs so calc recID set
@@ -357,11 +357,11 @@
       if (is_array($rtyID)){
         $rtyID = $rtyID[0];// limit to single type for now
       }
-      $recIDs = mysql__select_array('Records','rec_ID',"rec_RecTypeID = $rtyID and rec_OwnerUGrpID in (".join(",",$ACCESSABLE_OWNER_IDS).")");
-      $totalRecTypeCnt = mysql_num_rows(mysql_query("select * from Records where rec_RecTypeID = $rtyID"));
+      $recIDs = mysqli__select_array($mysqli, 'Records','rec_ID',"rec_RecTypeID = $rtyID and rec_OwnerUGrpID in (".join(",",$ACCESSABLE_OWNER_IDS).")");
+      $totalRecTypeCnt = mysqli_num_rows($mysqli->query("select * from Records where rec_RecTypeID = $rtyID"));
       $inAccessableRecCnt = $totalRecTypeCnt - count($recIDs);
     }
-//error_log("recIDs ".print_r($recIDs,true). " ".mysql_error());
+//error_log("recIDs ".print_r($recIDs,true). " ".$mysqli->error);
     $result['count'] = array('passed'=> ($passedRecIDCnt?$passedRecIDCnt:0),
                               'rtyRecs'=> (@$totalRecTypeCnt?$totalRecTypeCnt:0),
                               'noAccess'=> (@$inAccessibleRecCnt?$inAccessibleRecCnt:0));
@@ -370,14 +370,14 @@
       $result['none'] = "No editable records found in current set". ($inAccessableRecCnt ? " ($inAccessableRecCnt inaccessable records).":".");
       return $result;
     }else{
-      $rtyIDs = mysql__select_array('Records','distinct(rec_RecTypeID)',"rec_ID in (".join(",",$recIDs).")");
+      $rtyIDs = mysqli__select_array($mysqli, 'Records','distinct(rec_RecTypeID)',"rec_ID in (".join(",",$recIDs).")");
     }
 
-//error_log("rectypes ".print_r($rtyIDs,true). " ".mysql_error());
+//error_log("rectypes ".print_r($rtyIDs,true). " ".$mysqli->error);
     $dtyID = $data['dtyID'];
     $dtyName = (@$data['dtyName'] ? "'".$data['dtyName']."'" : "(".$data['dtyID'].")");
 
-    $basetype = mysql__select_array('defDetailTypes','dty_Type',"dty_ID = $dtyID");
+    $basetype = mysqli__select_array($mysqli, 'defDetailTypes','dty_Type',"dty_ID = $dtyID");
     $basetype = $basetype[0];
     switch ($basetype) {
       case "freetext":
@@ -400,15 +400,15 @@
     $deleteErrors = array();
     $detailCnt = 0;
     $detailErrorCnt = 0;
-    mysql_connection_overwrite(DATABASE);
+    $mysqli = mysqli_connection_overwrite(DATABASE);
     foreach ($recIDs as $recID) {
       //get matching detail value for record if there is one
       $query = "select dtl_ID, dtl_Value from recDetails ".
                 "where dtl_RecID = $recID and dtl_DetailTypeID = $dtyID and $searchClause";
 
 
-      $res = mysql_query($query);
-      if (mysql_num_rows($res)==0) {
+      $res = $mysqli->query($query);
+      if ($res->num_rows==0) {
         array_push($nonMatchingFieldsRecIDs, $recID);
         continue;
       }
@@ -416,15 +416,15 @@
       $recDetailWasDeleted = false;
       $errorDtlIDs = array();
       $mysqlErrorDtl = array();
-      while ($row = mysql_fetch_row($res)) {
+      while ($row = $res->fetch_row()) {
 //error_log("recID $recID - matching detail info ".print_r($row,true). " ".mysql_error($res));
         $dtlID = @$row[0];
-        mysql_query("delete from recDetails where dtl_RecID = $recID and dtl_ID = $dtlID");
-//error_log("dtlID $dtlID - updating with $newVal ".mysql_error());
-        if (mysql_error() || ! mysql_affected_rows()) {
+        $mysqli->query("delete from recDetails where dtl_RecID = $recID and dtl_ID = $dtlID");
+//error_log("dtlID $dtlID - updating with $newVal ".$mysqli->error);
+        if ($mysqli->error || ! $mysqli->affected_rows) {
           $detailErrorCnt++;
           array_push($errorDtlIDs, $dtlID);
-          array_push($mysqlErrorDtl, mysql_error());
+          array_push($mysqlErrorDtl, $mysqli->error);
           $deleteErrors[$recID] = "Database problem - deleting field type $dtyName (dtlID=".join(",",$errorDtlIDs).") for record ($recID) error - ". join("- error -",$mysqlErrorDtl);
           continue;
         } else {
@@ -487,19 +487,19 @@
         return false;
       }
     }
-    $res = mysql_query("select rec_ID, rec_Title, rec_RecTypeID from Records".
+    $res = $mysqli->query("select rec_ID, rec_Title, rec_RecTypeID from Records".
                         " where ! rec_FlagTemporary and rec_ID in (".join(",",$recIDs).") order by rand()");
     $recs = array();
-    while ($row = mysql_fetch_assoc($res)) {
+    while ($row = $res->fetch_assoc()) {
       $recs[$row['rec_ID']] = $row;
     }
     /*****DEBUG****///error_log(print_r($recs,true));
-    $masks = mysql__select_assoc('defRecTypes', 'rty_ID', 'rty_TitleMask', '1');
+    $masks = mysqli__select_assoc($mysqli, 'defRecTypes', 'rty_ID', 'rty_TitleMask', '1');
 
     foreach ($recIDs as $recID) {
       $rtyID = $recs[$recID]['rec_RecTypeID'];
       $new_title = fill_title_mask($masks[$rtyID], $recID, $rtyID);
-      mysql_query("update Records set rec_Title = '" . addslashes($new_title) . "'where rec_ID = $recID");
+      $mysqli->query("update Records set rec_Title = '" . addslashes($new_title) . "'where rec_ID = $recID");
     }
   }
 
@@ -508,12 +508,12 @@
     $result = array();
     $bkmk_ids = $data['bkmk_ids'];
 
-    mysql_connection_overwrite(DATABASE);
-    mysql_query('delete usrRecTagLinks from usrBookmarks left join usrRecTagLinks on rtl_RecID=bkm_RecID where bkm_ID in ('.join(',', $bkmk_ids).') and bkm_UGrpID=' . get_user_id());
-    mysql_query('delete from usrBookmarks where bkm_ID in ('.join(',', $bkmk_ids).') and bkm_UGrpID=' . get_user_id());
-    $deleted_count = mysql_affected_rows();
+    $mysqli = mysqli_connection_overwrite(DATABASE);
+    $mysqli->query('delete usrRecTagLinks from usrBookmarks left join usrRecTagLinks on rtl_RecID=bkm_RecID where bkm_ID in ('.join(',', $bkmk_ids).') and bkm_UGrpID=' . get_user_id());
+    $mysqli->query('delete from usrBookmarks where bkm_ID in ('.join(',', $bkmk_ids).') and bkm_UGrpID=' . get_user_id());
+    $deleted_count = $mysqli->affected_rows;
 
-    if (mysql_error()) {
+    if ($mysqli->error) {
       $result['problem'] = "Database problem - no bookmarks deleted";
     }else{
       $result['ok'] = "Deleted ". $deleted_count. " bookmark".($deleted_count>1?"s":"");
@@ -528,17 +528,17 @@
     $tagString = trim($data['tagString']);
 
     if ($tagString) {
-      mysql_connection_overwrite(DATABASE);
+      $mysqli = mysqli_connection_overwrite(DATABASE);
 
       $tags = get_ids_for_tags(array_filter(explode(',', $tagString)), true);
-      mysql_query('insert ignore into usrRecTagLinks (rtl_RecID, rtl_TagID) '
+      $mysqli->query('insert ignore into usrRecTagLinks (rtl_RecID, rtl_TagID) '
         . 'select bkm_recID, tag_ID from usrBookmarks, usrTags '
         . ' where bkm_ID in (' . join(',', $bkmk_ids) . ') and bkm_UGrpID = ' . get_user_id()
         . ' and tag_ID in (' . join(',', $tags) . ')');
-      $tag_count = mysql_affected_rows();
+      $tag_count = $mysqli->affected_rows;
 
-      if (mysql_error()) {
-        $result['problem'] = 'Database problem - ' . addslashes(mysql_error()) . ' - no tags added';
+      if ($mysqli->error) {
+        $result['problem'] = 'Database problem - ' . addslashes($mysqli->error) . ' - no tags added';
       } else if ($tag_count == 0) {
 
         $result = bookmark_and_tag_record_ids($data);
@@ -562,17 +562,17 @@
     $wgTags = $data['wgTag_ids'];
 
     if (count($wgTags) && count($rec_ids)) {
-      mysql_connection_overwrite(DATABASE);
+      $mysqli = mysqli_connection_overwrite(DATABASE);
 
-      mysql_query('insert ignore into usrRecTagLinks (rtl_RecID, rtl_TagID) '
+      $mysqli->query('insert ignore into usrRecTagLinks (rtl_RecID, rtl_TagID) '
         . 'select rec_ID, tag_ID from usrTags, '.USERS_DATABASE.'.sysUsrGrpLinks, Records '
         . ' where rec_ID in (' . join(',', $rec_ids) . ') '
         . ' and ugl_GroupID=tag_UGrpID and ugl_UserID='.get_user_id()	//make sure the user blongs to the workgroup
         . ' and tag_ID in (' . join(',', $wgTags) . ')');
-      $wgTag_count = mysql_affected_rows();
+      $wgTag_count = $mysqli->affected_rows;
 
-      if (mysql_error()) {
-        $result['problem'] = 'Database problem - ' . addslashes(mysql_error()) . ' - no workgroup tags added';
+      if ($mysqli->error) {
+        $result['problem'] = 'Database problem - ' . addslashes($mysqli->error) . ' - no workgroup tags added';
       } else if ($wgTag_count == 0) {
         $result['none'] = 'No new workgroup tags needed to be added';
       } else {
@@ -596,18 +596,18 @@
 
     if (count($wgTags) && count($rec_ids)) {
 
-      mysql_connection_overwrite(DATABASE);
+      $mysqli = mysqli_connection_overwrite(DATABASE);
 
-      mysql_query('delete usrRecTagLinks from usrRecTagLinks'
+      $mysqli->query('delete usrRecTagLinks from usrRecTagLinks'
         . ' left join usrTags on tag_ID = rtl_TagID'
         . ' left join '.USERS_DATABASE.'.sysUsrGrpLinks on ugl_GroupID = tag_UGrpID'
         . ' where rtl_RecID in (' . join(',', $rec_ids) . ')'
         . ' and ugl_UserID = ' . get_user_id()
         . ' and tag_ID in (' . join(',', $wgTags) . ')');
-      $wgTag_count = mysql_affected_rows();
+      $wgTag_count = $mysqli->affected_rows;
 
-      if (mysql_error()) {
-        $result['problem'] = 'Database problem - ' . addslashes(mysql_error()) . ' - no workgroup tags added';
+      if ($mysqli->error) {
+        $result['problem'] = 'Database problem - ' . addslashes($mysqli->error) . ' - no workgroup tags added';
       } else if ($wgTag_count == 0) {
         $result['none'] = 'No workgroup tags matched, none removed';
       } else {
@@ -628,21 +628,21 @@
     $tagString = trim($data['tagString']);
 
     if ($tagString) {
-      mysql_connection_overwrite(DATABASE);
+      $mysqli = mysqli_connection_overwrite(DATABASE);
 
       $tag_count = 0;
       $tags = get_ids_for_tags(array_filter(explode(',', $tagString)), false);
       if (count($bkmk_ids)  &&  $tags  &&  count($tags)) {
-        mysql_query('delete usrRecTagLinks from usrBookmarks'
+        $mysqli->query('delete usrRecTagLinks from usrBookmarks'
           . ' left join usrRecTagLinks on rtl_RecID = bkm_RecID'
           . ' left join usrTags on tag_ID = rtl_TagID'
           . ' where bkm_ID in (' . join(',', $bkmk_ids) . ') and bkm_UGrpID = ' . get_user_id()
           . ' and tag_ID in (' . join(',', $tags) . ')'
           . ' and tag_UGrpID = bkm_UGrpID');
-        $tag_count = mysql_affected_rows();
+        $tag_count = $mysqli->affected_rows;
       }
-      if (mysql_error()) {
-        $result['problem'] = 'Database problem - ' . addslashes(mysql_error()) . ' - no tags removed';
+      if ($mysqli->error) {
+        $result['problem'] = 'Database problem - ' . addslashes($mysqli->error) . ' - no tags removed';
       } else if ($tag_count == 0) {
 
         $result['none'] = "No tags matched, none removed";
@@ -665,13 +665,13 @@
     $bkmk_ids = $data['bkmk_ids'];
     $rating = intval($data['ratings']);
 
-    mysql_connection_overwrite(DATABASE);
+    $mysqli = mysqli_connection_overwrite(DATABASE);
     $query =  'update usrBookmarks set bkm_Rating = ' . $rating . ' where bkm_ID in (' . join(',', $bkmk_ids) . ') and bkm_UGrpID = ' . get_user_id();
-    mysql_query($query);
-    $update_count = mysql_affected_rows();
+    $mysqli->query($query);
+    $update_count = $mysqli->affected_rows;
 
-    if (mysql_error()) {
-      $result['problem'] = 'Database problem - ' . addslashes(mysql_error()) . ' - ratings not set';
+    if ($mysqli->error) {
+      $result['problem'] = 'Database problem - ' . addslashes($mysqli->error) . ' - ratings not set';
     }else  if ($update_count == 0) {
       $result['none'] = "No changes made - ratings are up-to-date";
     } else {
@@ -685,29 +685,29 @@
 
     $result = array();
 
-    mysql_connection_overwrite(DATABASE);
+    $mysqli = mysqli_connection_overwrite(DATABASE);
 
     $rec_ids = record_filter($data['rec_ids']);
-    $new_rec_ids = mysql__select_array('Records left join usrBookmarks on bkm_recID=rec_ID and bkm_UGrpID='.get_user_id(),
+    $new_rec_ids = mysqli__select_array($mysqli, 'Records left join usrBookmarks on bkm_recID=rec_ID and bkm_UGrpID='.get_user_id(),
       'rec_ID', 'bkm_ID is null and rec_ID in (' . join(',', $rec_ids) . ')');
     //find bookmarks for given list of records
-    $existing_bkmk_ids = mysql__select_array('Records left join usrBookmarks on bkm_recID=rec_ID and bkm_UGrpID='.get_user_id(),
+    $existing_bkmk_ids = mysqli__select_array($mysqli, 'Records left join usrBookmarks on bkm_recID=rec_ID and bkm_UGrpID='.get_user_id(),
       'concat(bkm_ID,":true")', 'bkm_ID is not null and rec_ID in (' . join(',', $rec_ids) . ')');
 
     if ($new_rec_ids) {
       //add new bookmarks
-      mysql_query('insert into usrBookmarks
+      $mysqli->query('insert into usrBookmarks
         (bkm_UGrpID, bkm_Added, bkm_Modified, bkm_recID)
         select ' . get_user_id() . ', now(), now(), rec_ID
         from Records where rec_ID in (' . join(',', $new_rec_ids) . ')');
-      $inserted_count = mysql_affected_rows();
-      $bkmk_ids = mysql__select_array('usrBookmarks', 'bkm_ID', 'bkm_recID in ('.join(',',$new_rec_ids).') and bkm_UGrpID = ' . get_user_id());
+      $inserted_count = $mysqli->affected_rows;
+      $bkmk_ids = mysqli__select_array($mysqli, 'usrBookmarks', 'bkm_ID', 'bkm_recID in ('.join(',',$new_rec_ids).') and bkm_UGrpID = ' . get_user_id());
     } else {
       $inserted_count = -1;
     }
 
-    if (mysql_error()) {
-      $result['problem'] = 'Database problem - ' . addslashes(mysql_error()) . ' - no bookmarks added';
+    if ($mysqli->error) {
+      $result['problem'] = 'Database problem - ' . addslashes($mysqli->error) . ' - no bookmarks added';
     }else  if ($inserted_count < 1  &&  count($existing_bkmk_ids) < 1) {
 
       //neither new bookmarks, nor existing ones - try to add tags in this case
@@ -737,7 +737,7 @@
 
     $result = array();
 
-    mysql_connection_overwrite(DATABASE);
+    $mysqli = mysqli_connection_overwrite(DATABASE);
 
     $rec_ids = record_filter($data['rec_ids']);
     $tagString = trim($data['tagString']);
@@ -746,34 +746,34 @@
       $result['none'] = 'No tags selected for records.';
     }else{
 
-      $new_rec_ids = mysql__select_array('Records left join usrBookmarks on bkm_recID=rec_ID and bkm_UGrpID='.get_user_id(),
+      $new_rec_ids = mysqli__select_array($mysqli, 'Records left join usrBookmarks on bkm_recID=rec_ID and bkm_UGrpID='.get_user_id(),
         'rec_ID', 'bkm_ID is null and rec_ID in (' . join(',', $rec_ids) . ')');
 
       if ($new_rec_ids) {
-        mysql_query('insert into usrBookmarks
+        $mysqli->query('insert into usrBookmarks
           (bkm_UGrpID, bkm_Added, bkm_Modified, bkm_recID)
           select ' . get_user_id() . ', now(), now(), rec_ID
           from Records where rec_ID in (' . join(',', $new_rec_ids) . ')');
-        $inserted_count = mysql_affected_rows();
+        $inserted_count = $mysqli->affected_rows;
       }
 
-      $bkmk_ids = mysql__select_array('usrBookmarks', 'bkm_ID', 'bkm_recID in ('.join(',',$rec_ids).') and bkm_UGrpID = ' . get_user_id());
+      $bkmk_ids = mysqli__select_array($mysqli, 'usrBookmarks', 'bkm_ID', 'bkm_recID in ('.join(',',$rec_ids).') and bkm_UGrpID = ' . get_user_id());
 
-      if (mysql_error()) {
-        $result['problem'] = 'Database problem - ' . addslashes(mysql_error()) . ' - no bookmarks added';
+      if ($mysqli->error) {
+        $result['problem'] = 'Database problem - ' . addslashes($mysqli->error) . ' - no bookmarks added';
       } else if (count($bkmk_ids) < 1) {
         $result['none'] = 'No bookmark found or created for selected records.';
       } else {	//we have bookmarks lets add the tags
 
         $tags = get_ids_for_tags(array_filter(explode(',', $tagString)), true);
-        mysql_query('insert ignore into usrRecTagLinks (rtl_RecID, rtl_TagID) '
+        $mysqli->query('insert ignore into usrRecTagLinks (rtl_RecID, rtl_TagID) '
           . 'select bkm_recID, tag_ID from usrBookmarks, usrTags '
           . ' where bkm_ID in (' . join(',', $bkmk_ids) . ') and bkm_UGrpID = ' . get_user_id()
           . ' and tag_ID in (' . join(',', $tags) . ') and tag_UGrpID = bkm_UGrpID');
-        $tag_count = mysql_affected_rows();
+        $tag_count = $mysqli->affected_rows;
 
-        if (mysql_error()) {
-          $result['problem'] = 'Database problem - ' . addslashes(mysql_error()) . ' - no tags added.';
+        if ($mysqli->error) {
+          $result['problem'] = 'Database problem - ' . addslashes($mysqli->error) . ' - no tags added.';
         } else {
           if ($tag_count == 0) {
             $message = 'No new tags needed to be added' ;
@@ -795,7 +795,7 @@
 
     $result = array();
 
-    mysql_connection_overwrite(DATABASE);
+    $mysqli = mysqli_connection_overwrite(DATABASE);
     $wg = intval(@$data['svs_UGrpID']);
     $sID = $data['svs_ID'];
     //$publish = $data['publish'];
@@ -810,23 +810,23 @@
       'svs_Modified'  => $now);
 
     /* overwrites saved search with same name
-    $res = mysql_query('select svs_ID, svs_UGrpID from usrSavedSearches where svs_Name="'.slash($_REQUEST['svs_Name']).'"'.
+    $res = $mysqli->query('select svs_ID, svs_UGrpID from usrSavedSearches where svs_Name="'.slash($_REQUEST['svs_Name']).'"'.
     ' and svs_UGrpID='.$cmb['svs_UGrpID']);
-    $row = mysql_fetch_row($res);*/
+    $row = $res->fetch_row();*/
 
     if ($sID) {
       /*$row ||  if ($row ) {
       $ss = intval($row[0]);
       }*/
-      mysql__update('usrSavedSearches', 'svs_ID='.$sID, $cmb);
+      mysqli__update($mysqli, 'usrSavedSearches', 'svs_ID='.$sID, $cmb);
     } else {
-      mysql__insert('usrSavedSearches', $cmb);
-      $sID = mysql_insert_id();
+      mysqli__insert($mysqli, 'usrSavedSearches', $cmb);
+      $sID = $mysqli->insert_id;
     }
 
-    if (mysql_error()) {
+    if ($mysqli->error) {
 
-      $result['problem'] = 'Database problem (' . addslashes(mysql_error()).') - search not saved';
+      $result['problem'] = 'Database problem (' . addslashes($mysqli->error).') - search not saved';
     } else {// execute function in calling context insertSavedSearch(ssName, ssQuery, wg, ssID)
       $result['execute'] = array('insertSavedSearch', $data['svs_Name'], $data['svs_Query'] , $wg, $sID);
 
@@ -855,7 +855,7 @@
       if (($wg == -1 ||  $wg == 0 || in_array($wg, get_group_ids()))  &&
         (in_array(strtolower($vis),array('viewable','hidden','pending','public'))))
       {
-        mysql_connection_overwrite(DATABASE);
+        $mysqli = mysqli_connection_overwrite(DATABASE);
 
         if ($wg === 0 && $vis === 'hidden') $vis = 'viewable';
         if ($wg >= 0){
@@ -867,11 +867,11 @@
         $query = 'update Records set '.$editable.'rec_NonOwnerVisibility = "' . $vis . '"'.
         ' where rec_ID in (' . join(',', $rec_ids) . ')';
 
-        mysql_query($query);
-        if (mysql_error()) {
-          $result['problem'] = 'Database problem (' . addslashes(mysql_error()).')';
+        $mysqli->query($query);
+        if ($mysqli->error) {
+          $result['problem'] = 'Database problem (' . addslashes($mysqli->error).')';
         }else{
-          $result['ok'] = mysql_affected_rows().' records updated';
+          $result['ok'] = $mysqli->affected_rows.' records updated';
         }
 
       } else {
@@ -910,12 +910,12 @@
   function record_filter($rec_ids) {
     // return an array of only the rec_ids that exist and the user has access to (workgroup filtered)
 
-    $wg_ids = mysql__select_array(USERS_DATABASE.'.sysUsrGrpLinks', 'ugl_GroupID', 'ugl_UserID='.get_user_id());
+    $wg_ids = mysqli__select_array($mysqli, USERS_DATABASE.'.sysUsrGrpLinks', 'ugl_GroupID', 'ugl_UserID='.get_user_id());
     array_push($wg_ids, 0);	// zero as record owner means owned by all
     if (! in_array(get_user_id(),$wg_ids)) {
       array_push($wg_ids, get_user_id());
     }
-    $f_rec_ids = mysql__select_array('Records', 'rec_ID',
+    $f_rec_ids = mysqli__select_array($mysqli, 'Records', 'rec_ID',
       'rec_ID in ('.join(',', array_map('intval', $rec_ids)).') and (rec_OwnerUGrpID in ('.join(',', $wg_ids).') or rec_NonOwnerVisibility = "viewable")');
 
     return $f_rec_ids;
@@ -937,29 +937,29 @@
         if ( ($slashpos = strpos($tag_name, '\\')) ) {	// it's a workgroup tag
           $grp_name = substr($tag_name, 0, $slashpos);
           $tag_name = substr($tag_name, $slashpos+1);
-          $res = mysql_query('select tag_ID from usrTags, '.USERS_DATABASE.'.sysUsrGrpLinks,
+          $res = $mysqli->query('select tag_ID from usrTags, '.USERS_DATABASE.'.sysUsrGrpLinks,
             '.USERS_DATABASE.'.sysUGrps grp where ugr_Type != "User" and tag_UGrpID=ugl_GroupID and '.
             'ugl_GroupID=grp.ugr_ID and ugl_UserID='.$userid.
-            ' and grp.ugr_Name="'.mysql_real_escape_string($grp_name).
-            '" and lower(tag_Text)=lower("'.mysql_real_escape_string($tag_name).'")');
+            ' and grp.ugr_Name="'.$mysqli->real_escape_string($grp_name).
+            '" and lower(tag_Text)=lower("'.$mysqli->real_escape_string($tag_name).'")');
         }
         else {
-          $res = mysql_query('select tag_ID from usrTags where lower(tag_Text)=lower("'.
-            mysql_real_escape_string($tag_name).'") and tag_UGrpID='.$userid);
+          $res = $mysqli->query('select tag_ID from usrTags where lower(tag_Text)=lower("'.
+            $mysqli->real_escape_string($tag_name).'") and tag_UGrpID='.$userid);
         }
 
-        if (mysql_num_rows($res) > 0) {
-          $row = mysql_fetch_row($res);
+        if ($res->num_rows > 0) {
+          $row = $res->fetch_row();
           array_push($tag_ids, $row[0]);
         }else if ($add) {
           // non-existent tag ... add it
           $tag_name = str_replace("\\", "/", $tag_name);	// replace backslashes with forwardslashes
-          mysql_query("insert into usrTags (tag_Text, tag_UGrpID) values (\"" . mysql_real_escape_string($tag_name) . "\", " . $userid . ")");
-          if (mysql_error()) {
-            error_log(">>>> Erorr adding tag ".mysql_error());
+          $mysqli->query("insert into usrTags (tag_Text, tag_UGrpID) values (\"" . $mysqli->real_escape_string($tag_name) . "\", " . $userid . ")");
+          if ($mysqli->error) {
+            error_log(">>>> Erorr adding tag ".$mysqli->error);
           }else{
             // saw TODO: add error coding here
-            array_push($tag_ids, mysql_insert_id());
+            array_push($tag_ids, $mysqli->insert_id);
           }
         }
       }

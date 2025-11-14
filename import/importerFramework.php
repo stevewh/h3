@@ -114,8 +114,8 @@ $rectype_to_bdt_id_map = array(
 );
 
 
-mysql_connection_overwrite(DATABASE);
-mysql_query('set @logged_in_user_id = ' . get_user_id());
+$mysqli = mysqli_connection_overwrite(DATABASE);
+$mysqli->query('set @logged_in_user_id = ' . get_user_id());
 
 /*****DEBUG****/// error_log("made it to importerFramework.php");
 /*****DEBUG****///error_log('session ZoteroItems: ' . print_r($_SESSION[HEURIST_SESSION_DB_PREFIX.'heurist']['ZoteroItems'], 1));
@@ -907,7 +907,7 @@ function mode_crosswalking() {
         <a href="#" target="_ignore" onClick="add_tag('To Read'); return false;">To Read</a>&nbsp;
       </div>
        <?php
-	$top_tags = mysql__select_array('usrRecTagLinks left join usrTags on rtl_TagID=tag_ID',
+	$top_tags = mysqli__select_array($mysqli, 'usrRecTagLinks left join usrTags on rtl_TagID=tag_ID',
 	                                    'tag_Text, count(tag_ID) as count',
 	                                    'tag_UGrpID='.get_user_id().' group by tag_ID order by count desc limit 5');
 	if ($top_tags) {
@@ -926,7 +926,7 @@ function mode_crosswalking() {
        ?>
 
        <?php
-	$recent_tags = mysql__select_array('usrRecTagLinks left join usrTags on rtl_TagID=tag_ID',
+	$recent_tags = mysqli__select_array($mysqli, 'usrRecTagLinks left join usrTags on rtl_TagID=tag_ID',
 	                                    'distinct(tag_Text)',
 	                                    'tag_UGrpID='.get_user_id().' order by rtl_ID desc limit 5');
 	if ($recent_tags) {
@@ -972,14 +972,14 @@ function add_tag(tag) {
 
 <?php
 	/* are there any workgroup-tags for any workgroups this user is in? If so, show the workgroup-tag section */
-	$res = mysql_query('select tag_ID, grp.ugr_Name, tag_Text from usrTags, '.USERS_DATABASE.'.sysUsrGrpLinks, '.USERS_DATABASE.'.sysUGrps grp where tag_UGrpID=ugl_GroupID and ugl_GroupID=grp.ugr_ID and ugl_UserID=' . get_user_id() . ' order by grp.ugr_Name, tag_Text');
-	if (mysql_num_rows($res) > 0) {
+	$res = $mysqli->query('select tag_ID, grp.ugr_Name, tag_Text from usrTags, '.USERS_DATABASE.'.sysUsrGrpLinks, '.USERS_DATABASE.'.sysUGrps grp where tag_UGrpID=ugl_GroupID and ugl_GroupID=grp.ugr_ID and ugl_UserID=' . get_user_id() . ' order by grp.ugr_Name, tag_Text');
+	if ($res->num_rows > 0) {
 ?>
     <div style="margin-top: 1ex; margin-left: 10ex;white-space:nowrap;">
      Workgroup tag:
      <select name="workgroup_tag">
       <option selected></option>
-<?php		while ($row = mysql_fetch_assoc($res)) {	//saw TODO: add option grouping by workgroup and remove groupname\ ?>
+<?php		while ($row = $res->fetch_assoc()) {	//saw TODO: add option grouping by workgroup and remove groupname\ ?>
       <option value="<?= addslashes($row['tag_ID']) ?>">
        <?= htmlspecialchars($row['ugr_Name']) ?> \ <?= htmlspecialchars($row['tag_Text']) ?>
       </option>
@@ -1049,12 +1049,12 @@ function mode_entry_insertion() {
 	$session_data['import_time'] =  date('Y-m-d H:i:s');
 	// add a tag (tag) for this import session to all entries
 	$import_tag = 'File Import ' . $session_data['import_time'];
-	$res = mysql__insert('usrTags', array(
+	$res = mysqli__insert($mysqli, 'usrTags', array(
 		'tag_Text'		=> $import_tag,
 		'tag_UGrpID'	=> get_user_id()));
 	// add a saved search for records with this tag
 	$now = date('Y-m-d');
-	mysql__insert('usrSavedSearches', array(
+	mysqli__insert($mysqli, 'usrSavedSearches', array(
 		'svs_Name'		=> $import_tag,
 		'ss_url'		=> '?ver=1&w=all&q=kwd%3A%22'.str_replace(' ','%20',$import_tag).'%22',
 		'svs_UGrpID'	=> get_user_id(),
@@ -1482,11 +1482,11 @@ function find_exact_entry(&$entry) {
 	}
 
 	/*****DEBUG****/// error_log("select rec_ID from records where ! rec_FlagTemporary and rec_RecTypeID = " . $entry->getReferenceType() . " and rec_Hash = upper('" . addslashes($entry->getHHash()) . "') order by rec_ID");
-	$res = mysql_query("select rec_ID from Records where ! rec_FlagTemporary and rec_RecTypeID = " . $entry->getReferenceType() . " and rec_Hash = upper('" . addslashes($entry->getHHash()) . "') order by rec_ID");
+	$res = $mysqli->query("select rec_ID from Records where ! rec_FlagTemporary and rec_RecTypeID = " . $entry->getReferenceType() . " and rec_Hash = upper('" . addslashes($entry->getHHash()) . "') order by rec_ID");
 
-	if (mysql_num_rows($res) < 1) return false;
+	if ($res->num_rows < 1) return false;
 	// choose One Of The Matches ... tend to think that the one with the lowest bibID has precedence ...
-	$someMatch = mysql_fetch_row($res);
+	$someMatch = $res->fetch_row();
 	$someMatch = $someMatch[0];
 	if ($someMatch) {
 	/*****DEBUG****/// error_log(" matching recID = ". $someMatch);
@@ -1520,10 +1520,10 @@ function find_similar_entries(&$entry) {
 	}
 	/*****DEBUG****/// error_log($similar_query);
 
-	$res = mysql_query($similar_query);
+	$res = $mysqli->query($similar_query);
 
 	$near_misses = array();
-	while ($row = mysql_fetch_assoc($res)) {
+	while ($row = $res->fetch_assoc()) {
 		array_push($near_misses, $row["matching_bib_id"]);
 	}
 	/*****DEBUG****/// error_log("near misses = ".join(',',$near_misses));
@@ -1553,8 +1553,8 @@ function find_similar_entries(&$entry) {
 function biblio_are_equal($bib_id1, $bib_id2) {
 	// do a recursive comparison on the two Records records
 	// regard the first one as "authoritative", the second as "speculative" where this makes any sense
-	$res = mysql_query("select 1 from Records where rec_ID = $bib_id1 and rec_Hash = hhash($bib_id2)");
-	return (mysql_num_rows($res) > 0);
+	$res = $mysqli->query("select 1 from Records where rec_ID = $bib_id1 and rec_Hash = hhash($bib_id2)");
+	return ($res->num_rows > 0);
 
 	$equality_query =
 '
@@ -1569,9 +1569,9 @@ left join defDetailTypes on dty_ID=BD1.dtl_DetailTypeID
  group by BD2.dtl_RecID
  order by BD1.dtl_RecID != BD2.dtl_RecID
 ';//MAGIC NUMBER
-	$res = mysql_query($equality_query);
-	$bd1_counts = mysql_fetch_assoc($res);
-	$bd2_counts = mysql_fetch_assoc($res);
+	$res = $mysqli->query($equality_query);
+	$bd1_counts = $res->fetch_assoc();
+	$bd2_counts = $res->fetch_assoc();
 
 	if ($bd1_counts['bdr_match_count'] != $bd2_counts['bdr_match_count']) return false;	// not at all equal
 
@@ -1580,7 +1580,7 @@ left join defDetailTypes on dty_ID=BD1.dtl_DetailTypeID
 	 * grab the corresponding bib_ids from the two records currently being matched.
 	 * If this returns any rows, then each row gives us two new Records records that need to be tested for equality.
 	 */
-	$res = mysql_query('select BD1.dtl_Value as bd1_resource, BD2.dtl_Value as bd2_resource
+	$res = $mysqli->query('select BD1.dtl_Value as bd1_resource, BD2.dtl_Value as bd2_resource
 from defDetailTypes
 left join Records on rec_ID='.$bib_id1.'
 left join defRecStructure on rst_DetailTypeID=dty_ID and rst_RecTypeID=rec_RecTypeID
@@ -1588,8 +1588,8 @@ left join recDetails BD1 on BD1.dtl_DetailTypeID=dty_ID
 left join recDetails BD2 on BD2.dtl_DetailTypeID=dty_ID and BD2.dtl_RecID='.$bib_id2.'
 where BD1.dtl_RecID=rec_ID and (dty_ID != 158  and  dty_Type = "resource") and rst_RecordMatchOrder and BD1.dtl_ID is not null');//MAGIC NUMBER
 
-	if (mysql_num_rows($res) == 0) return true;	// there are no resource-pointer types required for a match
-	while ($row = mysql_fetch_row($res)) {
+	if ($res->num_rows == 0) return true;	// there are no resource-pointer types required for a match
+	while ($row = $res->fetch_row()) {
 		if (! $row[1]) return false;	// the trail went dead! BD2 doesn't have a pointer where it needs one: not a match
 
 		if (! biblio_are_equal($row[0], $row[1]))	// containers are equal
@@ -1653,8 +1653,8 @@ function insert_biblio(&$entry) {
 
 	$creatorDT = (defined('DT_CREATOR')?DT_CREATOR:0);
 
-	mysql__insert('Records', $bib);
-	$rec_id = mysql_insert_id();
+	mysqli__insert($mysqli, 'Records', $bib);
+	$rec_id = $mysqli->insert_id;
 	$entry->setBiblioID($rec_id);
 
 	$bib_detail_insert = '';
@@ -1693,33 +1693,33 @@ function insert_biblio(&$entry) {
 		                                             . $bib_detail_insert;
 
 /*****DEBUG****///error_log(">>>>>>".$bib_detail_insert);
-		mysql_query($bib_detail_insert);
+		$mysqli->query($bib_detail_insert);
 	}
 
 	$recTitle = $entry->getTitle();
-	mysql_query('set @suppress_update_trigger := 1');
-	mysql_query('update Records set rec_Title = "'.addslashes($recTitle).'", rec_Hash = hhash(rec_ID) where rec_ID='.$rec_id);
-	mysql_query('set @suppress_update_trigger := NULL');
+	$mysqli->query('set @suppress_update_trigger := 1');
+	$mysqli->query('update Records set rec_Title = "'.addslashes($recTitle).'", rec_Hash = hhash(rec_ID) where rec_ID='.$rec_id);
+	$mysqli->query('set @suppress_update_trigger := NULL');
 }
 
 
 function perm_biblio(&$entry) {
 	// mark the bibliographic record associated with this entry as NON-TEMPORARY
-	mysql_query('set @suppress_update_trigger := 1');
-	mysql_query('update Records set rec_FlagTemporary = 0 where rec_ID = ' . $entry->getBiblioID());
+	$mysqli->query('set @suppress_update_trigger := 1');
+	$mysqli->query('update Records set rec_FlagTemporary = 0 where rec_ID = ' . $entry->getBiblioID());
 
 	if ($entry->_container  &&  $entry->_container->_permanent) {
 		// container is already permanent: this means that we found a match in the database for the container, so our recDetails is out-of-date.  Update it.
 
 		global $rectype_to_bdt_id_map;
 
-		mysql_query('update recDetails set dtl_Value='.$entry->_container->getBiblioID().
+		$mysqli->query('update recDetails set dtl_Value='.$entry->_container->getBiblioID().
 		            ' where dtl_RecID='.$entry->getBiblioID().' and dtl_DetailTypeID='.$rectype_to_bdt_id_map[ $entry->_container->getReferenceType() ]);
 	}
 
-	if ($entry->_author_bib_ids) mysql_query('update Records set rec_FlagTemporary=0 where rec_ID in ('.join(',', $entry->_author_bib_ids).')');
+	if ($entry->_author_bib_ids) $mysqli->query('update Records set rec_FlagTemporary=0 where rec_ID in ('.join(',', $entry->_author_bib_ids).')');
 
-	mysql_query('set @suppress_update_trigger := NULL');
+	$mysqli->query('set @suppress_update_trigger := NULL');
 	$entry->_permanent = true;
 
 	updateCachedRecord($entry->getBiblioID());
@@ -1751,13 +1751,13 @@ left join defDetailTypes on dty_ID=S.dtl_DetailTypeID
 left join recDetails M on S.dtl_DetailTypeID=M.dtl_DetailTypeID and S.dtl_ValShortened=M.dtl_ValShortened and M.dtl_RecID='.$master_bib_id.'
 left join defDetailTypes on dty_ID=S.dtl_DetailTypeID
     where S.dtl_RecID='.$slave_bib_id.' and M.dtl_RecID is null and (dty_Type != "resource" or S.dtl_DetailTypeID=158)';//MAGIC NUMBER	// ignore non-author references
-	$res = mysql_query($new_bd_query);
-	$num_bd_rows = mysql_num_rows($res);
+	$res = $mysqli->query($new_bd_query);
+	$num_bd_rows = $res->num_rows;
 
 	// Consider, line-by-line, the values in the entries' respective rec_ScratchPad fields.
 	// Any lines that are not already in the master field will be added at the end.
 
-	$rec_scratchpad = mysql__select_assoc('Records', 'rec_ID', 'rec_ScratchPad', 'rec_ID in ('.$master_bib_id.','.$slave_bib_id.')');
+	$rec_scratchpad = mysqli__select_assoc($mysqli, 'Records', 'rec_ID', 'rec_ScratchPad', 'rec_ID in ('.$master_bib_id.','.$slave_bib_id.')');
 	if (! $rec_scratchpad[$master_bib_id]) {
 		$new_val = $rec_scratchpad[$slave_bib_id];
 	} else {
@@ -1779,16 +1779,16 @@ left join defDetailTypes on dty_ID=S.dtl_DetailTypeID
 	}
 
 	if ($new_val) {
-		mysql_query('update Records set rec_ScratchPad="'.addslashes($new_val).'", rec_Modified=now() where rec_ID='.$master_bib_id);
+		$mysqli->query('update Records set rec_ScratchPad="'.addslashes($new_val).'", rec_Modified=now() where rec_ID='.$master_bib_id);
 	} else if ($num_bd_rows) {
-		mysql_query('update Records set rec_Modified=now() where rec_ID='.$master_bib_id);
+		$mysqli->query('update Records set rec_Modified=now() where rec_ID='.$master_bib_id);
 	}
 
 	// Insert the rows identified before.  We have the exact same select query so the database's internal-cache
 	// should recognise this and impose no performance hit; doing it this way (instead of retrieving the values above,
 	// making a valid request, etc etc) reduces parsing and traffic.
 	if ($num_bd_rows) {
-		$res = mysql_query('insert into recDetails (dtl_RecID, dtl_DetailTypeID, dtl_Value, dtl_AddedByImport) ' . $new_bd_query);
+		$res = $mysqli->query('insert into recDetails (dtl_RecID, dtl_DetailTypeID, dtl_Value, dtl_AddedByImport) ' . $new_bd_query);
 	}
 
 	// update the memcached copy of this record
@@ -1806,9 +1806,9 @@ function merge_new_biblio_data($master_biblio_id, &$entry) {
 	$bib_ids = array($master_biblio_id);
 
 	while ($rec_id = array_pop($bib_ids)) {
-		$res = mysql_query("select dtl_DetailTypeID, dtl_Value, dty_Type from recDetails left join defDetailTypes on dty_ID=dtl_DetailTypeID where dtl_RecID = " . intval($rec_id));
+		$res = $mysqli->query("select dtl_DetailTypeID, dtl_Value, dty_Type from recDetails left join defDetailTypes on dty_ID=dtl_DetailTypeID where dtl_RecID = " . intval($rec_id));
 
-		while ($bd = mysql_fetch_assoc($res)) {
+		while ($bd = $res->fetch_assoc()) {
 			if ($bd["dty_Type"] === "resource") {
 				if ($bd["dtl_DetailTypeID"] !== 158) array_push($bib_ids, $bd["dtl_Value"]);	//MAGIC NUMBER// also pull in fields from non-author related fields
 			}
@@ -1818,8 +1818,8 @@ function merge_new_biblio_data($master_biblio_id, &$entry) {
 		}
 	}
 /*****DEBUG****/// error_log(print_r($existingFields, 1));
-	$res = mysql_query("select rec_ScratchPad from Records where rec_ID = " . $master_biblio_id);
-	$notesString = mysql_fetch_row($res);  $notesString = $notesString[0];
+	$res = $mysqli->query("select rec_ScratchPad from Records where rec_ID = " . $master_biblio_id);
+	$notesString = $res->fetch_row();  $notesString = $notesString[0];
 	$notes = array();
 	foreach (explode("\n", $notesString) as $line) { $notes[trim(strtolower($line))] = 1; }
 
@@ -1861,10 +1861,10 @@ function merge_new_biblio_data($master_biblio_id, &$entry) {
 			', by user: ' . get_user_name(). ']' . "\n" . $extraNotesString;
 
 		if ($notesString) $newNotesString = $notesString . "\n" . $newNotesString;
-		mysql_query("update Records set rec_Modified=now(), rec_ScratchPad='" . addslashes($newNotesString) . "' where rec_ID=" . $master_biblio_id);
+		$mysqli->query("update Records set rec_Modified=now(), rec_ScratchPad='" . addslashes($newNotesString) . "' where rec_ID=" . $master_biblio_id);
 	}
 	else if (count($newFields) > 0) {
-		mysql_query("update Records set rec_Modified=now() where rec_ID=" . $master_biblio_id);
+		$mysqli->query("update Records set rec_Modified=now() where rec_ID=" . $master_biblio_id);
 	}
 	else {
 		// nothing to do!
@@ -1876,7 +1876,7 @@ function merge_new_biblio_data($master_biblio_id, &$entry) {
 	foreach (array_keys($newFields) as $i) {
 		if ($newFields[$i]->getGeographicValue()) {
 			// delete existing geos
-			mysql_query("delete from recDetails where dtl_RecID = $master_biblio_id and dtl_DetailTypeID = " . $newFields[$i]->getType());
+			$mysqli->query("delete from recDetails where dtl_RecID = $master_biblio_id and dtl_DetailTypeID = " . $newFields[$i]->getType());
 			if ($insertStmt) $insertStmt .= ', ';
 			$insertStmt .= "(" . $master_biblio_id . "," . $newFields[$i]->getType() . ",'" . addslashes($newFields[$i]->getValue())."',geomfromtext('".addslashes($newFields[$i]->getGeographicValue()) . "'), 1)";
 		} else {
@@ -1886,7 +1886,7 @@ function merge_new_biblio_data($master_biblio_id, &$entry) {
 	}
 	$insertStmt = "insert into recDetails (dtl_RecID, dtl_DetailTypeID, dtl_Value, dtl_Geo, dtl_AddedByImport) values " . $insertStmt;
 
-	mysql_query($insertStmt);
+	$mysqli->query($insertStmt);
 
 	// update the memcached copy of this record
 	updateCachedRecord($master_bib_id);
@@ -1895,10 +1895,10 @@ function merge_new_biblio_data($master_biblio_id, &$entry) {
 
 function delete_biblio(&$entry) {
 	// delete a temporary bibliographic record
-	mysql_query('set @suppress_update_trigger := 1');
-	mysql_query('delete from Records where rec_ID = ' . $entry->getBiblioID() . ' and rec_FlagTemporary');
-	if (mysql_affected_rows() == 1) mysql_query('delete from_bib_detail where dtl_RecID = ' . $entry->getBiblioID());
-	mysql_query('set @suppress_update_trigger := NULL');
+	$mysqli->query('set @suppress_update_trigger := 1');
+	$mysqli->query('delete from Records where rec_ID = ' . $entry->getBiblioID() . ' and rec_FlagTemporary');
+	if ($mysqli->affected_rows == 1) $mysqli->query('delete from_bib_detail where dtl_RecID = ' . $entry->getBiblioID());
+	$mysqli->query('set @suppress_update_trigger := NULL');
 }
 
 
@@ -1912,14 +1912,14 @@ function insert_bookmark(&$entry) {
 	if (! $entry->getBiblioID()) return false;
 
 	// First: check if the user already has a bookmark for this records
-	$res = mysql_query('select bkm_ID from usrBookmarks where bkm_recID = ' . $entry->getBiblioID()
+	$res = $mysqli->query('select bkm_ID from usrBookmarks where bkm_recID = ' . $entry->getBiblioID()
 	                                                . ' and bkm_UGrpID = ' . get_user_id());
-	if (mysql_num_rows($res) > 0) {
-		$bkm_ID = mysql_fetch_row($res);
+	if ($res->num_rows > 0) {
+		$bkm_ID = $res->fetch_row();
 		$bkm_ID = $bkm_ID[0];
 
 		if (is_a($entry->getForeignPrototype(), 'HeuristZoteroEntry')) {
-			mysql_query('update usrBookmarks set bkm_ZoteroID = ' . $entry->getForeignPrototype()->getZoteroID().' where bkm_ID='.$bkm_ID);
+			$mysqli->query('update usrBookmarks set bkm_ZoteroID = ' . $entry->getForeignPrototype()->getZoteroID().' where bkm_ID='.$bkm_ID);
 			$zoteroItems[$entry->getForeignPrototype()->getZoteroID()] = $entry->getBiblioID();
 		}
 
@@ -1945,8 +1945,8 @@ function insert_bookmark(&$entry) {
 			//$bkmk['pers_notes'] = $entry->getBkmkNotes();
 		}
 */
-		mysql__insert('usrBookmarks', $bkmk);
-		$bkm_ID = mysql_insert_id();
+		mysqli__insert($mysqli, 'usrBookmarks', $bkmk);
+		$bkm_ID = $mysqli->insert_id;
 
 		$entry->setBookmarkID($bkm_ID);
 		return true;
@@ -1960,8 +1960,8 @@ function insert_tags(&$entry, $tag_map=array()) {
 	// easy one first: see if there is a workgroup tag to be added, and that we have access to that workgroup
 	$wgKwd = $entry->getWorkgroupTag();
 	if ($wgKwd) {
-		$res = mysql_query("select * from usrTags, ".USERS_DATABASE.".sysUsrGrpLinks where tag_UGrpID=ugl_GroupID and ugl_UserID=" . get_user_id() . " and tag_ID=" . $wgKwd);
-		if (mysql_num_rows($res) != 1) $wgKwd = 0;// saw CHECK SPEC: can there be more than 1 , this code ingnores if 0 or more than 1
+		$res = $mysqli->query("select * from usrTags, ".USERS_DATABASE.".sysUsrGrpLinks where tag_UGrpID=ugl_GroupID and ugl_UserID=" . get_user_id() . " and tag_ID=" . $wgKwd);
+		if ($res->num_rows != 1) $wgKwd = 0;// saw CHECK SPEC: can there be more than 1 , this code ingnores if 0 or more than 1
 	}
 
 	if (! $entry->getTags()) return;
@@ -1977,13 +1977,13 @@ function insert_tags(&$entry, $tag_map=array()) {
 		$tag_select_clause .= '"'.addslashes($tag).'"';
 	}
 	// create user specific tagText to tagID lookup
-	$res = mysql_query('select tag_ID, lower(trim(tag_Text)) from usrTags where tag_Text in (' . $tag_select_clause . ')'
+	$res = $mysqli->query('select tag_ID, lower(trim(tag_Text)) from usrTags where tag_Text in (' . $tag_select_clause . ')'
 	                                                             . ' and tag_UGrpID= ' . get_user_id());
 	$tags = array();
-	while ($row = mysql_fetch_row($res)) $tags[$row[1]] = $row[0];
+	while ($row = $res->fetch_row()) $tags[$row[1]] = $row[0];
 
 	//now let's add in all the wgTags for this user's workgroups
-	$all_wgTags = mysql__select_assoc('usrTags, '.USERS_DATABASE.'.sysUsrGrpLinks, '.USERS_DATABASE.'.sysUGrps grp', 'lower(concat(grp.ugr_Name, "\\\\", tag_Text))', 'tag_ID',
+	$all_wgTags = mysqli__select_assoc($mysqli, 'usrTags, '.USERS_DATABASE.'.sysUsrGrpLinks, '.USERS_DATABASE.'.sysUGrps grp', 'lower(concat(grp.ugr_Name, "\\\\", tag_Text))', 'tag_ID',
 	                                    'tag_UGrpID=ugl_GroupID and ugl_GroupID=grp.ugr_ID and ugl_UserID='.get_user_id()); //saw CHECK SPEC: is it correct to import wgTags with a slash
 	foreach ($all_wgTags as $tag => $id) $tags[$tag] = $id;
 
@@ -1999,9 +1999,9 @@ function insert_tags(&$entry, $tag_map=array()) {
 /**** 	"Don't insert new tags unannounced"
 	Well, it's very very difficult to get feedback from the user, so we just won't insert any new tags at all, I guess.  Hope you're happy.
 */		else if (! $wg_tag) {	// do not insert new workgroup tags
-			mysql_query('insert into usrTags (tag_UGrpID, tag_Text) ' .
+			$mysqli->query('insert into usrTags (tag_UGrpID, tag_Text) ' .
 			                         ' values ('.get_user_id().', "'.addslashes($tag).'")');
-			$tag_id = mysql_insert_id();
+			$tag_id = $mysqli->insert_id;
 			array_push($entry_tag_ids, $tag_id);
 			$tags[strtolower(trim($tag))] = $tag_id;
 		}
@@ -2016,7 +2016,7 @@ function insert_tags(&$entry, $tag_map=array()) {
 		if ($kwi_insert_stmt) $kwi_insert_stmt .= ',';
 		$kwi_insert_stmt .= '(' . $entry->getBiblioID() . ', ' . $tag_id . ', 1)'; //FIXME getBookmarkID and getBiblioID return empty string
 	}
-	mysql_query('insert ignore into usrRecTagLinks (rtl_RecID, rtl_TagID, rtl_AddedByImport) values ' . $kwi_insert_stmt);
+	$mysqli->query('insert ignore into usrRecTagLinks (rtl_RecID, rtl_TagID, rtl_AddedByImport) values ' . $kwi_insert_stmt);
 }
 
 
@@ -2044,7 +2044,7 @@ function process_author(&$field) {
 			return NULL;
 		}
 
-		$res = mysql_query('select rec_ID from Records
+		$res = $mysqli->query('select rec_ID from Records
 		                             left join recDetails SURNAME on SURNAME.dtl_RecID=rec_ID and SURNAME.dtl_DetailTypeID=$titleDT
 		                             left join recDetails GIVENNAMES on GIVENNAMES.dtl_RecID=rec_ID and GIVENNAMES.dtl_DetailTypeID=291
 		                     where rec_RecTypeID = 75
@@ -2052,16 +2052,16 @@ function process_author(&$field) {
 		                      and GIVENNAMES.dtl_Value = "'.addslashes(trim($person['first names'])).'"');//MAGIC NUMBER
 
 
-		if (mysql_num_rows($res) > 0) {
+		if ($res->num_rows > 0) {
 			// an exact match on the citation value: don't want to know if there's more than one person with this name!
-			$rec_id = mysql_fetch_row($res);  $rec_id = $rec_id[0];
+			$rec_id = $res->fetch_row();  $rec_id = $rec_id[0];
 		} else {
 			// no match -- insert a new person
-			mysql_query('insert into Records (rec_Title, rec_RecTypeID, rec_FlagTemporary, rec_Modified, rec_Added) values ("'.addslashes(trim($person['surname'].' '.@$person['postfix']).', '.$person['first names']).'", 75, 1, now(), now())');
-			$rec_id = mysql_insert_id();
-			mysql_query('insert into recDetails (dtl_RecID, dtl_DetailTypeID, dtl_Value) values ('.$rec_id.', 160, "'.addslashes(trim($person['surname'].' '.@$person['postfix'])).'"),
+			$mysqli->query('insert into Records (rec_Title, rec_RecTypeID, rec_FlagTemporary, rec_Modified, rec_Added) values ("'.addslashes(trim($person['surname'].' '.@$person['postfix']).', '.$person['first names']).'", 75, 1, now(), now())');
+			$rec_id = $mysqli->insert_id;
+			$mysqli->query('insert into recDetails (dtl_RecID, dtl_DetailTypeID, dtl_Value) values ('.$rec_id.', 160, "'.addslashes(trim($person['surname'].' '.@$person['postfix'])).'"),
 			                                                                        ('.$rec_id.', 291, "'.addslashes($person['first names']).'")');//MAGIC NUMBER
-			mysql_query("update Records set rec_Hash = hhash(rec_ID) where rec_ID = $rec_id");
+			$mysqli->query("update Records set rec_Hash = hhash(rec_ID) where rec_ID = $rec_id");
 		}
 
 		array_push($person_bib_ids, $rec_id);
@@ -2123,12 +2123,12 @@ function print_disambiguation_options(&$entry) {
      <td><label for=<?= $nonce ?>><b><?= htmlspecialchars($ambig_entry->getTitle()) ?></b></label></td>
     </tr>
 <?php
-	$res = mysql_query('select rec_ID,rec_Title,
+	$res = $mysqli->query('select rec_ID,rec_Title,
 	                           levenshtein(rec_Hash,upper("'.addslashes($ambig_entry->getHHash()).'")) as diff1,
 	                           levenshtein(upper(rec_Title),upper("'.addslashes($ambig_entry->getTitle()).'")) as diff2
 	                      from Records where rec_ID in ('.join(',',$ambig_entry->getPotentialMatches()).') order by diff1, diff2');
 	$is_first = true;
-	while ($bib = mysql_fetch_assoc($res)) {
+	while ($bib = $res->fetch_assoc()) {
 		$title_with_deltas = levenshtein_delta(strip_tags($bib['rec_Title']), strip_tags($ambig_entry->getTitle()));
 ?>
     <tr>
@@ -2243,9 +2243,9 @@ function print_tag_stuff(&$out_entries) {
 		$query .= addslashes($tag);
 	}
 	$query = "select tag_Text from usrTags where tag_Text in ('" . $query . "')";
-	$res = mysql_query($query);
+	$res = $mysqli->query($query);
 	$existing_tags = array();
-	while ($row = mysql_fetch_row($res)) {
+	while ($row = $res->fetch_row()) {
 		$tag = $row[0];
 		$existing_tags[strtolower($tag)] = $tag;
 	}

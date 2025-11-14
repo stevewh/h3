@@ -46,7 +46,7 @@
 require_once(dirname(__FILE__)."/../../common/connect/applyCredentials.php");
 require_once(dirname(__FILE__)."/../../common/php/dbMySqlWrappers.php");
 
-mysql_connection_select("hapi");
+$mysqli = mysqli_connection_select("hapi");
 
 if (! is_logged_in()) {
 /*
@@ -67,11 +67,11 @@ if (preg_match("/^([a-zA-Z0-9_]+)((?:[.][a-zA-Z0-9_]+)+)$/", $varName, $matches)
 
 	if (@$_REQUEST["crossSession"]) {
 		// cross-session values are stored in the database
-		$res = mysql_query("select * from hapi_pj_party where pj_location='" . addslashes($location) . "'" .
+		$res = $mysqli->query("select * from hapi_pj_party where pj_location='" . addslashes($location) . "'" .
 		                                                " and pj_instance='" . HEURIST_DBNAME . "'" .
 		                                                " and pj_user_id=" . get_user_id() .
 		                                                " and pj_varname='" . addslashes($topLevelVarName) . "'");
-		$topObject = mysql_fetch_assoc($res);
+		$topObject = $res->fetch_assoc()
 		$topObject = json_decode(@$topObject["pj_value"], 1);
 	}
 	else {
@@ -82,11 +82,11 @@ if (preg_match("/^([a-zA-Z0-9_]+)((?:[.][a-zA-Z0-9_]+)+)$/", $varName, $matches)
 }
 else if (preg_match("/^([a-zA-Z0-9_]+)$/", $varName)) {
 	if (@$_REQUEST["crossSession"]) {
-		$res = mysql_query("select * from hapi_pj_party where pj_location='" . addslashes($location) . "'" .
+		$res = $mysqli->query("select * from hapi_pj_party where pj_location='" . addslashes($location) . "'" .
 		                                                " and pj_instance='" . HEURIST_DBNAME . "'" .
 		                                                " and pj_user_id=" . get_user_id() .
 		                                                " and pj_varname='" . addslashes($varName) . "'");
-		$value = mysql_fetch_assoc($res);
+		$value = $res->fetch_assoc();
 		$value = json_decode(@$value["pj_value"], 1);
 	}
 	else {
@@ -120,7 +120,7 @@ function getInnerValue(&$obj, $innerVar) {
 
 
 function jsonError($message) {
-	mysql_query("rollback");
+	$mysqli->query("rollback");
 	print "{\"error\":\"" . addslashes($message) . "\"}";
 	exit(0);
 }

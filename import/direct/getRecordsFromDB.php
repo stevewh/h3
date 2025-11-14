@@ -101,9 +101,9 @@ function printMapping(){
     <div id="page-inner">
 
 <?php
-			mysql_connection_overwrite(DATABASE);
-			if(mysql_error()) {
-				die("Sorry, could not connect to the database (mysql_connection_overwrite error)");
+			$mysqli = mysqli_connection_overwrite(DATABASE);
+			if($mysqli->error) {
+				die("Sorry, could not connect to the database ($mysqli = mysqli_connection_overwrite error)");
 			}
 ?>
 <h2>FOR  ADVANCED USERS ONLY</h2>
@@ -122,14 +122,14 @@ Make sure the target records and field types are compatible. <b>If you get the c
 			$dt_SourceRecordID = (defined('DT_ORIGINAL_RECORD_ID')?DT_ORIGINAL_RECORD_ID:0);
 			if($dt_SourceRecordID==0){  //getDetailTypeLocalID
 				//add missed detail type
-				mysql_query("INSERT INTO `defDetailTypes` ( dty_Name,  dty_Documentation,  dty_Type,  dty_HelpText,  dty_EntryMask,  dty_Status,
+				$mysqli->query("INSERT INTO `defDetailTypes` ( dty_Name,  dty_Documentation,  dty_Type,  dty_HelpText,  dty_EntryMask,  dty_Status,
 					dty_OriginatingDBID,  dty_NameInOriginatingDB,  dty_IDInOriginatingDB,  dty_DetailTypeGroupID,  dty_OrderInGroup,  dty_JsonTermIDTree,  dty_TermIDTreeNonSelectableIDs,
 				dty_PtrTargetRectypeIDs,  dty_FieldSetRectypeID,  dty_ShowInLists,  dty_NonOwnerVisibility,  dty_Modified,  dty_LocallyModified) VALUES ('Original ID',' ','freetext','The original ID of the record in a source database from which these data were imported','','reserved',2,'Original ID',36,99,0,'','','',0,1,'viewable','2011-10-12 09:05:19',0)");
 
-				if (mysql_error()) {
-					error_log(mysql_error());
+				if ($mysqli->error) {
+					error_log($mysqli->error);
 				}else{
-					$dt_SourceRecordID = mysql_insert_id();
+					$dt_SourceRecordID = $mysqli->insert_id;
 					define('DT_ORIGINAL_RECORD_ID', $dt_SourceRecordID);
 				}
 
@@ -189,7 +189,7 @@ This data transfer function saves the original (source) record IDs in the <i>Ori
 				// print "Enter source database name (prefix added automatically): <input type='text' name='sourcedbname' />";
 				print "<br/>Choose source database: <select id='db' name='sourcedbname'>";
 
-				$list = mysql__getdatabases(false,null,null,$db_prefix);
+				$list = mysqli__getdatabases($mysqli, false,null,null,$db_prefix);
 				foreach ($list as $name) {
 						print "<option value='$name'>$name</option>";
 				}
@@ -222,8 +222,8 @@ This data transfer function saves the original (source) record IDs in the <i>Ori
 				if($usecurrentlogin || (!(@$_REQUEST['username']  and  @$_REQUEST['password'])) ){
 					$username = get_user_username();
 					//take from database
-					$res = mysql_query('select * from '.USERS_TABLE.' where '.USERS_USERNAME_FIELD.' = "'.addslashes($username).'"');
-					$user = mysql_fetch_assoc($res);
+					$res = $mysqli->query('select * from '.USERS_TABLE.' where '.USERS_USERNAME_FIELD.' = "'.addslashes($username).'"');
+					$user = $res->fetch_assoc();
 					if ($user){
 						$password = $user[USERS_PASSWORD_FIELD];
 					}else{
@@ -237,12 +237,12 @@ This data transfer function saves the original (source) record IDs in the <i>Ori
 					$needcrypt = true;//(array_key_exists('mode', $_REQUEST) && $_REQUEST['mode']=='2');
 				}
 
-				mysql_connection_select($db_prefix.$sourcedbname);
+				$mysqli = mysqli_connection_select($db_prefix.$sourcedbname);
 
-				$res = mysql_query('select * from '.USERS_TABLE.' where '.USERS_USERNAME_FIELD.' = "'.addslashes($username).'"');
+				$res = $mysqli->query('select * from '.USERS_TABLE.' where '.USERS_USERNAME_FIELD.' = "'.addslashes($username).'"');
 
 
-				$user = mysql_fetch_assoc($res);
+				$user = $res->fetch_assoc();
 
    				if ( $user  &&
 		 			$user[USERS_ACTIVE_FIELD] == 'y'  &&
@@ -252,7 +252,7 @@ This data transfer function saves the original (source) record IDs in the <i>Ori
 			    {
 					$user_id_insource  = $user[USERS_ID_FIELD];
 
-					$user_workgroups = mysql__select_array('sysUsrGrpLinks left join sysUGrps grp on grp.ugr_ID=ugl_GroupID', 'ugl_GroupID',
+					$user_workgroups = mysqli__select_array($mysqli, 'sysUsrGrpLinks left join sysUGrps grp on grp.ugr_ID=ugl_GroupID', 'ugl_GroupID',
 		                              'ugl_UserID='.$user_id_insource.' and grp.ugr_Type != "User" order by ugl_GroupID');
 
 				}else{
@@ -261,7 +261,7 @@ This data transfer function saves the original (source) record IDs in the <i>Ori
 					header('Location: ' . HEURIST_BASE_URL . 'import/direct/getRecordsFromDB.php?loginerror=1&db='.HEURIST_DBNAME);
 					exit;
 				}
-				mysql_connection_overwrite(DATABASE);
+				$mysqli = mysqli_connection_overwrite(DATABASE);
 			}
 
 
@@ -310,9 +310,9 @@ This data transfer function saves the original (source) record IDs in the <i>Ori
 				print "Source database: <b>$sourcedb</b> <br>\n";
 
 				if($is_h2){
-					$res=mysql_query("select * from `$sourcedb`.Users");
+					$res=$mysqli->query("select * from `$sourcedb`.Users");
 				}else{
-					$res=mysql_query("select * from $sourcedb.sysIdentification");
+					$res=$mysqli->query("select * from $sourcedb.sysIdentification");
 				}
 				if (!$res) {
 					die ("<p>Unable to open source database <b>$sourcedb</b>. Make sure you have included prefix");
@@ -357,13 +357,13 @@ This data transfer function saves the original (source) record IDs in the <i>Ori
 					"left join `$sourcedb`.`defRecTypes` on rec_RecTypeID=rty_ID ".
 					"group by rty_ID";
 				}
-				$res1 = mysql_query($query1);
-				if (mysql_num_rows($res1) == 0) {
+				$res1 = $mysqli->query($query1);
+				if (mysqli_num_rows($res1) == 0) {
 					die ("<p><b>Sorry, there are no data records in this database, or database is bad format</b>");
 				}
 				print "<h3>Record type mappings</h3>[RT code] <b>$sourcedb</b> (use count) ==> <b>$dbPrefix" . HEURIST_DBNAME."</b><p>";// . "<p>";
 				print "<table>";
-				while ($row1 = mysql_fetch_array($res1)) {
+				while ($row1 = mysqli_fetch_array($res1)) {
 					$rt=$row1[0]; //0=rec_RecTypeID
 					$cnt=$row1[2];
 					$selopts = $seloptions;
@@ -414,9 +414,9 @@ This data transfer function saves the original (source) record IDs in the <i>Ori
 					$query1 = "SELECT DISTINCT `dtl_DetailTypeID`,`dty_Name`,`dty_Type`,`dty_OriginatingDBID`,`dty_IDInOriginatingDB` FROM `$sourcedb`.`recDetails`,`$sourcedb`.`defDetailTypes` ".
 					"where `dtl_DetailTypeID`=`dty_ID`";
 				}
-				$res1 = mysql_query($query1);
+				$res1 = $mysqli->query($query1);
 				print "<table>";
-				while ($row1 = mysql_fetch_array($res1)) {
+				while ($row1 = mysqli_fetch_array($res1)) {
 					$ft=$row1[0]; //0=dtl_DetailTypeID
 
 					$selopts = $seloptions;
@@ -489,9 +489,9 @@ This data transfer function saves the original (source) record IDs in the <i>Ori
 					"where (`dtl_Value`=`trm_ID`) AND (`dtl_DetailTypeID` in (select `dty_ID` from `$sourcedb`.`defDetailTypes` ".
 					"where (`dty_Type`='$dt_type') ))";
 				}
-				$res1 = mysql_query($query1);
+				$res1 = $mysqli->query($query1);
 				print "<table>";
-				while ($row1 = mysql_fetch_array($res1)) {
+				while ($row1 = mysqli_fetch_array($res1)) {
 					$tt=$row1[0]; //0=trm_ID
 
 					$selopts = $seloptions;
@@ -746,8 +746,8 @@ This data transfer function saves the original (source) record IDs in the <i>Ori
 				if($is_h2){
 					//load all terms
 					$query1 = "SELECT `rdl_id`,`rdl_value` FROM `$sourcedb`.`rec_detail_lookups`";
-					$res1 = mysql_query($query1);
-					while ($row1 = mysql_fetch_array($res1)) {
+					$res1 = $mysqli->query($query1);
+					while ($row1 = mysqli_fetch_array($res1)) {
 						$terms_h2[$row1[1]] = $row1[0];
 					}
 
@@ -770,7 +770,7 @@ This data transfer function saves the original (source) record IDs in the <i>Ori
                     $query1 = $query1." where ".$user_rights;
                 }
 
-				$res1 = mysql_query($query1);
+				$res1 = $mysqli->query($query1);
 				if(!$res1) {
 					print "<br>Bad query for record type loop $res1 <br>";
 					print "$query1<br>";
@@ -798,7 +798,7 @@ This data transfer function saves the original (source) record IDs in the <i>Ori
 
 
 				// loop through the set of rectypes actually in the records in the database
-				while ($row1 = mysql_fetch_array($res1)) {
+				while ($row1 = mysqli_fetch_array($res1)) {
 					$rt = $row1[0];
 
 					if(!array_key_exists('cbr'.$rt, $_REQUEST)) continue;
@@ -823,7 +823,7 @@ This data transfer function saves the original (source) record IDs in the <i>Ori
                         $query2 = $query2." and ".$user_rights;
                     }
 
-					$res2 = mysql_query($query2);
+					$res2 = $mysqli->query($query2);
 					if(!$res2) {
 						print "<div  style='color:red;'>Bad query for records loop for source record type $rt</div>";
 						print "<br>Query: $query2";
@@ -836,7 +836,7 @@ This data transfer function saves the original (source) record IDs in the <i>Ori
 					$dt_SourceRecordID = (defined('DT_ORIGINAL_RECORD_ID')?DT_ORIGINAL_RECORD_ID:0);
 
 
-					while ($row2 = mysql_fetch_array($res2)) {
+					while ($row2 = mysqli_fetch_array($res2)) {
 
 						//select details and create details array
 						$rid = $row2[0]; //record id
@@ -850,7 +850,7 @@ This data transfer function saves the original (source) record IDs in the <i>Ori
 							$query3 = "SELECT `dtl_DetailTypeID`, `dty_Type`, `dtl_Value`, `dtl_UploadedFileID`, astext(`dtl_Geo`)
 							FROM $sourcedb.`recDetails` rd, $sourcedb.`defDetailTypes` dt where rd.`dtl_DetailTypeID`=dt.`dty_ID` and rd.`dtl_RecID`=$rid order by `dtl_DetailTypeID`";
 						}
-						$res3 = mysql_query($query3);
+						$res3 = $mysqli->query($query3);
 						// todo: check query was successful
 						if(!$res3) {
 							print "<br>record ".$rid."&nbsp;&nbsp;&nbsp;<div  style='color:red;'>bad select of detail fields</div>";
@@ -872,7 +872,7 @@ This data transfer function saves the original (source) record IDs in the <i>Ori
 							$details["t:".$dt_SourceRecordID] = array('0'=>$rid);
 						}
 
-						while ($row3 = mysql_fetch_array($res3)) {
+						while ($row3 = mysqli_fetch_array($res3)) {
 
 							if($dtid != $row3[0]){
 								if($key>0) {
@@ -1077,7 +1077,7 @@ This data transfer function saves the original (source) record IDs in the <i>Ori
 					if (count($inserts)>0) {//insert all new details
 						$query1 = "insert into $dbPrefix".HEURIST_DBNAME.".recDetails (dtl_RecID, dtl_DetailTypeID, dtl_Value, dtl_AddedByImport) values " . join(",", $inserts);
 						/*****DEBUG****///error_log(">>>>>>>>>>>>>>>".$query1);
-						mysql_query($query1);
+						$mysqli->query($query1);
 						print "<br><br>Total count of resolved pointers:".count($inserts);
 					}
 				}
@@ -1094,7 +1094,7 @@ This data transfer function saves the original (source) record IDs in the <i>Ori
 			*/
 			function jsonError($message) {
 
-				//mysql_query("rollback");
+				//$mysqli->query("rollback");
 				error_log("ERROR :".$message);
 
 				//$rep_issues = $rep_issues."<br/>Error save record for file:".$currfile.". ".$message;
@@ -1115,13 +1115,13 @@ This data transfer function saves the original (source) record IDs in the <i>Ori
 				$_src_HEURIST_UPLOAD_DIR =  HEURIST_UPLOAD_ROOT.$sourcedbname.'/';
 
 
-				$res = mysql_query("select * from $sourcedb.`recUploadedFiles` where ulf_ID=".$src_fileid);
-				if (mysql_num_rows($res) != 1) {
+				$res = $mysqli->query("select * from $sourcedb.`recUploadedFiles` where ulf_ID=".$src_fileid);
+				if ($res->num_rows != 1) {
 					print "<div  style='color:red;'>no entry for file id#".$src_fileid."</div>";
 					return null; // nothing returned if parameter does not match one and only one row
 				}
 
-				$file = mysql_fetch_assoc($res);
+				$file = $res->fetch_assoc();
 
 				$need_copy = false;
 				$externalFile = false;
@@ -1201,13 +1201,13 @@ This data transfer function saves the original (source) record IDs in the <i>Ori
 				$_src_HEURIST_UPLOAD_DIR =  $HEURIST_UPLOAD_ROOT_OLD.$sourcedbname.'/';
 
 
-				$res = mysql_query("select * from `$sourcedb`.`files` where `file_id`=".$src_fileid);
-				if (mysql_num_rows($res) != 1) {
+				$res = $mysqli->query("select * from `$sourcedb`.`files` where `file_id`=".$src_fileid);
+				if ($res->num_rows != 1) {
 					print "<div  style='color:red;'>no entry for file id#".$src_fileid."</div>";
 					return null; // nothing returned if parameter does not match one and only one row
 				}
 
-				$file = mysql_fetch_assoc($res);
+				$file = $res->fetch_assoc();
 
 				$filename = $_src_HEURIST_UPLOAD_DIR ."/". $file['file_id'];
 

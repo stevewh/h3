@@ -47,17 +47,22 @@
 	require_once(dirname(__FILE__).'/parseQueryToSQL.php');
 	require_once(dirname(__FILE__).'/../common/php/getRecordInfoLibrary.php');
 
-	mysql_connection_select(DATABASE);
+	$mysqli = mysqli_connection_select(DATABASE);
 
 	$searchType = BOTH;
 	$args = array();
 	$publicOnly = false;
 
-	$query = REQUEST_to_query("select rec_RecTypeID, count(*) ", $searchType, $args, null, $publicOnly);
+	$query = REQUEST_to_query($mysqli, "select rec_RecTypeID, count(*) FROM Records", $searchType, $args, null, $publicOnly);
+  error_log("QUERY:".$query);
 
-	$query = substr($query,0, strpos($query,"order by"));
-
-	$query .= " group by rec_RecTypeID";
+  if (strpos($query,"order by")) {
+    $query = substr($query,0, strpos($query,"order by"));
+    error_log("QUERY:".$query);
+  }
+  
+	$query .= " GROUP BY rec_RecTypeID;";
+  error_log("QUERY:".$query);
 
 	// style="width:640px;height:480px;"
 	$rtStructs = getAllRectypeStructures();
@@ -106,9 +111,9 @@
 <?php
 	/*****DEBUG****///print("QUERY:".$query);
 
-	$res = mysql_query($query);
+	$res = $mysqli->query($query);
 
-	while ($row = mysql_fetch_row($res)) {
+	while ($row = $res->fetch_row()) {
 
 		$rt_ID = $row[0];
 		$rectypeTitle = $rtStructs['names'][$rt_ID];

@@ -58,8 +58,12 @@
 	*
 	* @return file ID or error message
 	*/
-	function upload_file($name, $mimetypeExt, $tmp_name, $error, $size, $description, $needConnect) {
+  $mysqliro = mysqli_connection_select(DATABASE);
+  $mysqli = mysqli_connection_overwrite(DATABASE);
 
+  
+	function upload_file($name, $mimetypeExt, $tmp_name, $error, $size, $description, $needConnect) {
+    global $mysqli;
 		if (! is_logged_in()) return "Not logged in";
 
 		if ($size <= 0  ||  $error) {
@@ -73,7 +77,7 @@
 		$name = preg_replace('!.*/!', '', $name);
 
 		if($needConnect){
-			mysql_connection_overwrite(DATABASE);
+			$mysqli = mysqli_connection_overwrite(DATABASE);
 		}
 
 		$mimeType = null;
@@ -102,7 +106,7 @@
 			$file_size = round($size / 1024);
 		}
 
-		$res = mysql__insert('recUploadedFiles', array(	'ulf_OrigFileName' => $name,
+		$res = mysqli__insert($mysqli, 'recUploadedFiles', array(	'ulf_OrigFileName' => $name,
 				'ulf_UploaderUGrpID' => get_user_id(),
 				'ulf_Added' => date('Y-m-d H:i:s'),
 				'ulf_MimeExt ' => $mimetypeExt,
@@ -113,14 +117,14 @@
 		);
 
 		if (! $res) {
-			error_log("error inserting file upload info: " . mysql_error());
+			error_log("error inserting file upload info: " . $mysqli->error);
 			$uploadFileError = "Error inserting file upload info into database";
 			return $uploadFileError;
 		}
 
-		$file_id = mysql_insert_id();
+		$file_id = $mysqli->insert_id;
 		$filename = "ulf_".$file_id."_".$name;
-		mysql_query('update recUploadedFiles set ulf_FileName = "'.$filename.
+		$mysqli->query('update recUploadedFiles set ulf_FileName = "'.$filename.
 			'", ulf_ObfuscatedFileID = "' . addslashes(sha1($file_id.'.'.rand())) . '" where ulf_ID = ' . $file_id);
 		/* nonce is a random value used to download the file */
 		/*****DEBUG****///error_log(">>>>".$tmp_name."  >>>> ".$filename);
@@ -137,7 +141,7 @@
 			/* something messed up ... make a note of it and move on */
 			$uploadFileError = "upload file: $name couldn't be saved to upload path definied for db = ". HEURIST_DBNAME;
 			error_log($uploadFileError);
-			mysql_query('delete from recUploadedFiles where ulf_ID = ' . $file_id);
+			$mysqli->query('delete from recUploadedFiles where ulf_ID = ' . $file_id);
 			return $uploadFileError;
 		}
 	}
@@ -153,6 +157,7 @@
 	* @return string  new file id
 	*/
 	function register_file($fullname, $description, $needConnect) {
+    global $mysqli;
 
 		if (! is_logged_in()) return "Not logged in";
 
@@ -170,7 +175,7 @@
 		}
 
 		if($needConnect){
-			mysql_connection_overwrite(DATABASE);
+			$mysqli = mysqli_connection_overwrite(DATABASE);
 		}
 
 		//get folder, extension and filename
@@ -194,12 +199,12 @@
 		}
 
 		//check if such file is already registered
-		$res = mysql_query('select ulf_ID from recUploadedFiles '.
+		$res = $mysqli->query('select ulf_ID from recUploadedFiles '.
 			'where ulf_FilePath = "'.addslashes($dirname).
 			'" and ulf_FileName = "'.addslashes($filename).'"');
 
-		if (mysql_num_rows($res) == 1) {
-			$row = mysql_fetch_assoc($res);
+		if ($res->num_rows == 1) {
+			$row = $res->fetch_assoc();
 			$file_id = $row['ulf_ID'];
 			return $file_id;
 		}else{
@@ -217,15 +222,15 @@
 
 			/*****DEBUG****///error_log(">>>>>".print_r($toins,true));
 
-			$res = mysql__insert('recUploadedFiles', $toins);
+			$res = mysqli__insert($mysqli, 'recUploadedFiles', $toins);
 
 			if (!$res) {
 				return "Error registration file $fullname into database";
 			}
 
-			$file_id = mysql_insert_id();
+			$file_id = $mysqli->insert_id;
 
-			mysql_query('update recUploadedFiles set ulf_ObfuscatedFileID = "' . addslashes(sha1($file_id.'.'.rand())) . '" where ulf_ID = ' . $file_id);
+			$mysqli->query('update recUploadedFiles set ulf_ObfuscatedFileID = "' . addslashes(sha1($file_id.'.'.rand())) . '" where ulf_ID = ' . $file_id);
 
 			return $file_id;
 
@@ -237,9 +242,10 @@
     * (not used)
 	*/
 	function unregister_for_recid($recid, $needConnect=false){
+    global $mysqli;
 
 		if($needConnect){
-			mysql_connection_overwrite(DATABASE);
+			$mysqli = mysqli_connection_overwrite(DATABASE);
 		}
 
         unregister_for_recid2($recid, true);
@@ -253,19 +259,19 @@
         if($needDelete){
 		    // find all files associated with this record
             $query = "select dtl_UploadedFileID from recDetails where dtl_RecID=".$recid;
-		    $res = mysql_query($query);
-		    while ($row = mysql_fetch_array($res)) {
+		    $res = $mysqli->query($query);
+		    while ($row = $res->fetch_array()) {
 			    deleteUploadedFiles($row[0]);
 		    }
         }
 
 		//remove from database
-		mysql_query('SET foreign_key_checks = 0');
-		mysql_query('delete from recUploadedFiles where ulf_ID in (select dtl_UploadedFileID from recDetails where dtl_RecID="'.$recid.'")');
-		mysql_query('SET foreign_key_checks = 1');
+		$mysqli->query('SET foreign_key_checks = 0');
+		$mysqli->query('delete from recUploadedFiles where ulf_ID in (select dtl_UploadedFileID from recDetails where dtl_RecID="'.$recid.'")');
+		$mysqli->query('SET foreign_key_checks = 1');
 
-		if (mysql_error()) {
-			return mysql_error();
+		if ($mysqli->error) {
+			return $mysqli->error;
 		}else{
 			return null;
 		}
@@ -278,7 +284,7 @@
 	function deleteUploadedFiles($fileid){
 
 		/*if($needConnect){
-			mysql_connection_overwrite(DATABASE);
+			$mysqli = mysqli_connection_overwrite(DATABASE);
 		}*/
 
 		$filedata = get_uploaded_file_info_internal($fileid, false);
@@ -429,14 +435,15 @@
 	*/
 	function findMimeType($mimetypeExt)
 	{
+    global $mysqliro;
 
 		$mimeType = '';
 		if($mimetypeExt){
 			$mimetypeExt = strtolower($mimetypeExt);
 
-			$fres = mysql_query('select fxm_Extension, fxm_Mimetype from defFileExtToMimetype where fxm_Extension = "'.addslashes($mimetypeExt).'"');
-			if (mysql_num_rows($fres) == 1) {
-				$res = mysql_fetch_assoc($fres);
+			$fres = $mysqliro->query('select fxm_Extension, fxm_Mimetype from defFileExtToMimetype where fxm_Extension = "'.addslashes($mimetypeExt).'"');
+			if (mysqli_num_rows($fres) == 1) {
+				$res = mysqli_fetch_assoc($fres);
 				$mimeType = $res['fxm_Mimetype'];
 				if($mimeType==null){
 					$mimeType=='';
@@ -457,6 +464,7 @@
 	*/
 	function register_external($filejson)
 	{
+    global $mysqli;
 		$filedata = json_decode($filejson, true);
 
 		//DEBUG
@@ -503,7 +511,7 @@
 			//ignore registration for already uploaded file
 			if(array_key_exists('remoteSource', $filedata) && $filedata['remoteSource']!='heurist'){
 
-				mysql__update('recUploadedFiles','ulf_ID='.$file_id,
+				mysqli__update($mysqli, 'recUploadedFiles','ulf_ID='.$file_id,
 					array(
 						'ulf_Modified' => date('Y-m-d H:i:s'),
 						'ulf_MimeExt ' => $filedata['ext'],
@@ -522,13 +530,13 @@
 
 			//2. find duplication (the same url)
 			if(array_key_exists('remoteSource', $filedata) && $filedata['remoteSource']!='heurist'){
-				$res = mysql_query('select ulf_ID from recUploadedFiles '.
+				$res = $mysqli->query('select ulf_ID from recUploadedFiles '.
 					'where ulf_ExternalFileReference = "'.addslashes($filedata['remoteURL']).'"');
 
-				if (mysql_num_rows($res) == 1) {
-					$row = mysql_fetch_assoc($res);
+				if ($res->num_rows == 1) {
+					$row = $res->fetch_assoc();
 					$file_id = $row['ulf_ID'];
-					mysql__update('recUploadedFiles','ulf_ID='.$file_id,
+					mysqli__update($mysqli, 'recUploadedFiles','ulf_ID='.$file_id,
 						array(
 							'ulf_Modified' => date('Y-m-d H:i:s'),
 							'ulf_MimeExt ' => $filedata['ext'],
@@ -541,7 +549,7 @@
 			}
 
 			//3. save into  recUploadedFiles
-			$res = mysql__insert('recUploadedFiles', array(
+			$res = mysqli__insert($mysqli, 'recUploadedFiles', array(
 					'ulf_OrigFileName' => '_remote',
 					'ulf_UploaderUGrpID' => get_user_id(),
 					'ulf_Added' => date('Y-m-d H:i:s'),
@@ -553,13 +561,13 @@
 			);
 
 			if (!$res) {
-/*****DEBUG****///error_log("ERROR Insert record: ".mysql_error());
+/*****DEBUG****///error_log("ERROR Insert record: ".$mysqli->error);
 				return null; //"Error registration remote source  $url into database";
 			}
 
-			$file_id = mysql_insert_id();
+			$file_id = $mysqli->insert_id;
 
-			mysql_query('update recUploadedFiles set ulf_ObfuscatedFileID = "' . addslashes(sha1($file_id.'.'.rand())) . '" where ulf_ID = ' . $file_id);
+			$mysqli->query('update recUploadedFiles set ulf_ObfuscatedFileID = "' . addslashes(sha1($file_id.'.'.rand())) . '" where ulf_ID = ' . $file_id);
 
 		}
 
@@ -599,14 +607,15 @@
 	*/
 	function get_uploaded_file_recordid($fileID, $needConnect)
 	{
+    global $mysqliro;
 		if($needConnect){
-			mysql_connection_overwrite(DATABASE);
+			$mysqli = mysqli_connection_overwrite(DATABASE);
 		}
 
 		$recID = null;
 
-		$res = mysql_query("select dtl_RecID from recDetails where dtl_UploadedFileID=".$fileID);
-		while ($row = mysql_fetch_array($res)) {
+		$res = $mysqliro->query("select dtl_RecID from recDetails where dtl_UploadedFileID=".$fileID);
+		while ($row = $res->fetch_array()) {
 			$recID = $row[0];
 			break;
 		}
@@ -622,14 +631,15 @@
 	*/
 	function get_uploaded_fileid_by_recid($recID, $needConnect)
 	{
+    global $mysqliro;
 		if($needConnect){
-			mysql_connection_overwrite(DATABASE);
+			$mysqli = mysqli_connection_overwrite(DATABASE);
 		}
 
 		$ulf_id = null;
 
-		$res = mysql_query("select dtl_UploadedFileID from recDetails where dtl_RecID=".$recID." and dtl_UploadedFileID is not null");
-		while ($row = mysql_fetch_array($res)) {
+		$res = $mysqliro->query("select dtl_UploadedFileID from recDetails where dtl_RecID=".$recID." and dtl_UploadedFileID is not null");
+		while ($row = $res->fetch_array()) {
 			$ulf_id = $row[0];
 			break;
 		}
@@ -646,14 +656,14 @@
 	*/
 	function get_uploaded_file_info_internal($fileID, $needConnect)
 	{
-
+    global $mysqliro;
 		if($needConnect){
-			mysql_connection_overwrite(DATABASE);
+			$mysqli = mysqli_connection_overwrite(DATABASE);
 		}
 
 		$res = null;
 
-		$fres = mysql_query(//saw NOTE! these field names match thoses used in HAPI to init an HFile object.
+		$fres = $mysqliro->query(//saw NOTE! these field names match thoses used in HAPI to init an HFile object.
 			'select ulf_ID as id,
 			ulf_ObfuscatedFileID as nonce,
 			ulf_OrigFileName as origName,
@@ -674,9 +684,9 @@
 				?'ulf_ID = '.intval($fileID)
 				:'ulf_ObfuscatedFileID = "'.addslashes($fileID).'"') );
 
-		if (mysql_num_rows($fres) == 1) {
+		if (mysqli_num_rows($fres) == 1) {
 
-			$res = mysql_fetch_assoc($fres);
+			$res = mysqli_fetch_assoc($fres);
 
 			$origName = urlencode($res["origName"]);
 
@@ -755,7 +765,7 @@
 	* @param mixed $recordId
 	*/
 	function getThumbnailURL($recordId){
-
+    global $mysqliro;
 		$assocDT = (defined('DT_FILE_RESOURCE')?DT_FILE_RESOURCE:0);
 		$logoDT = (defined('DT_LOGO_IMAGE')?DT_LOGO_IMAGE:0);
 		$thumbDT = (defined('DT_THUMBNAIL')?DT_THUMBNAIL:0);
@@ -768,8 +778,8 @@
 		$squery = "select rec_RecTypeID".
 							" from Records".
 							" where rec_ID = $recordId";
-		$res = mysql_query($squery);
-		$row = mysql_fetch_assoc($res);
+		$res = $mysqliro->query($squery);
+		$row = $res->fetch_assoc();
 		$rtyID = $row["rec_RecTypeID"];
 		//error_log("rectype is ".print_r($rtyID,true));
 		$thumb_url = "";
@@ -792,10 +802,10 @@
 			" dtl_DetailTypeID".	// no preference on associated or other files just select the first
 			" limit 1";
 			/*****DEBUG****///error_log(">>>>>>>>>>>>>>>>>>>>>>>".$squery);
-			$res = mysql_query($squery);
+			$res = $mysqliro->query($squery);
 
-			if ($res && mysql_num_rows($res) == 1) {
-				$file = mysql_fetch_assoc($res);
+			if ($res && $res->num_rows == 1) {
+				$file = $res->fetch_assoc();
 
 				$thumbnail_file = "ulf_".$file['ulf_ObfuscatedFileID'].".png";
 				if(file_exists(HEURIST_THUMB_DIR.$thumbnail_file)){
@@ -819,10 +829,10 @@
 			" limit 1";
 
 			/*****DEBUG****///error_log("2.>>>>>>>>>>>>>>>>>>>>>>>".$squery);
-			$res = mysql_query($squery);
+			$res = $mysqliro->query($squery);
 
-			if ($res && mysql_num_rows($res) == 1) {
-				$dRow = mysql_fetch_assoc($res);
+			if ($res && $res->num_rows == 1) {
+				$dRow = $res->fetch_assoc();
 				if ( $fullUrlDT &&  $dRow['dtl_DetailTypeID'] == $fullUrlDT) {
 					$thumb_url = HEURIST_BASE_URL."common/php/resizeImage.php?db=".HEURIST_DBNAME."&file_url=".htmlspecialchars($dRow['dtl_Value']);
 				}else{

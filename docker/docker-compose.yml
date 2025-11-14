@@ -1,0 +1,95 @@
+#version: '3.1'
+
+services: 
+  mydb:
+    build: ./mysql
+    restart: always
+#    environment: 
+#      PGDATA: /var/lib/mysql/data
+    env_file:
+      - ../.env
+    volumes:
+      - sharebin:/usr/bin #make mysql tools available to other services
+      - ../../../heuristfilestore/mysqldata:/var/lib/mysql # using relative path to bind host dir to persist mysql data
+      - ../../../heuristfilestore:/var/heuristfilestore # using relative path to bind host dir to /var/heuristfilestore
+    ports:
+      - "3306:3306"
+
+  myadmin:
+    build: ./myadmin
+    restart: unless-stopped
+    env_file:
+      - ../.env
+#    environment: 
+#     PMA_HOST: mydb
+#     PMA_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    ports:
+      - "8080:80" # "host_port:container_port". phpmyadmin can be found from host browser as localhost:8080
+    volumes: 
+      - ../../../heuristfilestore:/var/heuristfilestore # using relative path to bind host dir to /var/heuristfilestore
+      - ../../../heuristfilestore/myadmin:/var/lib/myadmin # using relative path to bind host dir to /pgadmin_queries
+      - ../../../heuristfilestore/myadminstorage:/var/lib/myadmin/storage
+#    links: 
+#      - "mydb:db" 
+    depends_on: 
+      - mydb
+  h3zag:
+    build: ./php-apache
+    ports:
+      - "80:80" # map container port 80 to host port 80. This will allow the use of localhost directly
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+#   environment: 
+#      XDEBUG_MODE: develop,debug
+#      XDEBUG_CONFIG: client_host=host.docker.internal start_with_request=yes
+#      SHARE_PATH:/usr/bin
+    env_file:
+      - ../.env
+    volumes: 
+      - sharebin:/usr/bin # share mysql tools with php server to help maintain databases
+      - ../..:/var/www/html/ # path_to_workspaceroot:absolute path in apache container for document root
+      - ../../../heuristfilestore:/var/www/heuristfilestore # path_to_database_sql files:absolute path to apache container of heuristfilestore
+    depends_on: 
+      - mydb
+
+  memcached_server:
+    image: memcached:latest
+    container_name: machedsrv
+    restart: unless-stopped
+    ports:
+      - "11211:11211"
+#    command: memcached -m 64 -o modern
+
+#
+#  redis:
+#    image: 'redis:3.0-alpine'
+#    command: redis-server --requirepass devpassword
+#    volumes:
+#      - 'redis:/var/lib/redis/data'
+#    ports:
+#      - '6379:6379'
+
+#  readmin:
+#    build: ../admin
+#    command: >
+#      gunicorn -b 0.0.0.0:8000
+#        --access-logfile -
+#        --reload
+#        --workers=2
+#        "wsgi:application"
+#    environment:
+#      PYTHONUNBUFFERED: 'true'
+#    env_file:
+#      - ../.env
+#    volumes:
+#      - '../admin:/readadmin'
+#      - sharebin:/usr/bin # share mysql tools with php server to help maintain databases
+#      - ../../../heuristfilestore:/var/www/heuristfilestore # path_to_database_sql's:absolute path to apache container of readfilestore
+#    ports:
+#      - '8001:8000'
+
+volumes: #these volumes will be saved in docker storage until deleted
+  sharebin:
+#  db-data:
+#  db-pgadmin:
+#  redis:

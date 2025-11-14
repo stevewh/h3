@@ -109,7 +109,7 @@ if (! @$_REQUEST["url"]) {
 }
 
 require_once(dirname(__FILE__)."/../common/php/dbMySqlWrappers.php");
-mysql_connection_insert("hapi");
+$mysqli = mysqli_connection_insert("hapi");
 
 $url = $_REQUEST["url"];
 $instance = $_REQUEST["db"];
@@ -122,22 +122,22 @@ if (! $user_id) {
 
 if (substr($url, -1) != "/") $url .= "/";
 
-$res = mysql_query("select hl_key
+$res = $mysqli->query("select hl_key
                       from hapi_locations
                      where hl_location = '" . addslashes($url) . "'
                        and hl_instance = '" . addslashes($instance) . "'");
-if (mysql_num_rows($res) > 0) {
-	$row = mysql_fetch_assoc($res);
+if ($res->num_rows > 0) {
+	$row = $res->fetch_assoc();
 	$key = $row["hl_key"];
 } else {
-	mysql_query("insert into hapi_locations (hl_location, hl_instance, hl_user_id, hl_key, hl_created)
+	$mysqli->query("insert into hapi_locations (hl_location, hl_instance, hl_user_id, hl_key, hl_created)
 					values ('" . addslashes($url) . "', '" . addslashes($instance) . "', " . $user_id . ", sha1('" . addslashes($instance) . addslashes($url) . "'), now())");
-	$res = mysql_query("select hl_key
+	$res = $mysqli->query("select hl_key
 	                      from hapi_locations
 	                     where hl_location = '" . addslashes($url) . "'
 	                       and hl_instance = '" . addslashes($instance) . "'");
-	if (mysql_num_rows($res) > 0) {
-		$row = mysql_fetch_assoc($res);
+	if ($res->num_rows > 0) {
+		$row = $res->fetch_assoc();
 		$key = $row["hl_key"];
 	}
 }

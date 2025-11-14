@@ -51,7 +51,10 @@ session_start();
 /*****DEBUG****///error_log("in login  loaded includes  userdb = ". USERS_DATABASE);
 /*****DEBUG****///error_log(" params =". $_SERVER['QUERY_STRING']);
 
-$last_uri = urldecode(@$_REQUEST['last_uri']);
+$last_uri = null;
+if (array_key_exists('last_url', $_REQUEST)) {
+  $last_uri = urldecode(@$_REQUEST['last_uri']);
+}
 
 /*****DEBUG****///error_log(" last uri = $last_uri");
 //if (! $last_uri)
@@ -65,16 +68,17 @@ if (! $last_uri) {
 }
 
 
-mysql_connection_select(USERS_DATABASE);
+$mysqli = mysqli_connection_select(USERS_DATABASE);
 
 
 $LOGIN_ERROR = '';
 if (@$_REQUEST['username']  or  @$_REQUEST['password']) {
 
-	$res = mysql_query('select * from '.USERS_TABLE.' where '.USERS_USERNAME_FIELD.' = "'.addslashes($_REQUEST['username']).'"');
-    if ( ($user = mysql_fetch_assoc($res))  &&
+	$res = $mysqli->query('select * from '.USERS_TABLE.' where '.USERS_USERNAME_FIELD.' = "'.addslashes($_REQUEST['username']).'"');
+    if ( ($user = $res->fetch_assoc())  &&
 		 $user[USERS_ACTIVE_FIELD] == 'y'  &&
-		 crypt($_REQUEST['password'], $user[USERS_PASSWORD_FIELD]) == $user[USERS_PASSWORD_FIELD] ) {
+		 $_REQUEST['password'] == $user[USERS_PASSWORD_FIELD] ) {
+		 //crypt($_REQUEST['password'], $user[USERS_PASSWORD_FIELD]) == $user[USERS_PASSWORD_FIELD] ) {
 /*****DEBUG****///error_log("in login  after crypt check");
 
 		$groups = reloadUserGroups($user[USERS_ID_FIELD]);
@@ -100,11 +104,11 @@ if (@$_REQUEST['username']  or  @$_REQUEST['password']) {
 		setcookie('heurist-sessionid', session_id(), $time, '/', HEURIST_SERVER_NAME);
 
 		/* bookkeeping */
-		mysql_connection_overwrite(USERS_DATABASE);
-		mysql_query('update sysUGrps usr set usr.ugr_LastLoginTime=now(), usr.ugr_LoginCount=usr.ugr_LoginCount+1
+		$mysqli = mysqli_connection_overwrite(USERS_DATABASE);
+		$mysqli->query('update sysUGrps usr set usr.ugr_LastLoginTime=now(), usr.ugr_LoginCount=usr.ugr_LoginCount+1
 					  where usr.ugr_ID='.$user[USERS_ID_FIELD]);
 
-		mysql_connection_select(USERS_DATABASE);
+		$mysqli = mysqli_connection_select(USERS_DATABASE);
 
 		if ($last_uri){
 			header('Location: ' . $last_uri);

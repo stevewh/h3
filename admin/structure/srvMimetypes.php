@@ -80,16 +80,16 @@
 
 	if($metod=="search"){
 
-		mysql_connection_select(DATABASE);
+		$mysqli = mysqli_connection_select(DATABASE);
 
 		$records = array();
 		//$records['list'] = array();
 
 		//loads list of all records
 		$query = "select * from defFileExtToMimetype";
-		$res = mysql_query($query);
+		$res = $mysqli->query($query);
 
-		while ($row = mysql_fetch_assoc($res)) {
+		while ($row = $res->fetch_assoc()) {
 			array_push($records, $row);
 		}
 
@@ -99,7 +99,7 @@
 
 	}else if($metod=="get"){ //-----------------
 
-		mysql_connection_select(DATABASE);
+		$mysqli = mysqli_connection_select(DATABASE);
 
 		$recID = @$_REQUEST['recID'];
 		if ($recID==null) {
@@ -120,8 +120,8 @@
 
 /*****DEBUG****///error_log(">>>>>>>>>>>>>>> QUERY =".$query);
 		if($query){
-			$res = mysql_query($query);
-			while ($row = mysql_fetch_row($res)) {
+			$res = $mysqli->query($query);
+			while ($row = $res->fetch_row()) {
 				$records['records'][$row[0]] = $row;
 			}
 		}
@@ -176,19 +176,19 @@ exit();
 	**/
 	function deleteMimetypes($recID) {
 
-		$db = mysqli_connection_overwrite(DATABASE);
+		$mysqli = mysqli_connection_overwrite(DATABASE);
 
 		$ret = array();
 
 		$query = "delete from defFileExtToMimetype where fxm_Extension='$recID'";
-		$rows = execSQL($db, $query, null, true);
+		$rows = execSQL($mysqli, $query, null, true);
 		if (is_string($rows) ) {
 			$ret['error'] = "db error deleting record from mime types table - ".$rows;
 		}else{
 			$ret['result'] = $recID;
 		}
 
-		$db->close();
+		$mysqli->close();
 
 		return $ret;
 	}
@@ -208,7 +208,7 @@ exit();
 
 		if (count($colNames) && count($values)){
 
-			$db = mysqli_connection_overwrite(DATABASE);
+			$mysqli = mysqli_connection_overwrite(DATABASE);
 
 			$isInsert = ($recID<0);
 
@@ -248,7 +248,7 @@ exit();
 					//check for duplication
 			/*if($isInsert){
 					$querydup = "select fxm_Extension from defFileExtToMimetype where fxm_Extension=?";
-					$rows = execSQL($db, $querydup, $parameters2, false);
+					$rows = execSQL($mysqli, $querydup, $parameters2, false);
 					if(is_array(@rows)){
 						$ret = "error insert duplicate extension";
 						$query = "";
@@ -263,14 +263,14 @@ exit();
 					$query = "update defFileExtToMimetype set ".$query." where fxm_Extension = '$recID'";
 				}
 
-				$rows = execSQL($db, $query, $parameters, true);
+				$rows = execSQL($mysqli, $query, $parameters, true);
 
 				if ($rows==0 || is_string($rows) ) {
 					$oper = (($isInsert)?"inserting":"updating");
 					$ret = "Error $oper for Mime types - ".$rows; //$msqli->error;
 				} else {
 					if($isInsert){
-						//$recID = $db->insert_id;
+						//$recID = $mysqli->insert_id;
 						$ret = "-1";
 
 					}//if $isInsert
@@ -282,7 +282,7 @@ exit();
 
 
 
-			$db->close();
+			$mysqli->close();
 		}//if column names
 
 

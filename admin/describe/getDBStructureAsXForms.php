@@ -68,8 +68,8 @@ require_once (dirname(__FILE__) . '/../../common/php/dbMySqlWrappers.php');
 require_once (dirname(__FILE__) . '/../../common/php/getRecordInfoLibrary.php');
 require_once (dirname(__FILE__) . '/../../admin/describe/rectypeXFormLibrary.php');
 // Deals with all the database connections stuff
-mysql_connection_select(DATABASE);
-if (mysql_error()) {
+$mysqli = mysqli_connection_select(DATABASE);
+if ($mysqli->error) {
 	die("Could not get database structure from given database source, MySQL error - unable to connect to database.");
 }
 if (!is_logged_in()) {

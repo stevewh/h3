@@ -79,6 +79,7 @@ require_once(dirname(__FILE__).'/../../common/connect/applyCredentials.php');
 <div id=errorMsg><span>Warning! This function not yet debugged</span></div>
 <?php
 require_once(dirname(__FILE__)."/../../search/getSearchResults.php");
+require_once(dirname(__FILE__).'/../../common/php/dbMySqlWrappers.php');
 require_once(dirname(__FILE__)."/../../common/php/getRecordInfoLibrary.php");
 require_once("rollbackRecordsFuncs.php");
 
@@ -162,7 +163,7 @@ function showRecordRollback ($record, $changes) {
 	print '</div>';
 
 	$reqs = getRectypeStructureFields($record["rec_RecTypeID"]);
-	$detail_names = mysql__select_assoc("defDetailTypes", "dty_ID", "dty_Name", 1);
+	$detail_names = mysqli__select_assoc($mysqli, "defDetailTypes", "dty_ID", "dty_Name", 1);
 
 
 	foreach ($reqs as $dt => $req) {

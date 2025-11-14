@@ -43,12 +43,12 @@
 
 function mysql_query_($x) {
 	print $x . "\n";
-	$res = mysql_query($x);
-if (mysql_error()) { print "ERROR: " . mysql_error() . "\n"; }
-	if (preg_match("/^select/i", $x)) { print mysql_num_rows($res) . " SELECTED\n \n"; }
-	else if (preg_match("/^update/i", $x)) { print mysql_affected_rows() . " UPDATED\n \n"; }
-	else if (preg_match("/^delete/i", $x)) { print mysql_affected_rows() . " DELETED\n \n"; }
-	else if (preg_match("/^insert/i", $x)) { print mysql_affected_rows() . " INSERTED\n \n"; }
+	$res = $mysqli->query($x);
+if ($mysqli->error) { print "ERROR: " . $mysqli->error . "\n"; }
+	if (preg_match("/^select/i", $x)) { print $res->num_rows . " SELECTED\n \n"; }
+	else if (preg_match("/^update/i", $x)) { print $mysqli->affected_rows . " UPDATED\n \n"; }
+	else if (preg_match("/^delete/i", $x)) { print $mysqli->affected_rows . " DELETED\n \n"; }
+	else if (preg_match("/^insert/i", $x)) { print $mysqli->affected_rows . " INSERTED\n \n"; }
 	return $res;
 }
 
@@ -63,9 +63,9 @@ if (! is_logged_in()) {
 
 $_REQUEST = json_decode(@$_POST["data"]?  $_POST["data"] : base64_decode(@$_GET["data"]), true);
 
-mysql_connection_overwrite(DATABASE);
+$mysqli = mysqli_connection_overwrite(DATABASE);
 
-mysql_query("start transaction");
+$mysqli->query("start transaction");
 
 $out = deleteRecord(@$_REQUEST["id"]);
 
@@ -73,12 +73,12 @@ if( array_key_exists("error", $out) ){
 	jsonError($out["error"]);
 }
 
-mysql_query("commit");
+$mysqli->query("commit");
 
 print json_format($out);
 
 function jsonError($message) {
-	mysql_query("rollback");
+	$mysqli->query("rollback");
 	print "{\"error\":\"" . addslashes($message) . "\"}";
 	exit(0);
 }

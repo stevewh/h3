@@ -60,25 +60,25 @@ if ($u) {
 	}
 }
 
-mysql_connection_overwrite(DATABASE);
+$mysqli = mysqli_connection_overwrite(DATABASE);
 
-$res = mysql_query("select rem_Nonce from usrReminders where rem_ID = ".$r);
-$row = mysql_fetch_assoc($res);
+$res = $mysqli->query("select rem_Nonce from usrReminders where rem_ID = ".$r);
+$row = $res->fetch_assoc();
 if ($h != $row["rem_Nonce"]) {
 	return;
 }
 
 if ($e) {
-	mysql_query("delete from usrReminders where rem_ID = ".$r." and rem_ToEmail = '".addslashes($e)."'");
-	if (! mysql_affected_rows()) {
+	$mysqli->query("delete from usrReminders where rem_ID = ".$r." and rem_ToEmail = '".addslashes($e)."'");
+	if (! $mysqli->affected_rows) {
 		return;
 	}
 } else if ($u) {
-	mysql_query("delete from usrReminders where rem_ID = ".$r." and rem_ToUserID = '".$u."'");
-	if (! mysql_affected_rows()) {
+	$mysqli->query("delete from usrReminders where rem_ID = ".$r." and rem_ToUserID = '".$u."'");
+	if (! $mysqli->affected_rows) {
 		// must be a group - insert a blacklist entry
-		mysql_query("insert into usrRemindersBlockList (rbl_RemID, rbl_UGrpID) values (".$r.", ".$u.")");
-		if (! mysql_affected_rows()) {
+		$mysqli->query("insert into usrRemindersBlockList (rbl_RemID, rbl_UGrpID) values (".$r.", ".$u.")");
+		if (! $mysqli->affected_rows) {
 			return;
 		}
 	}

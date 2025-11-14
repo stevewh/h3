@@ -69,9 +69,9 @@
 
 	/* ???????
 	require_once(dirname(__FILE__).'/../../common/php/dbMySqlWrappers.php');
-	mysql_connection_select(DATABASE);
-	$res = mysql_query('select * from defRecTypes where rty_ID = ' . $rt_id);
-	$rt = mysql_fetch_assoc($res);
+	$mysqli = mysqli_connection_select(DATABASE);
+	$res = $mysqli->query('select * from defRecTypes where rty_ID = ' . $rt_id);
+	$rt = $res->fetch_assoc();
 	*/
 
 	list($success_msg, $failure_msg) = upload_file($rt_id, $dim);

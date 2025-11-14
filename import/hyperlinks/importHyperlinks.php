@@ -59,7 +59,7 @@ if (! is_logged_in()) {
 	return;
 }
 
-mysql_connection_overwrite(DATABASE);
+$mysqli = mysqli_connection_overwrite(DATABASE);
 
 $nextmode = 'inputselect';
 
@@ -123,7 +123,7 @@ if (@$_REQUEST['mode'] == 'Analyse') {
 		preg_match_all('!(<a[^>]*?href=["\']?([^"\'>\s]+)["\']?[^>]*?'.'>(.*?)</a>.*?)(?=<a\s|$)!is', $src, $matches);
 
 		/* get a list of the link-texts that we are going to ignore */
-		$ignored = mysql__select_assoc('usrHyperlinkFilter', 'lcase(hyf_String)', '-1',
+		$ignored = mysqli__select_assoc($mysqli, 'usrHyperlinkFilter', 'lcase(hyf_String)', '-1',
 		                               'hyf_UGrpID is null or hyf_UGrpID='.get_user_id());
 		$wildcard_ignored = array();
 		if($ignored){
@@ -137,11 +137,11 @@ if (@$_REQUEST['mode'] == 'Analyse') {
 			}
 		}
 
-		mysql_connection_select(USERS_DATABASE);
-		$res = mysql_query('select ugr_MinHyperlinkWords from '.USERS_TABLE.' where '.USERS_ID_FIELD.' = '.get_user_id());
-		$row = mysql_fetch_row($res);
+		$mysqli = mysqli_connection_select(USERS_DATABASE);
+		$res = $mysqli->query('select ugr_MinHyperlinkWords from '.USERS_TABLE.' where '.USERS_ID_FIELD.' = '.get_user_id());
+		$row = $res->fetch_row();
 		$word_limit = $row[0];	// minimum number of words that must appear in the link
-		mysql_connection_overwrite(DATABASE);
+		$mysqli = mysqli_connection_overwrite(DATABASE);
 
 
 		$urls = array();
@@ -282,7 +282,7 @@ if ((@$_REQUEST['mode'] == 'Bookmark checked links'  ||  @$_REQUEST['adding_tags
 
 // filter the URLs (get rid of the ones already bookmarked)
 if (@$urls) {
-	$bkmk_urls = mysql__select_assoc('usrBookmarks left join Records on rec_ID = bkm_recID', 'rec_URL', '1', 'bkm_UGrpID='.get_user_id());
+	$bkmk_urls = mysqli__select_assoc($mysqli, 'usrBookmarks left join Records on rec_ID = bkm_recID', 'rec_URL', '1', 'bkm_UGrpID='.get_user_id());
 	$ignore = array();
 	foreach ($urls as $url => $title){
 		if (@$bkmk_urls[$url]) $ignore[$url] = 1;
@@ -361,16 +361,16 @@ hyperlinks of interest).</p>
 	} else if ($nextmode == 'printurls') {
 
 /* removed by saw 2010/11/12 doesn't seemed to be used anymore
-		$tags = mysql__select_array('usrTags', 'tag_Text', 'tag_UGrpID='.get_user_id().' order by tag_Text');
+		$tags = mysqli__select_array($mysqli, 'usrTags', 'tag_Text', 'tag_UGrpID='.get_user_id().' order by tag_Text');
 		$tag_options = '';
 		foreach ($tags as $kwd)
 			$tag_options .= '<option value="'.htmlspecialchars($kwd).'">'.htmlspecialchars($kwd)."</option>\n";
 */
-		mysql_connection_select(USERS_DATABASE);
-		$res = mysql_query('select ugr_MinHyperlinkWords from '.USERS_TABLE.' where '.USERS_ID_FIELD.' = '.get_user_id());
-		$row = mysql_fetch_row($res);
+		$mysqli = mysqli_connection_select(USERS_DATABASE);
+		$res = $mysqli->query('select ugr_MinHyperlinkWords from '.USERS_TABLE.' where '.USERS_ID_FIELD.' = '.get_user_id());
+		$row = $res->fetch_row();
 		$word_limit = $row[0];	// minimum number of words that must appear in the link
-		mysql_connection_overwrite(DATABASE);
+		$mysqli = mysqli_connection_overwrite(DATABASE);
 
 ?>
 <h2 style="padding-left: 20px;">Import Hyperlinks</h2>
@@ -459,16 +459,16 @@ function records_check($url, $title, $notes, $user_rec_id) {
 	 */
 
 	// saw FIXME this should be
-	$res = mysql_query('select rec_ID from Records where rec_URL = "'.addslashes($url).'" and (rec_OwnerUGrpID=0 or not rec_NonOwnerVisibility="hidden")');
-	if (mysql_num_rows($res) > 0) {
-		$bib = mysql_fetch_assoc($res);
+	$res = $mysqli->query('select rec_ID from Records where rec_URL = "'.addslashes($url).'" and (rec_OwnerUGrpID=0 or not rec_NonOwnerVisibility="hidden")');
+	if ($res->num_rows > 0) {
+		$bib = $res->fetch_assoc();
 		return $bib['rec_ID'];
 	}
 
 	if ($user_rec_id > 0) {
-		$res = mysql_query('select rec_ID from Records where rec_ID = "'.addslashes($user_rec_id).'" and (rec_OwnerUGrpID=0 or not rec_NonOwnerVisibility="hidden")');
-		if (mysql_num_rows($res) > 0) {
-			$bib = mysql_fetch_assoc($res);
+		$res = $mysqli->query('select rec_ID from Records where rec_ID = "'.addslashes($user_rec_id).'" and (rec_OwnerUGrpID=0 or not rec_NonOwnerVisibility="hidden")');
+		if ($res->num_rows > 0) {
+			$bib = $res->fetch_assoc();
 			return $bib['rec_ID'];
 		}
 
@@ -481,10 +481,10 @@ function records_check($url, $title, $notes, $user_rec_id) {
 		if (substr($par_url, strlen($par_url)-1) == '/')	// ends in a slash; remove it
 			$par_url = substr($par_url, 0, strlen($par_url)-1);
 
-		$res = mysql_query('select rec_ID from Records where rec_URL like "'.addslashes($par_url).'%" and (rec_OwnerUGrpID=0 or not rec_NonOwnerVisibility="hidden")');
-		if (mysql_num_rows($res) > 0) {
+		$res = $mysqli->query('select rec_ID from Records where rec_URL like "'.addslashes($par_url).'%" and (rec_OwnerUGrpID=0 or not rec_NonOwnerVisibility="hidden")');
+		if ($res->num_rows > 0) {
 			$rec_ids = array();
-			while ($row = mysql_fetch_row($res))
+			while ($row = $res->fetch_row())
 				array_push($rec_ids, $row[0]);
 			return $rec_ids;
 		}
@@ -493,7 +493,7 @@ function records_check($url, $title, $notes, $user_rec_id) {
 
 	// no similar URLs, no exactly matching URL, or user has explicitly selected "add new URL"
 	//insert the main record
-	if (mysql__insert('Records', array(
+	if (mysqli__insert($mysqli, 'Records', array(
 		'rec_RecTypeID' => RT_INTERNET_BOOKMARK,
 		'rec_URL' => $url,
 		'rec_Added' => date('Y-m-d H:i:s'),
@@ -502,16 +502,16 @@ function records_check($url, $title, $notes, $user_rec_id) {
 		'rec_ScratchPad' => $notes,
 		'rec_AddedByUGrpID' => get_user_id()
 	))) {
-		$rec_id = mysql_insert_id();
+		$rec_id = $mysqli->insert_id;
 		//add title input-cell
-		mysql__insert('recDetails', array(
+		mysqli__insert($mysqli, 'recDetails', array(
 			'dtl_RecID' => $rec_id,
 			'dtl_DetailTypeID' => DT_NAME,
 			'dtl_Value' => $title
 		));
 		//add notes input-cell
 		if($notes){
-			mysql__insert('recDetails', array(
+			mysqli__insert($mysqli, 'recDetails', array(
 				'dtl_RecID' => $rec_id,
 				'dtl_DetailTypeID' => DT_EXTENDED_DESCRIPTION,
 				'dtl_Value' => $notes
@@ -531,20 +531,20 @@ function records_check($url, $title, $notes, $user_rec_id) {
 
 function bookmark_insert($url, $title, $tags, $rec_id) {
 
-	$res = mysql_query('select * from usrBookmarks where bkm_recID="'.addslashes($rec_id).'"
+	$res = $mysqli->query('select * from usrBookmarks where bkm_recID="'.addslashes($rec_id).'"
 	                                              and bkm_UGrpID="'.get_user_id().'"');
 	//if already bookmarked then return
-	if (mysql_num_rows($res) > 0) return 0;
+	if ($res->num_rows > 0) return 0;
 	//insert the bookmark
-	if (mysql__insert('usrBookmarks', array(
+	if (mysqli__insert($mysqli, 'usrBookmarks', array(
 		'bkm_recID' => $rec_id,
 		'bkm_Added' => date('Y-m-d H:i:s'),
 		'bkm_Modified' => date('Y-m-d H:i:s'),
 		'bkm_UGrpID' => get_user_id())))
 	{
-		$bkm_ID = mysql_insert_id();
+		$bkm_ID = $mysqli->insert_id;
 		// find the tag ids for each tag.
-		$all_tags = mysql__select_assoc('usrTags', 'lower(tag_Text)', 'tag_ID', 'tag_UGrpID='.get_user_id());
+		$all_tags = mysqli__select_assoc($mysqli, 'usrTags', 'lower(tag_Text)', 'tag_ID', 'tag_UGrpID='.get_user_id());
 		$input_tags = explode(',', $tags);
 		$tag_ids = array();
 
@@ -560,7 +560,7 @@ function bookmark_insert($url, $title, $tags, $rec_id) {
 
 error_log(">>>>".print_r($tag_ids,true));
 
-//		mysql_query('delete from usrRecTagLinks where kwl_pers_id='.$bkm_ID);
+//		$mysqli->query('delete from usrRecTagLinks where kwl_pers_id='.$bkm_ID);
 		if ($tag_ids) {
 			$insert_stmt = '';
 			$tgi_count = 0;
@@ -570,7 +570,7 @@ error_log(">>>>".print_r($tag_ids,true));
 			}
 
 			$insert_stmt = 'insert into usrRecTagLinks (rtl_RecID, rtl_TagID, rtl_Order) values ' . $insert_stmt;
-			mysql_query($insert_stmt);
+			$mysqli->query($insert_stmt);
 		}
 
 		return 1;
@@ -639,9 +639,9 @@ function print_link($url, $title) {
 	</div>
 
 <?php
-		$res = mysql_query('select * from Records where rec_ID in (' . join(',', $disambiguate_rec_ids[$url]) . ')');
+		$res = $mysqli->query('select * from Records where rec_ID in (' . join(',', $disambiguate_rec_ids[$url]) . ')');
 		$all_bibs = array();
-		while ($row = mysql_fetch_assoc($res))
+		while ($row = $res->fetch_assoc())
 			$all_bibs[$row['rec_ID']] = $row;
 
 		foreach ($disambiguate_rec_ids[$url] as $rec_id) {

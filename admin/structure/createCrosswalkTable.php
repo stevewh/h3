@@ -51,7 +51,7 @@
 	require_once(dirname(__FILE__).'/../../common/php/dbMySqlWrappers.php');
 	require_once(dirname(__FILE__).'/../../common/php/getRecordInfoLibrary.php');
 
-	mysql_connection_insert($tempDBName); // Use temp database
+	$mysqli = mysqli_connection_insert($tempDBName); // Use temp database
 
 ?>
 <html>
@@ -109,39 +109,39 @@ var replaceRecTypeName = "";
 
 // Fills the YUI Datatable with all recordtypes from the temp DB
 <?php
-	$groups = mysql_query("select rtg_ID, rtg_Name from ".$tempDBName.".defRecTypeGroups");
+	$groups = $mysqli->query("select rtg_ID, rtg_Name from ".$tempDBName.".defRecTypeGroups");
 	$rectypeGroups = array();
-	while($group = mysql_fetch_assoc($groups)) {
+	while($group = $groups->fetch_assoc()) {
 		array_push($rectypeGroups, array('id'=>$group["rtg_ID"], 'name' => $group["rtg_Name"]));
 	}
 
-	$rectypes = mysql_query("select * from ".$tempDBName.".defRecTypes order by rty_RecTypeGroupID, rty_Name");
+	$rectypes = $mysqli->query("select * from ".$tempDBName.".defRecTypes order by rty_RecTypeGroupID, rty_Name");
 	$approxMatches = array();
 	$tableRows = array();
 	// For every recordtype in the temp DB
-	while($rectype = mysql_fetch_assoc($rectypes)) {
+	while($rectype = $rectypes->fetch_assoc()) {
 		$OriginatingDBID = $rectype["rty_OriginatingDBID"];
 		$IDInOriginatingDB = $rectype["rty_IDInOriginatingDB"];
-		$nameInTempDB = mysql_real_escape_string($rectype["rty_Name"]);
+		$nameInTempDB = $mysqli->real_escape_string($rectype["rty_Name"]);
 
 		// Find recordtypes that are already in the local DB (comparing OriginatingDBID and IDInOriginatingDB
 		$cnt_identical = 0;
 
 		if($OriginatingDBID>0 && $IDInOriginatingDB>0){
-			$identicalMatches = mysql_query("select rty_ID, rty_Name from " . DATABASE . ".defRecTypes where rty_OriginatingDBID = $OriginatingDBID AND rty_IDInOriginatingDB = $IDInOriginatingDB");
+			$identicalMatches = $mysqli->query("select rty_ID, rty_Name from " . DATABASE . ".defRecTypes where rty_OriginatingDBID = $OriginatingDBID AND rty_IDInOriginatingDB = $IDInOriginatingDB");
 			// These rectypes are not in the importing database
-			$cnt_identical = mysql_num_rows($identicalMatches);
+			$cnt_identical = $identicalMatches->num_rows;
 		}
 
 
 		if(!$cnt_identical) {
-			$approxMatchesRes = mysql_query("select rty_Name, rty_Description from " . DATABASE . ".defRecTypes where (rty_Name like '%$nameInTempDB%')"); // TODO: if rectype is more than one word, check for both words
-			$numberOfApproxMatches = mysql_num_rows($approxMatchesRes);
+			$approxMatchesRes = $mysqli->query("select rty_Name, rty_Description from " . DATABASE . ".defRecTypes where (rty_Name like '%$nameInTempDB%')"); // TODO: if rectype is more than one word, check for both words
+			$numberOfApproxMatches = $approxMatchesRes->num_rows;
 			// Add all approximate matches to a javascript array
 			if($numberOfApproxMatches > 0) {
-				while($approxRectype = mysql_fetch_assoc($approxMatchesRes)) {
-					$approxRty_Name = mysql_escape_string($approxRectype["rty_Name"]);
-					$approxRty_Description = mysql_escape_string($approxRectype["rty_Description"]);
+				while($approxRectype = $approxMatchesRes->fetch_assoc()) {
+					$approxRty_Name = $mysqli->real_escape_string($approxRectype["rty_Name"]);
+					$approxRty_Description = $mysqli->real_escape_string($approxRectype["rty_Description"]);
 					if(@$rectype["rty_ID"] && @$approxMatches[$rectype["rty_ID"]])
 					{
 						if (!$approxMatches[$rectype["rty_ID"]]){
@@ -155,7 +155,7 @@ var replaceRecTypeName = "";
 		}else{
 
 			if($cnt_identical==1){
-				$rr = mysql_fetch_row($identicalMatches);
+				$rr = $identicalMatches->fetch_row();
 				$numberOfApproxMatches = "#".$rr[0]." ".$rr[1];
 			}else{
 				$numberOfApproxMatches = -$cnt_identical; //identical
@@ -180,8 +180,8 @@ var replaceRecTypeName = "";
 echo "var approxRectypes = ".json_format($approxMatches,true). ";\n";
 echo "var tableData = ".json_format($tableRows,true). ";\n\n";
 
-	mysql_query("use ".$tempDBName);
-	$rtyRes = mysql_query("select rty_ID,
+	$mysqli->query("use ".$tempDBName);
+	$rtyRes = $mysqli->query("select rty_ID,
 									rst_ID,
 									rst_DetailTypeID,
 									rst_DisplayName,
@@ -199,18 +199,18 @@ echo "var tableData = ".json_format($tableRows,true). ";\n\n";
 	// For every recordtype, add the structure to a javascript array, to show in a foldout panel
 	$rectypeStructures = array();
 	if(isset($rtyRes)) {
-		while($rtStruct = mysql_fetch_assoc($rtyRes)) {
+		while($rtStruct = $rtyRes->fetch_assoc()) {
 			// check to see if the source rectype field's detailType exist in our DB
-			$dtyExistRes = mysql_query("select dty_ID from " . DATABASE . ".defDetailTypes ".
+			$dtyExistRes = $mysqli->query("select dty_ID from " . DATABASE . ".defDetailTypes ".
 										"where dty_OriginatingDBID = ".$rtStruct['origDtyDBID'].
 										" AND dty_IDInOriginatingDB = ".$rtStruct['origDtyID']);
-			$dtyAlreadyImported = mysql_num_rows($dtyExistRes);
+			$dtyAlreadyImported = $dtyExistRes->num_rows;
 
 			$rtsShortRow = array($rtStruct["rst_DisplayName"],						//[0]
-								mysql_escape_string($rtStruct["dty_Name"]),			//[1]
+								$mysqli->real_escape_string($rtStruct["dty_Name"]),			//[1]
 								$rtStruct["dty_Type"],								//[2]
 								$rtStruct["dty_Status"],							//[3]
-								mysql_escape_string($rtStruct["rty_Description"]),	//[4]
+								$mysqli->real_escape_string($rtStruct["rty_Description"]),	//[4]
 								$dtyAlreadyImported ? 1: 0);						//[5]
 
 			if (!@$rectypeStructures[$rtStruct["rty_ID"]]){

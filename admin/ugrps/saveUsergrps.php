@@ -104,7 +104,7 @@
 	}
 	header('Content-type: text/javascript');
 
-	$db = mysqli_connection_overwrite(DATABASE); //artem's
+	$mysqli = mysqli_connection_overwrite(DATABASE); //artem's
 
 	//decode and unpack data
 	$data  = json_decode(urldecode(@$_REQUEST['data']), true);
@@ -202,7 +202,7 @@
 			break;
 
 	}//end of switch
-	$db->close();
+	$mysqli->close();
 
 	print json_format($rv);
 	/*
@@ -220,7 +220,7 @@
 	*/
 	function checkPermission( $type, $recID ) {
 
-		global $db;
+		global $mysqli;
 
 		$ret = null;
 
@@ -233,7 +233,7 @@
 				//find admin
 				$query = "select ugl_UserID from sysUsrGrpLinks where ugl_Role = 'admin' and ugl_GroupID=$recID
 				and ugl_UserID=".get_user_id();
-				$rows = execSQL($db, $query, null, true);
+				$rows = execSQL($mysqli, $query, null, true);
 
 				if ($rows==0 || is_string($rows) ) {
 					$ret = "Error checking rights Group $recID in updateUserGroup - ".$rows;
@@ -254,10 +254,10 @@
 		$ret = false;
 
 		if(is_admin() && $type=='user'){
-				mysql_connection_overwrite(DATABASE);
+				$mysqli = mysqli_connection_overwrite(DATABASE);
 				$query = "select ugr_Enabled, ugr_LoginCount from ".DATABASE.".sysUGrps where ugr_ID=$recID";
-				$res = mysql_query($query);
-				while ($row = mysql_fetch_array($res)) {
+				$res = $mysqli->query($query);
+				while ($row = $res->fetch_array()) {
 					$ret = ($row[0]=="n" && $row[1]==0);
 				}
 		}
@@ -276,7 +276,7 @@
 	*/
 	function updateUserGroup( $type, $colNames, $recID, $groupID, $values ) {
 
-		global $db, $sysUGrps_ColumnNames;
+		global $mysqli, $sysUGrps_ColumnNames;
 
 		$ret = null;
 
@@ -347,7 +347,7 @@
 					$query = "update sysUGrps set ".$query." where ugr_ID = $recID";
 				}
 
-				$rows = execSQL($db, $query, $parameters, true);
+				$rows = execSQL($mysqli, $query, $parameters, true);
 
 				if ($rows==0 || is_string($rows) ) {
 					$oper = (($isInsert)?"inserting":"updating");
@@ -359,7 +359,7 @@
 					}
 				} else {
 					if($isInsert){
-						$recID = $db->insert_id;
+						$recID = $mysqli->insert_id;
 
 						if($type=='user'){
 
@@ -408,15 +408,15 @@
 	*
 	*/
 	function sendNewUserInfoEmail($recID){
-
+    global $mysql;
         $dbowner_Email = get_dbowner_email();
         if($dbowner_Email)
         {
 
-		//mysql_connection_overwrite(DATABASE);
+		//$mysqli = mysqli_connection_overwrite(DATABASE);
 		$query = "select * from ".DATABASE.".sysUGrps where ugr_ID=$recID";
-		$res = mysql_query($query);
-		while ($row = mysql_fetch_assoc($res)) {
+		$res = $mysqli->query($query);
+		while ($row = $res->fetch_assoc()) {
 
 			$ugr_Name = $row['ugr_Name'];
 			$ugr_FullName = $row['ugr_FirstName'].' '.$row['ugr_LastName'];
@@ -449,14 +449,14 @@
 	*   Send approval message to user
 	*/
 	function sendApprovalEmail($recID, $tmp_password){
-
+    global $mysql;
         $dbowner_Email = get_dbowner_email();
         if($dbowner_Email)
         {
-		//mysql_connection_overwrite(DATABASE);
+		//$mysqli = mysqli_connection_overwrite(DATABASE);
 		$query = "select * from ".DATABASE.".sysUGrps where ugr_ID=$recID";
-		$res = mysql_query($query);
-		while ($row = mysql_fetch_assoc($res)) {
+		$res = $mysqli->query($query);
+		while ($row = $res->fetch_assoc()) {
 
 			$ugr_Name = $row['ugr_Name'];
 			$ugr_FullName = $row['ugr_FirstName'].' '.$row['ugr_LastName'];
@@ -505,7 +505,7 @@
 	* @return $ret user id that was deleted or error message
 	**/
 	function deleteUser($recID) {
-		global $db;
+		global $mysqli;
 
 		$ret = array();
 
@@ -517,7 +517,7 @@
 
 		$query = "select rec_ID from Records where rec_OwnerUGrpID=$recID and rec_FlagTemporary=0 limit 1";
 
-		$rows = execSQL($db, $query, null, true);
+		$rows = execSQL($mysqli, $query, null, true);
 
 		if (is_string($rows) ) {
 			$ret['error'] = "error finding Records for User $recID in deleteUser - ".$rows;
@@ -533,20 +533,20 @@
 
 			//delete temporary records
 			$query = "select rec_ID from Records where rec_OwnerUGrpID=$recID and rec_FlagTemporary=1";
-			$res = mysql_query($query);
-			while ($row = mysql_fetch_row($res)) {
+			$res = $mysqli->query($query);
+			while ($row = $res->fetch_row()) {
 				deleteRecord($row[0]);
 			}
 
 			//delete references from user-group link table
 			$query = "delete from sysUsrGrpLinks where ugl_UserID=$recID";
-			$rows = execSQL($db, $query, null, true);
+			$rows = execSQL($mysqli, $query, null, true);
 			if (is_string($rows) ) {
 				$ret['error'] = "db error deleting relations for User $recID from sysUsrGrpLinks - ".$rows;
 			}else{
 
 				$query = "delete from sysUGrps where ugr_ID=$recID";
-				$rows = execSQL($db, $query, null, true);
+				$rows = execSQL($mysqli, $query, null, true);
 
 				if ($rows==0 || is_string($rows) ) {
 					$ret['error'] = "db error deleting of User $recID from sysUGrps - ".$rows;
@@ -565,7 +565,7 @@
 	* @param mixed $recID - group id to be deleted
 	*/
 	function deleteGroup($recID) {
-		global $db;
+		global $mysqli;
 
 		$ret = array();
 
@@ -576,7 +576,7 @@
 		}
 
 		$query = "select rec_ID from Records where rec_OwnerUGrpID=$recID  and rec_FlagTemporary=0 limit 1";
-		$rows = execSQL($db, $query, null, true);
+		$rows = execSQL($mysqli, $query, null, true);
 
 		if (is_string($rows) ) {
 			$ret['error'] = "error finding Records for User $recID in deleteGroup - ".$rows;
@@ -586,7 +586,7 @@
 
 			/*
 			$query = "select ugl_UserID from sysUsrGrpLinks where ugl_GroupID=$recID limit 1";
-			$rows = execSQL($db, $query, null, true);
+			$rows = execSQL($mysqli, $query, null, true);
 			if (!is_numeric($rows)) {
 			$ret['error'] = "error finding Users for Group $recID in deleteGroup - ".$rows;
 			}else if ($rows>0){
@@ -596,18 +596,18 @@
 
 			//delete temporary records
 			$query = "select rec_ID from Records where rec_OwnerUGrpID=$recID and rec_FlagTemporary=1";
-			$res = mysql_query($query);
-			while ($row = mysql_fetch_row($res)) {
+			$res = $mysqli->query($query);
+			while ($row = $res->fetch_row()) {
 				deleteRecord($row[0]);
 			}
 
 			$query = "delete from sysUsrGrpLinks where ugl_GroupID=$recID";
-			$rows = execSQL($db, $query, null, true);
+			$rows = execSQL($mysqli, $query, null, true);
 			if ($rows==0 || is_string($rows) ) {
 				$ret['error'] = "db error deleting relations for Group $recID from sysUsrGrpLinks - ".$rows;
 			}else{
 				$query = "delete from sysUGrps where ugr_ID=$recID";
-				$rows = execSQL($db, $query, null, true);
+				$rows = execSQL($mysqli, $query, null, true);
 
 				if ($rows==0 || is_string($rows) ) {
 					$ret['error'] = "db error deleting of Group $recID from sysUGrps - ".$rows;
@@ -629,7 +629,7 @@
 	* @param mixed $recID - user ID
 	*/
 	function checkLastAdmin($recID, $groupID){
-		global $db;
+		global $mysqli;
 		$query =
 		"select g1.ugl_GroupID,
 		(select count(*) from sysUsrGrpLinks as g2 where g1.ugl_GroupID=g2.ugl_GroupID and g2.ugl_Role='admin') as adm
@@ -643,7 +643,7 @@
 
 		/*****DEBUG****///error_log("CHECK LAST ADMIN >>>>>>>>>>>>>>>>>>>>	".$query);
 
-		$rows = execSQL($db, $query, null, false);
+		$rows = execSQL($mysqli, $query, null, false);
 
 		if ( (is_numeric($rows) && $rows==0) || is_string($rows) ) {
 			$ret = "DB error finding number of possible orphan groups for User $recID from sysUsrGrpLinks - ".$rows;
@@ -669,7 +669,7 @@
 	* @param mixed $newRole - new role
 	*/
 	function changeRole($grpID, $recIds, $newRole, $oldRole, $needCheck, $updateSession){
-		global $db;
+		global $mysqli;
 
 		$ret = array();
 
@@ -712,7 +712,7 @@
 
 					/*****DEBUG****///error_log("DELETED DELETED DELETED DELETED DELETED DELETED DELETED DELETED ");
 					$query = "delete from sysUsrGrpLinks where ugl_UserID=$userID and ugl_GroupID=$grpID";
-					$rows = execSQL($db, $query, null, true);
+					$rows = execSQL($mysqli, $query, null, true);
 					if ($rows==0 || is_string($rows) ) {
 						// error delete reference for this user
 						array_push($ret['errors'], "db error deleting relations for user# $userID");
@@ -745,7 +745,7 @@
 				}
 				if($error==null){
 					$query = "UPDATE sysUsrGrpLinks set ugl_Role='$newRole' where ugl_GroupID=$grpID and ugl_UserID=$userID";
-					$rows = execSQL($db, $query, null, true);
+					$rows = execSQL($mysqli, $query, null, true);
 
 					if ($rows==0 || is_string($rows) ) {
 						array_push($ret['errors'], "DB error changing roles in sysUsrGrpLinks for group $grpID, user $userID - ".$rows);
@@ -787,7 +787,7 @@
 
 				$query	= $query." ON DUPLICATE KEY UPDATE ugl_Role='$newRole'";
 
-				$rows = execSQL($db, $query, null, true);
+				$rows = execSQL($mysqli, $query, null, true);
 
 				if ($rows==0 || is_string($rows) ) {
 					$ret['error'] = "DB error setting role in sysUsrGrpLinks - ".$rows;

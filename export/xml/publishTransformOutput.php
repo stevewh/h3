@@ -35,7 +35,7 @@ require_once(dirname(__FILE__).'/../../common/php/dbMySqlWrappers.php');
 require_once(dirname(__FILE__).'/../../records/files/fileUtils.php');
 
 //error_log("made it to here");
-mysql_connection_select(DATABASE);
+$mysqli = mysqli_connection_select(DATABASE);
 
 $verbose = @$_REQUEST['v'] && $_REQUEST['v']==0 ? false : true;
 $transformID = @$_REQUEST['transID'] ? $_REQUEST['transID'] : null;

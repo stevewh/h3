@@ -74,9 +74,9 @@
 
 		<?php
 
-			mysql_connection_overwrite(DATABASE);
-			if(mysql_error()) {
-				die("Sorry, could not connect to the database (mysql_connection_overwrite error)");
+			$mysqli = mysqli_connection_overwrite(DATABASE);
+			if($mysqli->error) {
+				die("Sorry, could not connect to the database ($mysqli = mysqli_connection_overwrite error)");
 			}
 
 			print "<h2>Heurist Structure comparison</h2>";
@@ -116,7 +116,7 @@
 				print "<input name='h2' value='".($is_h2?1:0)."' type='hidden'>";
 				// print "Enter source database name (prefix added automatically): <input type='text' name='sourcedbname' />";
 				print "Choose source database: <select id='db' name='sourcedbname'>";
-				$list = mysql__getdatabases();
+				$list = mysqli__getdatabases($mysqli);
 				foreach ($list as $name) {
 						print "<option value='$name' ".($sourcedbname==$name?"selected='selected'":"").">$name</option>";
 				}
@@ -160,9 +160,9 @@
 				//print "Source database: <b>$sourcedb</b> <br>\n";
 
 				if($is_h2){
-					$res=mysql_query("select * from `$sourcedb`.Users");
+					$res=$mysqli->query("select * from `$sourcedb`.Users");
 				}else{
-					$res=mysql_query("select * from $sourcedb.sysIdentification");
+					$res=$mysqli->query("select * from $sourcedb.sysIdentification");
 				}
 				if (!$res) {
 					die ("<p>Unable to open source database <b>$sourcedb</b>. Make sure you have included prefix");
@@ -196,7 +196,7 @@
 				$d_rtnames = $d_rectypes['names'];
 
 
-				mysql_connection_overwrite($sourcedb);
+				$mysqli = mysqli_connection_overwrite($sourcedb);
 				$s_rectypes = getAllRectypeStructures(false);
 				$s_dettypes = getAllDetailTypeStructures(false);
 				$s_rtnames = $s_rectypes['names'];
@@ -313,13 +313,13 @@
 					"left join `$sourcedb`.`defRecTypes` on rec_RecTypeID=rty_ID ".
 					"group by rty_ID";
 				}
-				$res1 = mysql_query($query1);
-				if (mysql_num_rows($res1) == 0) {
+				$res1 = $mysqli->query($query1);
+				if (mysqli_num_rows($res1) == 0) {
 					die ("<p><b>Sorry, there are no data records in this database, or database is bad format</b>");
 				}
 				print "<h3>Record type mappings</h3>[RT code] <b>$sourcedb</b> (use count) ==> <b>$dbPrefix" . HEURIST_DBNAME."</b><p>";// . "<p>";
 				print "<table>";
-				while ($row1 = mysql_fetch_array($res1)) {
+				while ($row1 = mysqli_fetch_array($res1)) {
 					$rt=$row1[0]; //0=rec_RecTypeID
 					$cnt=$row1[2];
 					$selopts = $seloptions;
@@ -353,9 +353,9 @@
 					$query1 = "SELECT DISTINCT `dtl_DetailTypeID`,`dty_Name`,`dty_Type` FROM `$sourcedb`.`recDetails`,`$sourcedb`.`defDetailTypes` ".
 					"where `dtl_DetailTypeID`=`dty_ID`";
 				}
-				$res1 = mysql_query($query1);
+				$res1 = $mysqli->query($query1);
 				print "<table>";
-				while ($row1 = mysql_fetch_array($res1)) {
+				while ($row1 = mysqli_fetch_array($res1)) {
 					$ft=$row1[0]; //0=dtl_DetailTypeID
 
 					$selopts = $seloptions;
@@ -412,9 +412,9 @@
 					"where (`dtl_Value`=`trm_ID`) AND (`dtl_DetailTypeID` in (select `dty_ID` from `$sourcedb`.`defDetailTypes` ".
 					"where (`dty_Type`='$type') ))";
 				}
-				$res1 = mysql_query($query1);
+				$res1 = $mysqli->query($query1);
 				print "<table>";
-				while ($row1 = mysql_fetch_array($res1)) {
+				while ($row1 = mysqli_fetch_array($res1)) {
 					$tt=$row1[0]; //0=trm_ID
 
 					$selopts = $seloptions;
@@ -485,7 +485,7 @@
 			*/
 			function jsonError($message) {
 
-				//mysql_query("rollback");
+				//$mysqli->query("rollback");
 				error_log("ERROR :".$message);
 
 				//$rep_issues = $rep_issues."<br/>Error save record for file:".$currfile.". ".$message;

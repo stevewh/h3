@@ -77,8 +77,8 @@
 
     if (! is_logged_in()) return;
 
-    mysql_connection_overwrite(DATABASE);
-    mysql_query('set @logged_in_user_id = ' . get_user_id());
+    $mysqli = mysqli_connection_overwrite(DATABASE);
+    $mysqli->query('set @logged_in_user_id = ' . get_user_id());
 
 
     $checkSimilar = array_key_exists("check-similar", $_POST);
@@ -102,16 +102,16 @@
 
     $rtyID = @$_POST['rectype'] ? $_POST['rectype'] : (defined('RT_NOTE') ? RT_NOTE : null);
     if (!$rtyID && @$_POST['recID']) {
-        $res = mysql_query("select rec_RecTypeID from Records where rec_ID = ".$_POST['recID']);
+        $res = $mysqli->query("select rec_RecTypeID from Records where rec_ID = ".$_POST['recID']);
         if ($res){
-            $rtyID = mysql_fetch_row($res);
+            $rtyID = $res->fetch_row();
             $rtyID = $rtyID[0];
         }
     }
     $TL = array();
     $query = 'SELECT trm_ID, trm_Label, trm_ParentTermID, trm_OntID, trm_Code FROM defTerms';
-    $res = mysql_query($query);
-    while ($row = mysql_fetch_assoc($res)) {
+    $res = $mysqli->query($query);
+    while ($row = $res->fetch_assoc()) {
         $TL[$row['trm_ID']] = $row;
     }
 
@@ -178,10 +178,10 @@
         if (!is_numeric($id)) return false;
         if (!$dtyIDDefs) {
             $dtyIDDefs = array();
-            $res = mysql_query("select dty_ID, dty_Type, dty_JsonTermIDTree,dty_TermIDTreeNonSelectableIDs,dty_PtrTargetRectypeIDs".
+            $res = $mysqli->query("select dty_ID, dty_Type, dty_JsonTermIDTree,dty_TermIDTreeNonSelectableIDs,dty_PtrTargetRectypeIDs".
                                " from defDetailTypes".
                                " where dty_Type in ('enum','relationtype','resource')");
-            while ($res && $row = mysql_fetch_row($res)) {
+            while ($res && $row = $res->fetch_row()) {
                 //use first element as index
                 if ( $row[1] === 'enum' || $row[1] === 'relationtype') {
                     //create term Id list and term list.
@@ -212,14 +212,14 @@
         }
         if ($rtyID && !$rtFieldDefs) {
             $rtFieldDefs = array('max'=>array());
-            $res = mysql_query("select rst_DetailTypeID, dty_Type, rst_MaxValues,".
+            $res = $mysqli->query("select rst_DetailTypeID, dty_Type, rst_MaxValues,".
                                     " if(rst_FilteredJsonTermIDTree is not null and CHAR_LENGTH(rst_FilteredJsonTermIDTree)>0,rst_FilteredJsonTermIDTree,dty_JsonTermIDTree) as rst_FilteredJsonTermIDTree,".
                                     " if(rst_TermIDTreeNonSelectableIDs is not null and CHAR_LENGTH(rst_TermIDTreeNonSelectableIDs)>0,rst_TermIDTreeNonSelectableIDs,dty_TermIDTreeNonSelectableIDs) as rst_TermIDTreeNonSelectableIDs,".
                                     " if(rst_PtrFilteredIDs is not null and CHAR_LENGTH(rst_PtrFilteredIDs)>0,rst_PtrFilteredIDs,dty_PtrTargetRectypeIDs) as rst_PtrFilteredIDs".
                                " from defRecStructure".
                                  " left join defDetailTypes on rst_DetailTypeID = dty_ID".
                                " where rst_RecTypeID=" . $rtyID );
-            while ($res && $row = mysql_fetch_row($res)) {
+            while ($res && $row = $res->fetch_row()) {
                 //use first element as index
                 if (is_numeric($row[2])) {
                     $rtFieldDefs['max'][$row[0]] = $row[2];
@@ -278,19 +278,19 @@
         $recID = intval($recID);
 
         // Check that the user has permissions to edit it.
-        $res = mysql_query("select * from Records".
+        $res = $mysqli->query("select * from Records".
                             " left join sysUsrGrpLinks on ugl_GroupID=rec_OwnerUGrpID".
                             " left join defRecTypes on rty_ID=rec_RecTypeID".
                             " where rec_ID=$recID and (! rec_OwnerUGrpID or rec_OwnerUGrpID=".get_user_id()." or ugl_UserID=".get_user_id().")");
-        if (mysql_num_rows($res) == 0) {
-            $res = mysql_query("select grp.ugr_Name from Records, ".USERS_DATABASE.".sysUGrps grp where rec_ID=$recID and grp.ugr_ID=rec_OwnerUGrpID");
-            $grpName = mysql_fetch_row($res);
+        if ($res->num_rows == 0) {
+            $res = $mysqli->query("select grp.ugr_Name from Records, ".USERS_DATABASE.".sysUGrps grp where rec_ID=$recID and grp.ugr_ID=rec_OwnerUGrpID");
+            $grpName = $res->fetch_row();
             $grpName = $grpName[0];
 
             print '({ error: "\nSorry - you can\'t edit this record.\nYou aren\'t in the ' . slash($grpName) . ' workgroup" })';
             return;
         }
-        $record = mysql_fetch_assoc($res);
+        $record = $res->fetch_assoc();
         /*****DEBUG****///error_log("save record dtls POST ".print_r($_POST,true));
         // Upload any files submitted ... (doesn't have to take place right now, but may as well)
         uploadFiles();  //Artem: it does not work here - since we uploaded files at once
@@ -408,7 +408,7 @@
         //  - $bibDetailDeletes: an array of dtl_ID values corresponding to rows to be deleted from recDetails
 
         // Commence versioning ...
-        mysql_query("start transaction");
+        $mysqli->query("start transaction");
 
         $recUpdates = array("rec_Modified" => array("now()"), "rec_FlagTemporary" => 0);
         $recUpdates["rec_ScratchPad"] = $_POST["notes"];
@@ -430,40 +430,40 @@
             }
         }
         /*****DEBUG****///error_log(" in saveRecord update recUpdates = ".print_r($recUpdates,true));
-        mysql__update("Records", "rec_ID=$recID", $recUpdates);
-        $biblioUpdated = (mysql_affected_rows() > 0)? true : false;
-        if (mysql_error()) error_log("error rec update".mysql_error());
+        mysqli__update($mysqli, "Records", "rec_ID=$recID", $recUpdates);
+        $biblioUpdated = ($mysqli->affected_rows > 0)? true : false;
+        if ($mysqli->error) error_log("error rec update".$mysqli->error);
         $updatedRowCount = 0;
         foreach ($recDetailUpdates as $bdID => $vals) {
 
             /*****DEBUG****///error_log(" in saveRecord update details dtl_ID = $bdID value =".print_r($vals,true));
 
-            mysql__update("recDetails", "dtl_ID=$bdID and dtl_RecID=$recID", $vals);
-            if (mysql_affected_rows() > 0) {
+            mysqli__update($mysqli, "recDetails", "dtl_ID=$bdID and dtl_RecID=$recID", $vals);
+            if ($mysqli->affected_rows > 0) {
                 ++$updatedRowCount;
             }
         }
-        if (mysql_error()) error_log("error detail updates".mysql_error());
+        if ($mysqli->error) error_log("error detail updates".$mysqli->error);
 
         $insertedRowCount = 0;
         foreach ($bibDetailInserts as $vals) {
             /*****DEBUG****///error_log(" in saveRecord insert details detail =".print_r($vals,true));
-            mysql__insert("recDetails", $vals);
-            if (mysql_affected_rows() > 0) {
+            mysqli__insert($mysqli, "recDetails", $vals);
+            if ($mysqli->affected_rows > 0) {
                 ++$insertedRowCount;
             }
         }
-        if (mysql_error()) error_log("error detail inserts".mysql_error());
+        if ($mysqli->error) error_log("error detail inserts".$mysqli->error);
 
         $deletedRowCount = 0;
         if ($bibDetailDeletes) {
             /*****DEBUG****///error_log(" in saveRecord delete details ".print_r($bibDetailDeletes,true));
-            mysql_query("delete from recDetails where dtl_ID in (" . join($bibDetailDeletes, ",") . ") and dtl_RecID=$recID");
-            if (mysql_affected_rows() > 0) {
-                $deletedRowCount = mysql_affected_rows();
+            $mysqli->query("delete from recDetails where dtl_ID in (" . join($bibDetailDeletes, ",") . ") and dtl_RecID=$recID");
+            if ($mysqli->affected_rows > 0) {
+                $deletedRowCount = $mysqli->affected_rows;
             }
         }
-        if (mysql_error()) error_log("error detail deletes".mysql_error());
+        if ($mysqli->error) error_log("error detail deletes".$mysqli->error);
 
         // eliminate any duplicated lines
         $notesIn = explode("\n", str_replace("\r", "", $_POST["notes"]));
@@ -486,11 +486,11 @@
                 $new_title = fill_title_mask($record["rty_TitleMask"], $record["rec_ID"], $record["rec_RecTypeID"]);
             }
 
-            mysql_query("update Records
+            $mysqli->query("update Records
                 set rec_Title = '" . addslashes($new_title) . "'
                 where rec_ID = $recID");
 
-            mysql_query("commit");
+            $mysqli->query("commit");
 
             // Update memcached's copy of record (if it is cached)
             updateCachedRecord($recID);
@@ -498,7 +498,7 @@
             return true;
         } else {
             /* nothing changed: rollback the transaction so we don't get false versioning */
-            mysql_query("rollback");
+            $mysqli->query("rollback");
             return false;
         }
     }
@@ -535,7 +535,7 @@
         }
         // Try to insert anything in POST as details of a new Record.
         // We do this by creating a stub record, and then updating it.
-        mysql__insert("Records", array(
+        mysqli__insert($mysqli, "Records", array(
                 "rec_Added" => date('Y-m-d H:i:s'),
                 "rec_AddedByUGrpID" => get_user_id(),
                 "rec_RecTypeID" => intval($rtyID),
@@ -544,12 +544,12 @@
                 "rec_NonOwnerVisibility" => $nonownervisibility,
                 "rec_URL" => @$_POST["rec_url"]? $_POST["rec_url"] : ""));
 
-        $_REQUEST["recID"] = $recID = mysql_insert_id();
+        $_REQUEST["recID"] = $recID = $mysqli->insert_id;
         if($recID){
 //error_log(" in insertRecord recID = $recID");
 
             if ($usrID) {
-                mysql__insert('usrBookmarks', array(
+                mysqli__insert($mysqli, 'usrBookmarks', array(
                         'bkm_recID' => $recID,
                         'bkm_Added' => date('Y-m-d H:i:s'),
                         'bkm_Modified' => date('Y-m-d H:i:s'),
@@ -576,8 +576,8 @@
                             "if(dtl_Geo is not null, astext(dtl_Geo),null) as dtl_Geo",
                             "dtl_ValShortened",
                             "dtl_Modified");
-        $res = mysql_query("select ".join(",",$dtlColumns)." from recDetails where dtl_RecID = " . $recID);
-        while ($val = mysql_fetch_assoc($res)) {
+        $res = $mysqli->query("select ".join(",",$dtlColumns)." from recDetails where dtl_RecID = " . $recID);
+        while ($val = $res->fetch_assoc()) {
             $dtyID = $val["dtl_DetailTypeID"];
             $dtlID = $val["dtl_ID"];
 
@@ -649,7 +649,7 @@
     function getInputHandlerForType($dtyID) {
         static $dtyToBaseType = null;
         if (! $dtyToBaseType) {
-            $dtyToBaseType = mysql__select_assoc("defDetailTypes", "dty_ID", "dty_Type", "1");
+            $dtyToBaseType = mysqli__select_assoc($mysqli, "defDetailTypes", "dty_ID", "dty_Type", "1");
         }
 
         static $baseTypeToInputHandler = null;
@@ -739,9 +739,9 @@
     }
     class BibDetailResourceInput extends BibDetailInput {
         function inputOK($postVal, $dtyID, $rtyID) {
-            $res = mysql_query("select rec_RecTypeID from Records where rec_ID = ".$postVal);
+            $res = $mysqli->query("select rec_RecTypeID from Records where rec_ID = ".$postVal);
             if ($res){
-                $tempRtyID = mysql_fetch_row($res);
+                $tempRtyID = $res->fetch_row();
                 $tempRtyID = $tempRtyID[0];
             } else {
                 return false;
@@ -779,7 +779,7 @@
             from defTerms;
             */
             if (! @$labelToID) {
-                $labelToID = mysql__select_assoc("defTerms", "trm_Label", "trm_ID", "1");
+                $labelToID = mysqli__select_assoc($mysqli, "defTerms", "trm_Label", "trm_ID", "1");
             }
             if(is_numeric($postVal)){//termID validate it exist TODO check valid for this type, need to pass type id
                 return array("dtl_Value" => $postVal);
@@ -789,7 +789,7 @@
         }
         function inputOK($postVal, $dtyID, $rtyID) {
             if (! @$labelToID) {
-                $labelToID = mysql__select_assoc("defTerms", "trm_Label", "trm_ID", "1");
+                $labelToID = mysqli__select_assoc($mysqli, "defTerms", "trm_Label", "trm_ID", "1");
             }
             /*****DEBUG****///error_log("postvalue = ".print_r($postVal,true));
             // if value is term label

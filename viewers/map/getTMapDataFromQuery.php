@@ -42,7 +42,7 @@
 	header("Content-type: text/javascript");
 
 
-	mysql_connection_select(DATABASE);
+	$mysqli = mysqli_connection_select(DATABASE);
 
 	if (! @$_REQUEST['q']  ||  (@$_REQUEST['ver'] && intval(@$_REQUEST['ver']) < SEARCH_VERSION))
 		construct_legacy_search();      // migration path
@@ -54,15 +54,15 @@
 
 	// find all matching records
 	$cols = "rec_ID as bibID, rec_RecTypeID as rectype, rec_Title as title, rec_URL as URL";
-	$query = REQUEST_to_query("select $cols ", $search_type);
+	$query = REQUEST_to_query($mysqli, "select $cols ", $search_type);
 
 	/*****DEBUG****///error_log($query);
-	$res = mysql_query($query);
-	print mysql_error();
+	$res = $mysqli->query($query);
+	print $mysqli->error;
 
 	$records = array();
 	$bibIDs = array();
-	while ($bib = mysql_fetch_assoc($res)) {
+	while ($bib = $res->fetch_assoc()) {
 		$bibID = $bib["bibID"];
 		if (! $bibID) continue;
 
@@ -78,7 +78,7 @@
 		// 223 thumbnail
 		// 224 images
 
-		$res = mysql_query("select a.dtl_Value, b.dtl_Value, rec_URL,c.dtl_UploadedFileID,d.dtl_UploadedFileID,e.dtl_UploadedFileID,f.dtl_UploadedFileID
+		$res = $mysqli->query("select a.dtl_Value, b.dtl_Value, rec_URL,c.dtl_UploadedFileID,d.dtl_UploadedFileID,e.dtl_UploadedFileID,f.dtl_UploadedFileID
 			from Records
 			left join recDetails a on a.dtl_RecID=rec_ID and a.dtl_DetailTypeID=".(DT_SHORT_SUMMARY?DT_SHORT_SUMMARY:"303").
 			" left join recDetails b on b.dtl_RecID=rec_ID and b.dtl_DetailTypeID=".(DT_EXTENDED_DESCRIPTION?DT_EXTENDED_DESCRIPTION:"191").
@@ -87,17 +87,17 @@
 			" left join recDetails e on e.dtl_RecID=rec_ID and e.dtl_DetailTypeID=".(DT_THUMBNAIL?DT_THUMBNAIL:"223").
 			" left join recDetails f on f.dtl_RecID=rec_ID and f.dtl_DetailTypeID=".(DT_IMAGES?DT_IMAGES:"224").
 			" where rec_ID=$bibID");
-		$row = mysql_fetch_row($res);
+		$row = $res->fetch_row();
 		$records[$bibID]["description"] = ($row[0] ? $row[0] : $row[1]);
 		$records[$bibID]["url"] = ($row[2] ? $row[2] : '');
 		$fileID = ($row[3] ? $row[3] : ($row[4] ? $row[4] : ($row[5] ? $row[5] :($row[6] ? $row[6] :""))));
 		if ($fileID) {
-			$fres = mysql_query(
+			$fres = $mysqli->query(
 				"select file_nonce
 				from files
 				where file_id = " . intval($fileID));
 		}
-		if ($fres) $row = mysql_fetch_row($fres);
+		if ($fres) $row = mysqli_fetch_row($fres);
 		$records[$bibID]["thumb_file_id"] = $row[0] ? $row[0] : "";
 	}//for
 
@@ -105,9 +105,9 @@
 	// Find the records that actually have any geographic data to plot
 	$geoObjects = array();
 	$geoBibIDs = array();
-	$res = mysql_query("select dtl_RecID, dtl_Value, astext(dtl_Geo), astext(envelope(dtl_Geo)) from recDetails where dtl_Geo is not null and dtl_RecID in (" . join(",", $bibIDs) . ")");
-	/*****DEBUG****///error_log(mysql_error());
-	while ($val = mysql_fetch_row($res)) {
+	$res = $mysqli->query("select dtl_RecID, dtl_Value, astext(dtl_Geo), astext(envelope(dtl_Geo)) from recDetails where dtl_Geo is not null and dtl_RecID in (" . join(",", $bibIDs) . ")");
+	/*****DEBUG****///error_log($mysqli->error);
+	while ($val = $res->fetch_row()) {
 		// get the bounding box
 		if (preg_match("/POLYGON\\(\\((\\S+)\\s+(\\S+),\\s*(\\S+)\\s+(\\S+),\\s*(\\S+)\\s+(\\S+),\\s*(\\S+)\\s+(\\S+),\\s*\\S+\\s+\\S+\\)\\)/i", $val[3], $matches)) {
 			$bbox = array("w" => floatval($matches[1]), "s" => floatval($matches[2]), "e" => floatval($matches[5]), "n" => floatval($matches[6]));
@@ -167,8 +167,8 @@
 	}
 
 	// OLD WAY TO STORE GEO DATA - directly in dtl_value as dettypes: 210(long) and 211(lat)
-	$res = mysql_query("select LAT.dtl_RecID, LNG.dtl_Value, LAT.dtl_Value from recDetails LAT, recDetails LNG where LAT.dtl_DetailTypeID=211 and LNG.dtl_DetailTypeID=210 and LAT.dtl_RecID=LNG.dtl_RecID and LNG.dtl_RecID in (" . join(",", $bibIDs) . ")");
-	while ($val = mysql_fetch_row($res)) {
+	$res = $mysqli->query("select LAT.dtl_RecID, LNG.dtl_Value, LAT.dtl_Value from recDetails LAT, recDetails LNG where LAT.dtl_DetailTypeID=211 and LNG.dtl_DetailTypeID=210 and LAT.dtl_RecID=LNG.dtl_RecID and LNG.dtl_RecID in (" . join(",", $bibIDs) . ")");
+	while ($val = $res->fetch_row()) {
 		array_push($geoObjects, array("bibID" => $val[0], "type" => "point", "geo" => array("x" => floatval($val[1]), "y" => floatval($val[2]))));
 		$geoBibIDs[$val[0]] = $val[0];
 	}
@@ -177,8 +177,8 @@
 	// Find time extents -- must have at least a start time (end time is optional)
 	/*
 	$timeObjects = array();
-	$res = mysql_query("select START.dtl_RecID, START.dtl_Value, END.dtl_Value from recDetails START left join recDetails END on START.dtl_RecID=END.dtl_RecID and END.dtl_DetailTypeID=178 where START.dtl_DetailTypeID=177 and START.dtl_Value and START.dtl_RecID in (" . join(",", $bibIDs) . ")");
-	while ($val = mysql_fetch_row($res)) {
+	$res = $mysqli->query("select START.dtl_RecID, START.dtl_Value, END.dtl_Value from recDetails START left join recDetails END on START.dtl_RecID=END.dtl_RecID and END.dtl_DetailTypeID=178 where START.dtl_DetailTypeID=177 and START.dtl_Value and START.dtl_RecID in (" . join(",", $bibIDs) . ")");
+	while ($val = $res->fetch_row()) {
 	$timeObjects[$val[0]] = array($val[1], $val[2]);
 	}
 	*/
@@ -190,14 +190,14 @@
 	//"
 	$dates = array();
 	$years =array();
-	$res = mysql_query("select rec_ID, min(d.dtl_Value), max(d.dtl_Value)
+	$res = $mysqli->query("select rec_ID, min(d.dtl_Value), max(d.dtl_Value)
 		from Records
 		cross join defDetailTypes dt
 		left join recDetails d on d.dtl_RecID = rec_ID and d.dtl_DetailTypeID = dt.dty_ID
 		where rec_ID in (" . join(",", $bibIDs) . ")
 		and dt.dty_Type = 'date'
 	group by rec_ID");
-	while ($val = mysql_fetch_row($res)) {
+	while ($val = $res->fetch_row()) {
 		if (preg_match("/^\\d+\\s*bc/i", $val[1])) {
 			$val[1] = -(preg_replace("/\\s*bc/i","",$val[1])) + 1;
 		}
@@ -208,14 +208,14 @@
 		$dates[$val[0]] = array($val[1],$val[2]);
 	}
 
-	$res = mysql_query("select rec_ID, min(d.dtl_Value), max(d.dtl_Value)
+	$res = $mysqli->query("select rec_ID, min(d.dtl_Value), max(d.dtl_Value)
 		from Records
 		cross join defDetailTypes yt
 		left join recDetails y on y.dtl_RecID = rec_ID and y.dtl_DetailTypeID = yt.dty_ID
 		where rec_ID in (" . join(",", $bibIDs) . ")
 		and yt.dty_Type = 'yesr'
 	group by rec_ID");
-	while ($val = mysql_fetch_row($res)) {
+	while ($val = $res->fetch_row()) {
 		if (preg_match("/^\\d+\\s*bc/i", $val[1])) {
 			$val[1] = -(preg_replace("/\\s*bc/i","",$val[1])) + 1;
 		}

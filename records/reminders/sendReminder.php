@@ -60,8 +60,8 @@ function sendReminderEmail($reminder, $USERS_DATABASE, $HOST, $BASE_URL) {
 			"u"		=> null));
 	}
 	else if (@$reminder['rem_ToUserID']) {
-		$res = mysql_query('select usr.ugr_FirstName,usr.ugr_LastName,usr.ugr_eMail from '.$USERS_DATABASE.'.sysUGrps usr where usr.ugr_Type = "User" and usr.ugr_ID = '.$reminder['rem_ToUserID']);
-		$row = mysql_fetch_assoc($res);
+		$res = $mysqli->query('select usr.ugr_FirstName,usr.ugr_LastName,usr.ugr_eMail from '.$USERS_DATABASE.'.sysUGrps usr where usr.ugr_Type = "User" and usr.ugr_ID = '.$reminder['rem_ToUserID']);
+		$row = $res->fetch_assoc();
 		if ($row) {
 			array_push($recipients, array(
 				"email" => $row['ugr_FirstName'].' '.$row['ugr_LastName'].' <'.$row['ugr_eMail'].'>',
@@ -71,14 +71,14 @@ function sendReminderEmail($reminder, $USERS_DATABASE, $HOST, $BASE_URL) {
 	}
 	else if (@$reminder['rem_ToWorkgroupID']) {
 		$res = @$reminder['rem_ID']
-				? mysql_query('select usr.ugr_FirstName,usr.ugr_LastName,usr.ugr_eMail,usr.ugr_ID
+				? $mysqli->query('select usr.ugr_FirstName,usr.ugr_LastName,usr.ugr_eMail,usr.ugr_ID
 							   from '.$USERS_DATABASE.'.sysUsrGrpLinks left join '.$USERS_DATABASE.'.sysUGrps usr on ugl_UserID=usr.ugr_ID
 							   left join usrRemindersBlockList on rbl_UGrpID=usr.ugr_ID and rbl_RemID = '.$reminder['rem_ID'].'
 							   where ugl_GroupID = '.$reminder['rem_ToWorkgroupID'].' and isnull(rbl_ID)')
-				: mysql_query('select usr.ugr_FirstName,usr.ugr_LastName,ugr_eMail,usr.ugr_ID
+				: $mysqli->query('select usr.ugr_FirstName,usr.ugr_LastName,ugr_eMail,usr.ugr_ID
 							   from '.$USERS_DATABASE.'.sysUsrGrpLinks left join '.$USERS_DATABASE.'.sysUGrps usr on ugl_UserID=usr.ugr_ID
 							   where ugl_GroupID = '.$reminder['rem_ToWorkgroupID']);
-		while ($row = mysql_fetch_assoc($res))
+		while ($row = $res->fetch_assoc())
 			array_push($recipients, array(
 				"email" => $row['ugr_FirstName'].' '.$row['ugr_LastName'].' <'.$row['ugr_eMail'].'>',
 				"e"		=> null,
@@ -87,18 +87,18 @@ function sendReminderEmail($reminder, $USERS_DATABASE, $HOST, $BASE_URL) {
 
 	$email_headers = 'From: Heurist reminder service <no-reply@'.$HOST.'>';
 
-	$res = mysql_query('select usr.ugr_FirstName,usr.ugr_LastName,usr.ugr_eMail from '.$USERS_DATABASE.'.sysUGrps usr where usr.ugr_Type = "User" and usr.ugr_ID = '.$reminder['rem_OwnerUGrpID']);
-	$owner = mysql_fetch_assoc($res);
+	$res = $mysqli->query('select usr.ugr_FirstName,usr.ugr_LastName,usr.ugr_eMail from '.$USERS_DATABASE.'.sysUGrps usr where usr.ugr_Type = "User" and usr.ugr_ID = '.$reminder['rem_OwnerUGrpID']);
+	$owner = $res->fetch_assoc();
 	if ($owner) {
 		if (@$reminder['rem_ToEmail']  || (@$reminder['rem_user_id']  &&  @$reminder['rem_ToUserID'] != @$reminder['rem_OwnerUGrpID']))
 			$email_headers .= "\r\nCc: ".$owner['ugr_FirstName'].' '.$owner['ugr_LastName'].' <'.$owner['ugr_eMail'].'>';
 		$email_headers .= "\r\nReply-To: ".$owner['ugr_FirstName'].' '.$owner['ugr_LastName'].' <'.$owner['ugr_eMail'].'>';
 	}
 
-	$res = mysql_query('select rec_Title, rec_OwnerUGrpID, rec_NonOwnerVisibility, grp.ugr_Name from Records '.
+	$res = $mysqli->query('select rec_Title, rec_OwnerUGrpID, rec_NonOwnerVisibility, grp.ugr_Name from Records '.
 						'left join '.$USERS_DATABASE.'.sysUGrps grp on grp.ugr_ID=rec_OwnerUGrpID and grp.ugr_Type != "User" '.
 						'where rec_ID = '.$reminder['rem_RecID']);
-	$bib = mysql_fetch_assoc($res);
+	$bib = $res->fetch_assoc();
 
 	$email_subject = '[Heurist] "'.$bib['rec_Title'].'"';
 

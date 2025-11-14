@@ -54,18 +54,18 @@ if (! is_logged_in()) {
 
 
 if (@$_REQUEST['submitted']) {
-	mysql_connection_overwrite(USERS_DATABASE);
-	mysql_query('update sysUGrps usr set ugr_MinHyperlinkWords = '.intval(@$_REQUEST['word_limit']).' where usr.ugr_ID='.get_user_id());
-	mysql_connection_overwrite(USERS_DATABASE);
-	mysql_query('update sysUGrps usr set ugr_MinHyperlinkWords = '.intval(@$_REQUEST['word_limit']).' where usr.ugr_ID='.get_user_id());
-	mysql_connection_overwrite(DATABASE);
+	$mysqli = mysqli_connection_overwrite(USERS_DATABASE);
+	$mysqli->query('update sysUGrps usr set ugr_MinHyperlinkWords = '.intval(@$_REQUEST['word_limit']).' where usr.ugr_ID='.get_user_id());
+	$mysqli = mysqli_connection_overwrite(USERS_DATABASE);
+	$mysqli->query('update sysUGrps usr set ugr_MinHyperlinkWords = '.intval(@$_REQUEST['word_limit']).' where usr.ugr_ID='.get_user_id());
+	$mysqli = mysqli_connection_overwrite(DATABASE);
 
 	if (@$_REQUEST['new_hyp_text']) {
-		$res = mysql_query('select * from usrHyperlinkFilter
+		$res = $mysqli->query('select * from usrHyperlinkFilters
 		                     where (hyf_UGrpID is null or hyf_UGrpID='.get_user_id().')
 		                       and hyf_String="'.addslashes(@$_REQUEST['new_hyp_text']).'"');
-		if (mysql_num_rows($res) == 0) {
-			mysql__insert('usrHyperlinkFilter',
+		if ($res->num_rows == 0) {
+			mysqli__insert($mysqli, 'usrHyperlinkFilters',
 			             array('hyf_String' => @$_REQUEST['new_hyp_text'],
 			                   'hyf_UGrpID' => get_user_id()));
 		}
@@ -74,27 +74,27 @@ if (@$_REQUEST['submitted']) {
 
 $tag_message = '';
 if (@$_REQUEST['delete_kwd_id']) {
-	mysql_connection_overwrite(DATABASE);
+	$mysqli = mysqli_connection_overwrite(DATABASE);
 	$kwd_id = intval(@$_REQUEST['delete_kwd_id']);
-	mysql_query('delete from usrTags where tag_ID = ' . $kwd_id . ' and tag_UGrpID= ' . get_user_id());
-	if (mysql_affected_rows()) {
-		mysql_query('delete from usrRecTagLinks where rtl_TagID = ' . $kwd_id);
+	$mysqli->query('delete from usrTags where tag_ID = ' . $kwd_id . ' and tag_UGrpID= ' . get_user_id());
+	if ($mysqli->affected_rows) {
+		$mysqli->query('delete from usrRecTagLinks where rtl_TagID = ' . $kwd_id);
 		$tag_message .= '<div class="success">Tag was deleted</div>';
 	} else {
 		$tag_message .= '<div class="failure">Tag was not deleted</div>';
 	}
 }
 if (@$_REQUEST['update_kwd_from']  and  @$_REQUEST['update_kwd_to']) {
-	mysql_connection_overwrite(DATABASE);
+	$mysqli = mysqli_connection_overwrite(DATABASE);
 	$kwd_from = intval(@$_REQUEST['update_kwd_from']);
 	$kwd_to = intval(@$_REQUEST['update_kwd_to']);
 
 	/* check that both tags belong to this user */
-	$res = mysql_query('select * from usrTags where tag_ID in ('.$kwd_from.','.$kwd_to.') and tag_UGrpID='.get_user_id());
-	if (mysql_num_rows($res) == 2) {
-		mysql_query('update ignore usrRecTagLinks set rtl_TagID = '.$kwd_to.' where rtl_TagID = '.$kwd_from);
-		$count = mysql_affected_rows();
-		mysql_query('delete from usrTags where tag_ID = '.$kwd_from);
+	$res = $mysqli->query('select * from usrTags where tag_ID in ('.$kwd_from.','.$kwd_to.') and tag_UGrpID='.get_user_id());
+	if ($res->num_rows == 2) {
+		$mysqli->query('update ignore usrRecTagLinks set rtl_TagID = '.$kwd_to.' where rtl_TagID = '.$kwd_from);
+		$count = $mysqli->affected_rows;
+		$mysqli->query('delete from usrTags where tag_ID = '.$kwd_from);
 
 		if ($count == -1)
 			$tag_message .= '<div class="success">Tag changed: duplicate tag links removed</div>';
@@ -107,15 +107,15 @@ if (@$_REQUEST['update_kwd_from']  and  @$_REQUEST['update_kwd_to']) {
 	}
 }
 if (@$_REQUEST['change_names']) {
-	mysql_connection_overwrite(DATABASE);
-	$orig_kwd_label = mysql__select_assoc('usrTags', 'tag_ID', 'tag_Text', 'tag_UGrpID='.get_user_id());
+	$mysqli = mysqli_connection_overwrite(DATABASE);
+	$orig_kwd_label = mysqli__select_assoc($mysqli, 'usrTags', 'tag_ID', 'tag_Text', 'tag_UGrpID='.get_user_id());
 
 	$count = 0;
 	foreach (@$_REQUEST['kwdl'] as $kwd_id => $new_kwd_label) {
 		if ($orig_kwd_label[$kwd_id]  and  $orig_kwd_label[$kwd_id] != $new_kwd_label) {
-			mysql_query('update usrTags set tag_Text="'.addslashes($new_kwd_label).'"
+			$mysqli->query('update usrTags set tag_Text="'.addslashes($new_kwd_label).'"
 			                           where tag_ID='.intval($kwd_id));
-			$count += mysql_affected_rows();
+			$count += $mysqli->affected_rows;
 		}
 	}
 	if ($count > 1)
@@ -123,30 +123,30 @@ if (@$_REQUEST['change_names']) {
 	else if ($count == 1)
 		$tag_message .= '<div class="success">One tag renamed</div>';
 	else
-		$tag_message .= '<div class="failure">Error of some sort: ' . mysql_error() . '</div>';
+		$tag_message .= '<div class="failure">Error of some sort: ' . $mysqli->error . '</div>';
 }
 if (@$_REQUEST['replace_kwd']) {
-	mysql_connection_overwrite(DATABASE);
-	mysql_query('update usrRecTagLinks set rtl_TagID = '.intval(@$_REQUEST['replace_with_kwd_id']).' where rtl_TagID = '.intval($_REQUEST['replace_kwd_id']));
+	$mysqli = mysqli_connection_overwrite(DATABASE);
+	$mysqli->query('update usrRecTagLinks set rtl_TagID = '.intval(@$_REQUEST['replace_with_kwd_id']).' where rtl_TagID = '.intval($_REQUEST['replace_kwd_id']));
 	$tag_message .= '<div class="success">Tag replaced</div>';
 }
 if (@$_REQUEST['delete_multiple_kwds']) {
 	$kwd_ids = array_map('intval', array_keys($_REQUEST['delete_kwds']));
 	if (count($kwd_ids)) {
-		mysql_connection_overwrite(DATABASE);
-		$res = mysql_query('delete usrTags, usrRecTagLinks from usrTags left join usrRecTagLinks on rtl_TagID = tag_ID where tag_ID in ('. join(', ', $kwd_ids) .') and tag_UGrpID='.get_user_id());
-		$tag_message .= mysql_error() . '<div class="success">Tags deleted</div>';
+		$mysqli = mysqli_connection_overwrite(DATABASE);
+		$res = $mysqli->query('delete usrTags, usrRecTagLinks from usrTags left join usrRecTagLinks on rtl_TagID = tag_ID where tag_ID in ('. join(', ', $kwd_ids) .') and tag_UGrpID='.get_user_id());
+		$tag_message .= $mysqli->error . '<div class="success">Tags deleted</div>';
 	} else {
-		$tag_message .= mysql_error() . '<div class="success">No tags deleted</div>';
+		$tag_message .= $mysqli->error . '<div class="success">No tags deleted</div>';
 	}
 }
 
 if (get_user_id() == 96) {
-	mysql_connection_select(DATABASE);
+	$mysqli = mysqli_connection_select(DATABASE);
 
 	$user_hyperlinks_import = '<p>';
 	if (@$_REQUEST['import_hyperlinks_user']) {
-		$hls = mysql__select_array('usrHyperlinkFilter', 'hyf_String',
+		$hls = mysqli__select_array($mysqli, 'usrHyperlinkFilters', 'hyf_String',
 		                           'hyf_UGrpID='.intval(@$_REQUEST['import_hyperlinks_user']));
 		if ($hls) {
 			$insert_stmt = '';
@@ -154,9 +154,9 @@ if (get_user_id() == 96) {
 				if ($insert_stmt) $insert_stmt .= ', ';
 				$insert_stmt .= '("'.addslashes($hl).'", get_user_id())';
 			}
-			$insert_stmt = 'insert into usrHyperlinkFilter (hyf_String, hyf_UGrpID) values ' . $insert_stmt;
-			mysql_query($insert_stmt);
-			$row_count = mysql_affected_rows();
+			$insert_stmt = 'insert into usrHyperlinkFilters (hyf_String, hyf_UGrpID) values ' . $insert_stmt;
+			$mysqli->query($insert_stmt);
+			$row_count = $mysqli->affected_rows;
 		} else $row_count = 0;
 
 		$user_hyperlinks_import .= '<span style="color: red; font-weight: bold;">';
@@ -176,9 +176,9 @@ if (get_user_id() == 96) {
    <option value="">(select a user)</option>
 ';
 	if (defined('HEURIST_USER_GROUP_ID')) {
-		$usernames = mysql__select_assoc(USERS_DATABASE.'.sysUGrps usr left join '.USERS_DATABASE.'.sysUsrGrpLinks on ugl_UserID=usr.ugr_ID', 'usr.ugr_ID', 'usr.ugr_Name', 'ugl_GroupID='.HEURIST_USER_GROUP_ID.' and !usr.ugr_IsModelUser order by usr.ugr_Name');
+		$usernames = mysqli__select_assoc($mysqli, USERS_DATABASE.'.sysUGrps usr left join '.USERS_DATABASE.'.sysUsrGrpLinks on ugl_UserID=usr.ugr_ID', 'usr.ugr_ID', 'usr.ugr_Name', 'ugl_GroupID='.HEURIST_USER_GROUP_ID.' and !usr.ugr_IsModelUser order by usr.ugr_Name');
 	} else {
-		$usernames = mysql__select_assoc(USERS_DATABASE.'.sysUGrps usr', 'usr.ugr_ID', 'usr.ugr_Name', '!usr.ugr_IsModelUser  order by usr.ugr_Name');
+		$usernames = mysqli__select_assoc($mysqli, USERS_DATABASE.'.sysUGrps usr', 'usr.ugr_ID', 'usr.ugr_Name', '!usr.ugr_IsModelUser  order by usr.ugr_Name');
 	}
 	foreach ($usernames as $id => $name) {
 		$user_hyperlinks_import .=
@@ -190,7 +190,7 @@ END;
 
 } else	$user_hyperlinks_import = '';
 
-mysql_connection_select(DATABASE);
+$mysqli = mysqli_connection_select(DATABASE);
 
 
 /* Specify the template file containing the web page to be processed and displayed */
@@ -212,16 +212,20 @@ if (@$_REQUEST['tag_edit'])
 else if (@$_REQUEST['bookmark_import'])
 	$template = str_replace('<body ', '<body class=bookmark_import ', $template);
 $template = str_replace('{tag_edit}', @$_REQUEST['tag_edit'], $template);
-$template = str_replace('{bookmark_import}', @$_REQUEST['bookmark_import'], $template);
+if (array_key_exists('bookmark_import',$_REQUEST)) {
+  $template = str_replace('{bookmark_import}', @$_REQUEST['bookmark_import'], $template);
+}
 $template = str_replace('{body_only}', (array_key_exists('body_only', $_REQUEST)? '<input type=hidden name=body_only>' : ''), $template);
 
-$template = str_replace('{section}', @$_REQUEST['section'], $template);
+if (array_key_exists('section',$_REQUEST)) {
+  $template = str_replace('{section}', @$_REQUEST['section'], $template);
+}
 
-mysql_connection_select(USERS_DATABASE);
-$res = mysql_query('select ugr_MinHyperlinkWords from sysUGrps usr where usr.ugr_ID = '.get_user_id());
-$row = mysql_fetch_row($res);
+$mysqli = mysqli_connection_select(USERS_DATABASE);
+$res = $mysqli->query('select ugr_MinHyperlinkWords from sysUGrps usr where usr.ugr_ID = '.get_user_id());
+$row = $res->fetch_row();
 $word_limit = $row[0];	// minimum number of spaces that must appear in the link text
-mysql_connection_select(DATABASE);
+$mysqli = mysqli_connection_select(DATABASE);
 
 $word_limit_options =
 '<option value="0" '.($word_limit==0? 'selected':'').'>any number of words</option>' .
@@ -234,23 +238,23 @@ $template = str_replace('{word_limit_options}', $word_limit_options, $template);
 
 $hyperlinks_ignored = '<div>' .
   join("</div>\n<div>",
-       mysql__select_array('usrHyperlinkFilter', 'hyf_String', 'hyf_UGrpID is null or hyf_UGrpID='.get_user_id())) .
+       mysqli__select_array($mysqli, 'usrHyperlinkFilters', 'hyf_String', 'hyf_UGrpID is null or hyf_UGrpID='.get_user_id())) .
                       '</div>';
 $template = str_replace('{hyperlinks_ignored}', $hyperlinks_ignored, $template);
-$template = str_replace('{Bookmarklet}', file_get_contents(dirname(__FILE__).'/../../import/bookmarklet/bookmarklet.js'), $template);
+$template = str_replace('{Bookmarklet}', file_get_contents(dirname(__FILE__).'/../../import/bookmarklet/bookmarkletSource.js'), $template);
 
-$res = mysql_query('select count(rtl_ID) as cnt from usrTags left join usrRecTagLinks on rtl_TagID=tag_ID where tag_UGrpID= ' . get_user_id() . ' group by tag_ID order by cnt desc, tag_Text limit 1');
-$row = mysql_fetch_row($res);
+$res = $mysqli->query('select count(rtl_ID) as cnt from usrTags left join usrRecTagLinks on rtl_TagID=tag_ID where tag_UGrpID= ' . get_user_id() . ' group by tag_ID order by cnt desc, tag_Text limit 1');
+$row = $res->fetch_row();
 $max_cnt = intval($row[0]);
 
 if (@$_REQUEST['order_by_popularity']) {
-	$res = mysql_query('select tag_ID, tag_Text, count(rtl_ID) as cnt from usrTags left join usrRecTagLinks on rtl_TagID=tag_ID where tag_UGrpID= ' . get_user_id() . ' group by tag_ID order by cnt desc, tag_Text');
+	$res = $mysqli->query('select tag_ID, tag_Text, count(rtl_ID) as cnt from usrTags left join usrRecTagLinks on rtl_TagID=tag_ID where tag_UGrpID= ' . get_user_id() . ' group by tag_ID order by cnt desc, tag_Text');
 } else {
-	$res = mysql_query('select tag_ID, tag_Text, count(rtl_ID) as cnt from usrTags left join usrRecTagLinks on rtl_TagID=tag_ID where tag_UGrpID= ' . get_user_id() . ' group by tag_ID order by tag_Text');
+	$res = $mysqli->query('select tag_ID, tag_Text, count(rtl_ID) as cnt from usrTags left join usrRecTagLinks on rtl_TagID=tag_ID where tag_UGrpID= ' . get_user_id() . ' group by tag_ID order by tag_Text');
 }
 
 $foreach_kwd = $foreach_kwd_js = '';
-while ($row = mysql_fetch_row($res)) {
+while ($row = $res->fetch_row()) {
 	$foreach_kwd .=
 '<tr>
  <td nowrap>
@@ -270,8 +274,8 @@ while ($row = mysql_fetch_row($res)) {
 }
 
 $kwd_select = "<select id=kwd_select style=\"display: none;\"><option value=\"\" disabled selected>select tag...</option>";
-$res = mysql_query('select tag_ID, tag_Text from usrTags where tag_UGrpID= ' . get_user_id() . ' order by tag_Text');
-while ($row = mysql_fetch_row($res)) {
+$res = $mysqli->query('select tag_ID, tag_Text from usrTags where tag_UGrpID= ' . get_user_id() . ' order by tag_Text');
+while ($row = $res->fetch_row()) {
 	$kwd_select .= "<option value=".$row[0].">".htmlspecialchars($row[1])."</option>";
 }
 $kwd_select .= "</select>";

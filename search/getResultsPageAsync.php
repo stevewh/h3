@@ -58,11 +58,11 @@ require_once(dirname(__FILE__).'/parseQueryToSQL.php');
 require_once(dirname(__FILE__).'/../records/files/uploadFile.php');
 require_once(dirname(__FILE__).'/../admin/setup/getCurrentVersion.php');
 
-mysql_connection_overwrite(DATABASE);
+$mysqli = mysqli_connection_overwrite(DATABASE);
 
 //remove any tempory records more that a week old since
 //it's possible that someone leaves the edit page up for a while before saving.
-mysql_query("delete from Records where rec_FlagTemporary = 1 and rec_Modified < date_sub(now(), interval 1 week)");
+$mysqli->query("delete from Records where rec_FlagTemporary = 1 and rec_Modified < date_sub(now(), interval 1 week)");
 
 list($usec, $sec) = explode(' ', microtime());
 $stime = $sec + $usec;//start time
@@ -108,7 +108,7 @@ if (preg_match('/\\b_COLLECTED_\\b/', $_REQUEST['q'])) {
 	$_REQUEST['q'] = preg_replace('/\\b_COLLECTED_\\b/', '', $_REQUEST['q']);
 }
 
-$query = REQUEST_to_query($query, $search_type, null, null, !is_logged_in || get_user_id() == 0);
+$query = REQUEST_to_query($mysqli, $query, $search_type, null, null, !is_logged_in() || get_user_id() == 0);
 
 if (@$broken) {
 	$query = str_replace(' where ', ' where (to_days(now()) - to_days(rec_URLLastVerified) >= 8) and ', $query);
@@ -130,18 +130,18 @@ if (@$collected) {
 list($usec, $sec) = explode(' ', microtime());
 $ptime = $sec + $usec;//parse time
 /*****DEBUG****///error_log("query from asynch ".print_r($query,true));
-$res = mysql_query($query);
-if (mysql_error()) {
-	error_log("queryError in getResultsPageAsync -".mysql_error());
+$res = $mysqli->query($query);
+if ($mysqli->error) {
+	error_log("queryError in getResultsPageAsync -".$mysqli->error);
 }
-$fres = mysql_query('select found_rows()');
-$num_rows = mysql_fetch_row($fres); $num_rows = $num_rows[0];
+$fres = $mysqli->query('select found_rows()');
+$num_rows = mysqli_fetch_row($fres); $num_rows = $num_rows[0];
 
 list($usec, $sec) = explode(' ', microtime());
 $etime = $sec + $usec;// execusion time
 
-if (mysql_error()) {
-	error_log(mysql_error());
+if ($mysqli->error) {
+	error_log($mysqli->error);
 	return;
 }
 
@@ -198,7 +198,7 @@ top.HEURIST.user.workgroups = [<?php
 			$query = "grp.ugr_ID in (".join(",", array_keys($_SESSION[HEURIST_SESSION_DB_PREFIX.'heurist']['user_access'])).") and grp.ugr_Type !='user' order by grp.ugr_Name";
 
 			/*****DEBUG****///error_log(">>>>>>>>>>>> PREFIX=".HEURIST_SESSION_DB_PREFIX."   ".$query);
-			$workgroups = mysql__select_array(USERS_DATABASE.".sysUGrps grp", "grp.ugr_ID", $query);
+			$workgroups = mysqli__select_array($mysqli, USERS_DATABASE.".sysUGrps grp", "grp.ugr_ID", $query);
 			print join(", ", $workgroups);
 		}
 ?> ];
@@ -231,7 +231,7 @@ if (top.HEURIST && top.HEURIST.firedEvents["heurist-search-html-loaded"] && top.
 	$rectypes = array();
 
 	print "results.records.push(\n";
-	while ($row = mysql_fetch_row($res)) {
+	while ($row = $res->fetch_row()) {
 		if (! $first_of_page) print ",\n";
 
 		$rectypes[$row[4]] = $row[4];
@@ -299,8 +299,10 @@ function print_result($row) {
 
 	print "	[";
 	foreach ($row as $i => $val) {
-		if ($i > 0) print ',';
-		print "'".str_replace("\n", '\\n', str_replace("\r", '', addslashes($val)))."'";
+    if ($val) {
+      if ($i > 0) print ',';
+      print "'".str_replace("\n", '\\n', str_replace("\r", '', addslashes($val)))."'";
+    }
 	}
 
 	$thumb_url = getThumbnailURL($row[2]);

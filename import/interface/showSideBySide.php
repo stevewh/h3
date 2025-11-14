@@ -52,7 +52,7 @@ if (! is_logged_in()) return;
 
 define("SAVE_URI", "disabled");
 
-mysql_connection_select(DATABASE);
+$mysqli = mysqli_connection_select(DATABASE);
 
 
 $bib_ids_to_fetch = array_map('intval', explode(',', $_REQUEST['ids']));
@@ -63,8 +63,8 @@ while (count($bib_ids_to_fetch) > 0) {
 	$rec_id = array_shift($bib_ids_to_fetch);
 	if ($bib_data[$rec_id]) continue;
 
-	$res = mysql_query("select rec_Title, rec_RecTypeID, rec_ScratchPad from Records where rec_ID = $rec_id");
-	$row = mysql_fetch_assoc($res);
+	$res = $mysqli->query("select rec_Title, rec_RecTypeID, rec_ScratchPad from Records where rec_ID = $rec_id");
+	$row = $res->fetch_assoc();
 	if (! @$row) continue;
 
 	$bib_data[$rec_id] = array();
@@ -73,8 +73,8 @@ while (count($bib_ids_to_fetch) > 0) {
 	$bib_data[$rec_id]["notes"] = $row["rec_ScratchPad"];
 
 	$bib_data[$rec_id]["values"] = array();
-	$res = mysql_query("select dtl_DetailTypeID, dtl_Value, dty_Type from recDetails left join defDetailTypes on dty_ID=dtl_DetailTypeID left join defRecStructure on rst_DetailTypeID=dty_ID and rst_RecTypeID = " . intval($row["rec_RecTypeID"]) . " where dtl_RecID = $rec_id order by rst_OrderInForm, dty_ID, dtl_ID");
-	while ($bd = mysql_fetch_assoc($res)) {
+	$res = $mysqli->query("select dtl_DetailTypeID, dtl_Value, dty_Type from recDetails left join defDetailTypes on dty_ID=dtl_DetailTypeID left join defRecStructure on rst_DetailTypeID=dty_ID and rst_RecTypeID = " . intval($row["rec_RecTypeID"]) . " where dtl_RecID = $rec_id order by rst_OrderInForm, dty_ID, dtl_ID");
+	while ($bd = $res->fetch_assoc()) {
 		if (! @$bib_data[$rec_id]["values"][$bd["dtl_DetailTypeID"]]) $bib_data[$rec_id]["values"][$bd["dtl_DetailTypeID"]] = array();
 		array_push($bib_data[$rec_id]["values"][$bd["dtl_DetailTypeID"]], $bd["dtl_Value"]);
 

@@ -72,8 +72,8 @@ if (! @$_REQUEST['w']  &&  ! @$_REQUEST['h']  &&  ! @$_REQUEST['maxw']  &&  ! @$
 
 $img = null;
 
-mysql_connection_overwrite(DATABASE);
-mysql_query('set character set binary');
+$mysqli = mysqli_connection_overwrite(DATABASE);
+$mysqli->query('set character set binary');
 
 if (array_key_exists('ulf_ID', $_REQUEST)){
 	$thumbnail_file = HEURIST_THUMB_DIR."ulf_".$_REQUEST['ulf_ID'].".png";
@@ -84,13 +84,13 @@ if (array_key_exists('ulf_ID', $_REQUEST)){
 	}*/
 
 
-	$res = mysql_query('select * from recUploadedFiles where ulf_ObfuscatedFileID = "' . addslashes($_REQUEST['ulf_ID']) . '"');
-  if (mysql_num_rows($res) != 1) {
+	$res = $mysqli->query('select * from recUploadedFiles where ulf_ObfuscatedFileID = "' . addslashes($_REQUEST['ulf_ID']) . '"');
+  if ($res->num_rows != 1) {
 /*****DEBUG****/ // error_log("unable to load file data for ".$_REQUEST['ulf_ID']);
     return;
   }
 /*****DEBUG****/ // error_log("load file data for ".$_REQUEST['ulf_ID']);
-	$file = mysql_fetch_assoc($res);
+	$file = $res->fetch_assoc();
 
 
 /*****DEBUG****/ // error_log("file data ".print_r($file,true));
@@ -222,7 +222,7 @@ $resized = file_get_contents($resized_file);
 
 if ($standard_thumb  &&  @$file) {
 	// store to database
-	mysql_query('update recUploadedFiles set ulf_Thumbnail = "' . addslashes($resized) . '" where ulf_ID = ' . $file['ulf_ID']);
+	$mysqli->query('update recUploadedFiles set ulf_Thumbnail = "' . addslashes($resized) . '" where ulf_ID = ' . $file['ulf_ID']);
 }else{
 	unlink($resized_file);
 }

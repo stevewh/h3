@@ -32,13 +32,13 @@
   require_once(dirname(__FILE__)."/../../search/getSearchResults.php");
   require_once (dirname(__FILE__) . '/../../records/files/fileUtils.php');
 
-  mysql_connection_overwrite(DATABASE);
-  if(mysql_error()) {
+  $mysqli = mysqli_connection_overwrite(DATABASE);
+  if($mysqli->error) {
     die("Sorry, could not connect to the database (mysql_connection_overwrite error)");
   }
 
   function rtIDLookup($rtOrigID, $rtDBID) {
-    $res = mysql_fetch_assoc(mysql_query("select rty_ID as localID from defRecTypes where rty_OriginatingDBID = $rtDBID  and rty_IDInOriginatingDB = $rtOrigID "));
+    $res = mysqli_fetch_assoc($mysqli->query("select rty_ID as localID from defRecTypes where rty_OriginatingDBID = $rtDBID  and rty_IDInOriginatingDB = $rtOrigID "));
     if ($res && array_key_exists('localID', $res)) {
       return $res['localID'];
     }
@@ -46,7 +46,7 @@
   }
 
   function dtIDLookup($dtOrigID, $dtDBID) {
-    $res = mysql_fetch_assoc(mysql_query("select dty_ID as localID from defDetailTypes where dty_OriginatingDBID = $dtDBID  and dty_IDInOriginatingDB = $dtOrigID "));
+    $res = mysqli_fetch_assoc($mysqli->query("select dty_ID as localID from defDetailTypes where dty_OriginatingDBID = $dtDBID  and dty_IDInOriginatingDB = $dtOrigID "));
     if ( $res && array_key_exists('localID', $res)) {
       return $res['localID'];
     }
@@ -99,12 +99,12 @@
   }
 
   $query = 'SELECT rty_ID, rty_Name FROM defRecTypes';
-  $res = mysql_query($query);
-  while ($row = mysql_fetch_assoc($res)) {
+  $res = $mysqli->query($query);
+  while ($row = $res->fetch_assoc()) {
       $RTN[$row['rty_ID']] = $row['rty_Name'];
       $query = 'SELECT rst_RecTypeID, rst_DetailTypeID, rst_MaxValues FROM defRecStructure';
-      $resFields = mysql_query($query);
-      while ($fieldRow = mysql_fetch_assoc($resFields)) {
+      $resFields = $mysqli->query($query);
+      while ($fieldRow = mysqli_fetch_assoc($resFields)) {
           // type-specific names for detail types
           $RQS[$fieldRow['rst_RecTypeID']][$fieldRow['rst_DetailTypeID']] = $fieldRow;
       }
@@ -113,19 +113,19 @@
   /*****DEBUG****///error_log(print_r($RQS,true));
   // base names, varieties for detail types
   $query = 'SELECT dty_ID, dty_Name, dty_Type FROM defDetailTypes';
-  $res = mysql_query($query);
-  while ($row = mysql_fetch_assoc($res)) {
+  $res = $mysqli->query($query);
+  while ($row = $res->fetch_assoc()) {
       $DTN[$row['dty_ID']] = $row['dty_Name'];
       $DTT[$row['dty_ID']] = $row['dty_Type'];
   }
   /*****DEBUG****///error_log(print_r($DTT,true));
 
   $query = 'SELECT * FROM defTerms';
-  $res = mysql_query($query);
-  if (mysql_error($res)){
-    makeLogEntry("Term Lookup Tables","","mysql query error = ".mysql_error($res),true);
+  $res = $mysqli->query($query);
+  if ($mysqli->error){
+    makeLogEntry("Term Lookup Tables","","mysql query error = ".$mysqli->error,true);
   }
-  while ($res && $row = mysql_fetch_assoc($res)) {
+  while ($res && $row = $res->fetch_assoc()) {
       $TL[$row['trm_ID']] = $row;
       $TLV[$row['trm_Label']] = $row;
       $TLCV[strtolower($row['trm_Label'])] = $row;

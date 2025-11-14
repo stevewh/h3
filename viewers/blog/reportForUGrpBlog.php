@@ -68,9 +68,9 @@ function get_group_members($gid) {
 	      INNER JOIN ".USERS_DATABASE.".".USERS_TABLE." usr ON usr.ugr_ID = ugl_UserID
 	           WHERE ugl_GroupID = $gid
 	        ORDER BY usr.ugr_LastName, usr.ugr_FirstName";
-	$res = mysql_query($query);
+	$res = $mysqli->query($query);
 	$rv = array();
-	while ($row = mysql_fetch_assoc($res)) {
+	while ($row = $res->fetch_assoc()) {
 		array_push($rv, $row);
 	}
 	return $rv;
@@ -90,9 +90,9 @@ function get_blog_entries($uid, $date) {
 	 ($date ? " AND rec_Added >= '".addslashes($date)."'" : "") . "
 	         ORDER BY rec_Added DESC";
 /*****DEBUG****///error_log($query);
-	$res = mysql_query($query);
+	$res = $mysqli->query($query);
 	$rv = array();
-	while ($row = mysql_fetch_assoc($res)) {
+	while ($row = $res->fetch_assoc()) {
 print "\n<!--\n";
 print_r($row);
 print "\n-->\n";
@@ -110,11 +110,11 @@ function get_blog_entry_content($id) {
 	           WHERE woot_Title = CONCAT('record:', $id)
 	        GROUP BY woot_ID
 	        ORDER BY chunk_DisplayOrder";
-	$res = mysql_query($query);
-	if (mysql_num_rows($res) < 1) {
+	$res = $mysqli->query($query);
+	if ($res->num_rows < 1) {
 		return "";
 	}
-	$row = mysql_fetch_row($res);
+	$row = $res->fetch_row();
 	return $row[0];
 }
 
@@ -138,21 +138,21 @@ function print_comments($rec_id) {
 	          WHERE cmt_RecID = $rec_id
 	          AND ! cmt_Deleted
 	          ORDER BY cmt_Added";
-	$res = mysql_query($query);
-	if (mysql_num_rows($res) > 0) {
+	$res = $mysqli->query($query);
+	if ($res->num_rows > 0) {
 		print "<h3>Comments</h3>\n";
-		while ($row = mysql_fetch_assoc($res)) {
+		while ($row = $res->fetch_assoc()) {
 			print "<p>" . $row["Realname"] . " - " . $row["cmt_Added"] . "</p>\n";
 			print "<p>" . $row["cmt_Text"] . "</p>\n";
 		}
 	}
 }
 
-mysql_connection_select(DATABASE);
+$mysqli = mysqli_connection_select(DATABASE);
 
 if ($groupID) {
-	$gres = mysql_query("select grp.ugr_Name from sysUGrps grp where grp.ugr_ID = $groupID");
-	$row = mysql_fetch_assoc($gres);
+	$gres = $mysqli->query("select grp.ugr_Name from sysUGrps grp where grp.ugr_ID = $groupID");
+	$row = mysqli_fetch_assoc($gres);
 	$grp_name = $row["ugr_Name"];
 	print "<h1>Blog report for group $grp_name</h1>\n";
 	print_heading($date);
@@ -162,8 +162,8 @@ if ($groupID) {
 	}
 }
 else {
-	$ures = mysql_query("select concat(usr.ugr_FirstName,' ',usr.ugr_LastName) as Realname from sysUGrps usr usr where usr.ugr_ID = $userID");
-	$row = mysql_fetch_assoc($ures);
+	$ures = $mysqli->query("select concat(usr.ugr_FirstName,' ',usr.ugr_LastName) as Realname from sysUGrps usr usr where usr.ugr_ID = $userID");
+	$row = mysqli_fetch_assoc($ures);
 	$usr_name = $row["Realname"];
 	print "<h1>Blog report for user $usr_name</h1>\n";
 	print_heading($date);

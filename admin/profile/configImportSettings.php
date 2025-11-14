@@ -52,40 +52,40 @@ if (! is_logged_in()) {
 
 $word_limit = 0;
 
-mysql_connection_overwrite(USERS_DATABASE);
+$mysqli = mysqli_connection_overwrite(USERS_DATABASE);
 
 if (@$_REQUEST['submitted']) {  //reload with new word limit
 
 	$word_limit = intval(@$_REQUEST['word_limit']);
 
-	mysql_query('update sysUGrps usr set ugr_MinHyperlinkWords = '.$word_limit.' where usr.ugr_ID='.get_user_id());
+	$mysqli->query('update sysUGrps usr set ugr_MinHyperlinkWords = '.$word_limit.' where usr.ugr_ID='.get_user_id());
 
 
 }else{
-	$res = mysql_query('select ugr_MinHyperlinkWords from sysUGrps usr where usr.ugr_ID = '.get_user_id());
-	$row = mysql_fetch_row($res);
+	$res = $mysqli->query('select ugr_MinHyperlinkWords from sysUGrps usr where usr.ugr_ID = '.get_user_id());
+	$row = $res->fetch_row();
 	$word_limit = $row[0];	// minimum number of spaces that must appear in the link text
 }
 
-mysql_connection_overwrite(DATABASE);
+$mysqli = mysqli_connection_overwrite(DATABASE);
 
 if (@$_REQUEST['new_hyp_text']) {
 
 		if (@$_REQUEST['isdelete']==1) {
 			//remove filter text if found
-			$res = mysql_query('delete from usrHyperlinkFilters
+			$res = $mysqli->query('delete from usrHyperlinkFilters
 			                     where (hyf_UGrpID is null or hyf_UGrpID='.get_user_id().')
 			                       and hyf_String="'.addslashes(@$_REQUEST['new_hyp_text']).'"');
 
 		}else{
 
 			//add new filter text if not found
-			$res = mysql_query('select count(*) from usrHyperlinkFilters
+			$res = $mysqli->query('select count(*) from usrHyperlinkFilters
 			                     where (hyf_UGrpID is null or hyf_UGrpID='.get_user_id().')
 			                       and hyf_String="'.addslashes(@$_REQUEST['new_hyp_text']).'"');
-			$row = mysql_fetch_array($res);
+			$row = $res->fetch_array();
 			if ($row[0] == 0) {
-				mysql__insert('usrHyperlinkFilters',
+				mysqli__insert($mysqli, 'usrHyperlinkFilters',
 				             array('hyf_String' => @$_REQUEST['new_hyp_text'],
 				                   'hyf_UGrpID' => get_user_id()));
 			}
@@ -93,7 +93,7 @@ if (@$_REQUEST['new_hyp_text']) {
 		}
 }
 
-$alinks = mysql__select_array('usrHyperlinkFilters', 'hyf_String', 'hyf_UGrpID is null or hyf_UGrpID='.get_user_id());
+$alinks = mysqli__select_array($mysqli, 'usrHyperlinkFilters', 'hyf_String', 'hyf_UGrpID is null or hyf_UGrpID='.get_user_id());
 if($alinks==null) $alinks =  array();
 
 $hyperlinks_ignored = '<div>'.join("</div>\n<div>",$alinks).'</div>';

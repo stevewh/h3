@@ -80,10 +80,10 @@ function parse_query($search_type, $text, $sort_order='', $wg_ids=NULL, $publicO
 	$query = new Query($search_type, $preProcessedQuery, $publicOnly);
 	$query->addWorkgroupRestriction($wg_ids);
 	$q = $query->makeSQL();
-
-	if ($query->sort_phrases) {
+//rror_log("in parse_query q = ".$q);
+	if (isset($query->sort_phrases) && $query->sort_phrases) {
 		// handled in Query logic
-	} else if (preg_match('/^f:(\d+)/', $sort_order, $matches)) {
+	} else if ($sort_order && preg_match('/^f:(\d+)/', $sort_order, $matches)) {
 		$q .= ' order by ifnull((select if(link.rec_ID is null, dtl_Value, link.rec_Title) from recDetails left join Records link on dtl_Value=link.rec_ID where dtl_RecID=TOPBIBLIO.rec_ID and dtl_DetailTypeID='.$matches[1].' order by link.rec_Title limit 1), "~~"), rec_Title';
 	} else {
 		if ($search_type == BOOKMARK) {
@@ -117,27 +117,25 @@ function parse_query($search_type, $text, $sort_order='', $wg_ids=NULL, $publicO
 		}
 	}
 /*****DEBUG****///error_log("QUERY after parse ".print_r($q,true));
+error_log("in parse_query q = ".$q);
 	return $q;
 }
 
 
 class Query {
-	var $search_type;
+	private string $search_type;
+  public bool $absoluteStrQuery;
+  private bool $isPublicOnly;
+	private array $or_limbs;
+	public array $sort_phrases;
+	private array $sort_tables;
+	private array $workgroups;
 
-	var $or_limbs;
-	var $sort_phrases;
-	var $sort_tables;
-
-	var $workgroups;
-
-	function Query($search_type, $text, $publicOnly, $absoluteStrQuery = false) {
+  // constructor
+	public function __construct($search_type, $text, $publicOnly, $absoluteStrQuery = false) {
 		$this->search_type = $search_type;
 		$this->isPublicOnly = $publicOnly;
 		$this->absoluteStrQuery = $absoluteStrQuery;
-		$this->or_limbs = array();
-		$this->sort_phrases = array();
-		$this->sort_tables = array();
-		$this->workgroups = array();
 
 		// Find any 'sortby:' phrases in the query, and pull them out.
 		// "sortby:..." within double quotes is regarded as a search term, and we don't remove it here
@@ -171,27 +169,31 @@ class Query {
 		$where_clause = '';
 
 		$or_clauses = array();
-		for ($i=0; $i < count($this->or_limbs); ++$i) {
-			$new_sql = $this->or_limbs[$i]->makeSQL();
-			array_push($or_clauses, '(' . $new_sql . ')');
-		}
+    if ($this->or_limbs && is_array($this->or_limbs)) {
+      for ($i=0; $i < count($this->or_limbs); ++$i) {
+        $new_sql = $this->or_limbs[$i]->makeSQL();
+        array_push($or_clauses, '(' . $new_sql . ')');
+      }
+    }
 		sort($or_clauses);	// alphabetise
 		$where_clause = join(' or ', $or_clauses);
 
 		$sort_clause = '';
 		$sort_clauses = array();
-		for ($i=0; $i < count($this->sort_phrases); ++$i) {
-			@list($new_sql, $new_sig, $new_tables) = $this->sort_phrases[$i]->makeSQL();
+    if (isset($this->sort_phrases) && is_array($this->sort_phrases)) {
+      for ($i=0; $i < count($this->sort_phrases); ++$i) {
+        @list($new_sql, $new_sig, $new_tables) = $this->sort_phrases[$i]->makeSQL();
 
-			if (! @$sort_clauses[$new_sig]) {	// don't repeat identical sort clauses
-				if ($sort_clause) $sort_clause .= ', ';
+        if (! @$sort_clauses[$new_sig]) {	// don't repeat identical sort clauses
+          if ($sort_clause) $sort_clause .= ', ';
 
-				$sort_clause .= $new_sql;
-				if ($new_tables) array_push($this->sort_tables, $new_tables);
+          $sort_clause .= $new_sql;
+          if ($new_tables) array_push($this->sort_tables, $new_tables);
 
-				$sort_clauses[$new_sig] = 1;
-			}
-		}
+          $sort_clauses[$new_sig] = 1;
+        }
+      }
+    }
 		if ($sort_clause) $sort_clause = ' order by ' . $sort_clause;
 
 		if ($this->search_type == BOOKMARK)
@@ -199,8 +201,9 @@ class Query {
 		else
 			$from_clause = 'from Records TOPBIBLIO left join usrBookmarks TOPBKMK on bkm_recID=rec_ID and bkm_UGrpID='.get_user_id().' ';
 
-		$from_clause .= join(' ', $this->sort_tables);	// sorting may require the introduction of more tables
-
+		if (isset($this->sort_tables) && is_array($this->sort_tables)) {
+      $from_clause .= join(' ', $this->sort_tables);	// sorting may require the introduction of more tables
+    }
 
 		if ($this->search_type == BOOKMARK) {
 			if ($where_clause) $where_clause = '(' . $where_clause . ') and ';
@@ -213,11 +216,12 @@ class Query {
 			$where_clause .= 'not rec_FlagTemporary ';
 		}
 /*****DEBUG****///error_log("query obj  - ".print_r($this,true));
-		if (get_user_id())  array_push($this->workgroups,0); // be sure to include the generic everybody workgroup
-		$where_clause = '('.((is_logged_in() && !$this->isPublicOnly) ?'rec_OwnerUGrpID='. get_user_id().' or ':'').// this includes non logged in because it returns 0
-							((is_logged_in() && !$this->isPublicOnly) ?'not rec_NonOwnerVisibility="hidden"':'rec_NonOwnerVisibility="public"').
-							((!empty($this->workgroups) && !$this->isPublicOnly) ?(' or rec_OwnerUGrpID in (' . join(',', $this->workgroups) . '))'):')').
-							' and ' . $where_clause;
+		if (get_user_id())  array_push($this->workgroups,"0"); // be sure to include the generic everybody workgroup
+    $pubOnly = isset($this->isPublicOnly)?$this->isPublicOnly:false;
+		$where_clause = '('.((is_logged_in() && !$pubOnly) ?'rec_OwnerUGrpID='. get_user_id().' or ':'').// this includes non logged in because it returns 0
+							((is_logged_in() && !$pubOnly) ?'not rec_NonOwnerVisibility="hidden"':'rec_NonOwnerVisibility="public"').
+							((!empty($this->workgroups) && !$pubOnly) ?(' or rec_OwnerUGrpID in (' . join(',', $this->workgroups) . '))'):')').
+							($where_clause?' and ' . $where_clause:'');
 
 		return $from_clause . 'where ' . $where_clause . $sort_clause;
 	}
@@ -225,14 +229,13 @@ class Query {
 
 
 class OrLimb {
-	var $and_limbs;
+	private array $and_limbs;
+	private Query $parent;
+  private bool $absoluteStrQuery;
 
-	var $parent;
-
-
-	function OrLimb(&$parent, $text) {
-		$this->parent = &$parent;
-		$this->absoluteStrQuery = $parent->absoluteStrQuery;
+	function __construct(Query $parentQuery, string $text) {
+		$this->parent = $parentQuery;
+		$this->absoluteStrQuery = $parentQuery->absoluteStrQuery;
 		$this->and_limbs = array();
 		if (substr_count($text, '"') % 2 != 0) $text .= '"';	// unmatched quote
 
@@ -247,15 +250,16 @@ class OrLimb {
 		$this->and_limbs[] = new AndLimb($this, $text);
 	}
 
-
-	function makeSQL() {
+	function makeSQL() : string {
 		$sql = '';
-
 		$and_clauses = array();
+
+    if (!isset($this->and_limbs)) return $sql;
 		for ($i=0; $i < count($this->and_limbs); ++$i) {
-			$new_sql = $this->and_limbs[$i]->pred->makeSQL();
+      $pred = $this->and_limbs[$i]->pred;
+			$new_sql = $pred->makeSQL();
 			if (strlen($new_sql) > 0) {
-				array_push($and_clauses, $new_sql);
+				$and_clauses[] = $new_sql;
 			}
 		}
 		sort($and_clauses);
@@ -267,15 +271,14 @@ class OrLimb {
 
 
 class AndLimb {
-	var $negate;
-	var $exact, $lessthan, $greaterthan;
-	var $pred;
+	public bool $negate, $absoluteStrQuery;
+	public bool $exact, $lessthan, $greaterthan;
+	public Predicate $pred;
+	public OrLimb $parentOrLimb;
 
-	var $parent;
 
-
-	function AndLimb(&$parent, $text) {
-		$this->parent = &$parent;
+	public function __construct(OrLimb $parentOrLimb, $text) {
+		$this->parentOrLimb = $parentOrLimb;
 		$this->absoluteStrQuery = false;
 		if (preg_match('/^".*"$/',$text,$matches)) {
 			$this->absoluteStrQuery = true;
@@ -289,11 +292,11 @@ class AndLimb {
 			$this->negate = false;
 		}
 
-		$this->pred = &$this->createPredicate($text);
+		$this->pred = $this->createPredicate($text);
 	}
 
 
-	function createPredicate($text) {
+	public function createPredicate($text):Predicate {
 		$colon_pos = strpos($text, ':');
 		if ($equals_pos = strpos($text, '=')) {
 			if (! $colon_pos  ||  $equals_pos < $colon_pos) {
@@ -446,7 +449,7 @@ class AndLimb {
 	}
 
 
-	function cleanQuotedValue($val) {
+	public function cleanQuotedValue($val) {
 		if ($val[0] == '"') {
 			if ($val[strlen($val)-1] == '"')
 				$val = substr($val, 1, -1);
@@ -461,17 +464,17 @@ class AndLimb {
 
 
 class SortPhrase {
-	var $value;
+	private string $value;
 
-	var $parent;
+	private $parent;
 
-	function SortPhrase(&$parent, $value) {
-		$this->parent = &$parent;
+	public function __construct(Query &$parentQuery, $value) {
+		$this->parent = $parentQuery;
 
 		$this->value = $value;
 	}
 // return list of  sql Phrase, signature, from clause for sort
-	function makeSQL() {
+	public function makeSQL() {
 		$colon_pos = strpos($this->value, ':');
 		$text = substr($this->value, $colon_pos+1);
 
@@ -528,8 +531,8 @@ class SortPhrase {
 
 			if (preg_match('/^(?:f|field):(\\d+)(:m)?/i', $text, $matches)) {
 				@list($_, $field_id, $show_multiples) = $matches;
-				$res = mysql_query("select dty_Type from defDetailTypes where dty_ID = $field_id");
-				$baseType = mysql_fetch_row($res);  $baseType = @$baseType[0];
+				$res = $mysqli->query("select dty_Type from defDetailTypes where dty_ID = $field_id");
+				$baseType = $res->fetch_row();  $baseType = @$baseType[0];
 
 				if ($show_multiples) {	// "multiple" flag has been provided -- provide (potentially) multiple matches for each entry by left-joining recDetails
 					$bd_name = 'bd' . (count($this->parent->sort_phrases) + 1);
@@ -549,8 +552,8 @@ class SortPhrase {
 				}
 			} else if (preg_match('/^(?:f|field):"?([^":]+)"?(:m)?/i', $text, $matches)) {
 				@list($_, $field_name, $show_multiples) = $matches;
-				$res = mysql_query("select dty_Type from defDetailTypes where dty_Name = '$field_name'");
-				$baseType = mysql_fetch_row($res);  $baseType = @$baseType[0];
+				$res = $mysqli->query("select dty_Type from defDetailTypes where dty_Name = '$field_name'");
+				$baseType = $res->fetch_row();  $baseType = @$baseType[0];
 
 				if ($show_multiples) {	// "multiple" flag has been provided -- provide (potentially) multiple matches for each entry by left-joining recDetails
 					$bd_name = 'bd' . (count($this->parent->sort_phrases) + 1);
@@ -581,23 +584,21 @@ class SortPhrase {
 
 
 class Predicate {
-	var $value;
+	public string $value;
+  public Query $query;
+	public $memParent;
 
-	var $parent;
-
-	function Predicate(&$parent, $value) {
-		$this->parent = &$parent;
-
+	public function __construct($memParent, string $value) {
+		$this->memParent = $memParent;
 		$this->value = $value;
-		$this->query = NULL;
 	}
 
-	function makeSQL($table_name) { return '1'; }
+	public function makeSQL() { 
+    return '1';
+  }
 
-
-	var $query;
-	function getQuery() {
-		if (! $this->query) {
+	public function getQuery() : Query{
+		if (! isset($this->query)) {
 			$c = &$this->parent;
 			while ($c  &&  strtolower(get_class($c)) != 'query')
 				$c = &$c->parent;
@@ -607,7 +608,7 @@ class Predicate {
 		return $this->query;
 	}
 
-	function makeDateClause() {
+	public function makeDateClause() : string {
 		$timestamp = strtotime($this->value);
 		if ($this->parent->exact) {
 			$datestamp = date('Y-m-d H:i:s', $timestamp);
@@ -639,7 +640,7 @@ class Predicate {
 
 
 class TitlePredicate extends Predicate {
-	function makeSQL() {
+	public function makeSQL() : string {
 		$not = ($this->parent->negate)? 'not ' : '';
 
 		$query = &$this->getQuery();
@@ -656,25 +657,27 @@ class TitlePredicate extends Predicate {
 
 
 class TypePredicate extends Predicate {
-	function makeSQL() {
-		$eq = ($this->parent->negate)? '!=' : '=';
-		if (is_numeric($this->value)) {
-			return "rec_RecTypeID $eq ".intval($this->value);
+	public function makeSQL() : string {
+    $value = $this->value;
+    $negate = $this->memParent->negate;
+		$eq = ($negate)? '!=' : '=';
+		if (is_numeric($value)) {
+			return "rec_RecTypeID $eq ".intval($value);
 		}
-		else if (preg_match('/^\d+(?:,\d+)+$/', $this->value)) {
+		else if (preg_match('/^\d+(?:,\d+)+$/',$value)) {
 			// comma-separated list of defRecTypes ids
-			$in = ($this->parent->negate)? 'not in' : 'in';
-			return "rec_RecTypeID $in (" . $this->value . ")";
+			$in = ($negate)? 'not in' : 'in';
+			return "rec_RecTypeID $in (" . $value . ")";
 		}
 		else {
-			return "rec_RecTypeID $eq (select rft.rty_ID from defRecTypes rft where rft.rty_Name = '".addslashes($this->value)."' limit 1)";
+			return "rec_RecTypeID $eq (select rft.rty_ID from defRecTypes rft where rft.rty_Name = '".addslashes($value)."' limit 1)";
 		}
 	}
 }
 
 
 class URLPredicate extends Predicate {
-	function makeSQL() {
+	public function makeSQL() : string {
 		$not = ($this->parent->negate)? 'not ' : '';
 
 		$query = &$this->getQuery();
@@ -684,7 +687,7 @@ class URLPredicate extends Predicate {
 
 
 class NotesPredicate extends Predicate {
-	function makeSQL() {
+	public function makeSQL() : string {
 		$not = ($this->parent->negate)? 'not ' : '';
 
 		$query = &$this->getQuery();
@@ -697,7 +700,7 @@ class NotesPredicate extends Predicate {
 
 
 class UserPredicate extends Predicate {
-	function makeSQL() {
+	public function makeSQL() : string {
 		$not = ($this->parent->negate)? 'not ' : '';
 		if (is_numeric($this->value)) {
 			return $not . 'exists (select * from usrBookmarks bkmk where bkmk.bkm_recID=rec_ID '
@@ -722,7 +725,7 @@ class UserPredicate extends Predicate {
 
 
 class AddedByPredicate extends Predicate {
-	function makeSQL() {
+	public function makeSQL() : string {
 		$eq = ($this->parent->negate)? '!=' : '=';
 		if (is_numeric($this->value)) {
 			return "rec_AddedByUGrpID $eq " . intval($this->value);
@@ -739,7 +742,7 @@ class AddedByPredicate extends Predicate {
 }
 
 class AnyPredicate extends Predicate {
-	function makeSQL() {
+	public function makeSQL() : string {
 		$not = ($this->parent->negate)? 'not ' : '';
 		return $not . ' (exists (select * from recDetails rd '
 		                          . 'left join defDetailTypes on dtl_DetailTypeID=dty_ID '
@@ -754,9 +757,9 @@ class AnyPredicate extends Predicate {
 
 
 class FieldPredicate extends Predicate {
-	var $field_type;
+	public string $field_type;
 
-	function FieldPredicate(&$parent, $type, $value) {
+	public function __construct(&$parent, $type, $value) {
 		$this->field_type = $type;
 		parent::Predicate($parent, $value);
 
@@ -766,7 +769,7 @@ class FieldPredicate extends Predicate {
 		}
 	}
 
-	function makeSQL() {
+	function makeSQL() : string {
 		$not = ($this->parent->negate)? 'not ' : '';
 /*****DEBUG****///error_log("FieldPred MakeSql value = ".print_r($this->value,true)." type = ".print_r($this->field_type,true));
 
@@ -1015,9 +1018,9 @@ class RelationsForPredicate extends Predicate {
 		 * Fastest is to do a SEPARATE QUERY to get the record IDs out of the bib_relationship table, then pass it back encoded in the predicate.
 		 * Certainly not the most elegant way to do it, but the numbers don't lie.
 		 */
-		$res = mysql_query("select group_concat( distinct rec_ID ) from Records, recRelationshipsCache where (rrc_RecID=rec_ID or rrc_TargetRecID=rec_ID or rrc_SourceRecID=rec_ID)
+		$res = $mysqli->query("select group_concat( distinct rec_ID ) from Records, recRelationshipsCache where (rrc_RecID=rec_ID or rrc_TargetRecID=rec_ID or rrc_SourceRecID=rec_ID)
 		                                                                                            and (rrc_SourceRecID in $ids or rrc_TargetRecID in $ids) and rec_ID not in $ids");
-		$ids = mysql_fetch_row($res);  $ids = $ids[0];
+		$ids = $res->fetch_row();  $ids = $ids[0];
 		if (! $ids) return "0";
 		else return "TOPBIBLIO.rec_ID in ($ids)";
 	}
@@ -1225,7 +1228,7 @@ function construct_legacy_search() {
 	$_REQUEST['q'] = $q;
 }
 
-function REQUEST_to_query($query, $search_type, $parms=NULL, $wg_ids=NULL, $publicOnly = false) {
+function REQUEST_to_query($mysqli, $query, $search_type, $parms=NULL, $wg_ids=NULL, $publicOnly = false) {
 	// wg_ids is a list of the workgroups we can access; Records records marked with a rec_OwnerUGrpID not in this list are omitted
 
 	/* use the supplied _REQUEST variables (or $parms if supplied) to construct a query starting with $query */
@@ -1233,13 +1236,13 @@ function REQUEST_to_query($query, $search_type, $parms=NULL, $wg_ids=NULL, $publ
 	define('stype', @$parms['stype']);
 
 	if (! $wg_ids  &&  function_exists('get_user_id')) {
-		$wg_ids = mysql__select_array(USERS_DATABASE.'.sysUsrGrpLinks left join '.USERS_DATABASE.'.sysUGrps grp on grp.ugr_ID=ugl_GroupID', 'ugl_GroupID',
+		$wg_ids = mysqli__select_array($mysqli, USERS_DATABASE.'.sysUsrGrpLinks left join '.USERS_DATABASE.'.sysUGrps grp on grp.ugr_ID=ugl_GroupID', 'ugl_GroupID',
 		                              'ugl_UserID='.get_user_id().' and grp.ugr_Type != "User" order by ugl_GroupID');
 	}
 
-	if (! @$parms['qq']  &&  ! preg_match('/&&|\\bAND\\b/i', @$parms['q'])) {
+	if (! @$parms['qq']  && @$parms['q'] && ! preg_match('/&&|\\bAND\\b/i', @$parms['q'])) {
 		$query .= parse_query($search_type, @$parms['q'], @$parms['s'], $wg_ids, $publicOnly);
-	} else {
+	} elseif  (@$parms['qq']  || @$parms['q']) {
 		// search-within-search gives us top-level ANDing (full expressiveness of conjunctions and disjunctions! hot damn)
 		// basically for free!
 /*
@@ -1248,7 +1251,7 @@ function REQUEST_to_query($query, $search_type, $parms=NULL, $wg_ids=NULL, $publ
 */
 //error_log("params = ".print_r($parms,true));
 		$qq = @$parms['qq'];
-		if ($parms['q']) {
+		if (@$parms['q']) {
 			if ($qq) $qq .= ' && ' . $parms['q'];
 			else $qq = $parms['q'];
 		}
@@ -1301,6 +1304,7 @@ function REQUEST_to_query($query, $search_type, $parms=NULL, $wg_ids=NULL, $publ
 	}
 
 /*****DEBUG****/// error_log("request to query returns ".print_r($query,true));
+error_log("in REQUEST_to_query $"."query = ".$query);
 	return $query;
 }
 

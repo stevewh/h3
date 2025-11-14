@@ -76,7 +76,7 @@ if (@$_REQUEST["inclGeo"]) {
 ?>
 
 /* The key will be set once the javascript files are loaded */
-//var HeuristApiKey = "<?= addslashes(@$_REQUEST["key"]) ?>";
+var HeuristApiKey = "<?= array_key_exists("key",$_REQUEST)?addslashes(@$_REQUEST["key"]):'' ?>";
 var HeuristInstance = "<?= addslashes($instance) ?>";
 var HeuristBaseURL = "<?= addslashes(HEURIST_BASE_URL) ?>";
 var HeuristSitePath = "<?= addslashes(HEURIST_SITE_PATH) ?>";

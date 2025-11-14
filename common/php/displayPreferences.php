@@ -108,7 +108,8 @@
 
 		// Properties which can be set in the My profile > Preferences dialogue
 		"savedSearchDest" => "",  //last saved search destination (workgroup id)
-		"defaultSearch" => "tag:Favourites",//was  "sortby:-m after:\"1 week ago\" ",
+//		"defaultSearch" => "tag:Favourites",//was  "sortby:-m after:\"1 week ago\" ",
+		"defaultSearch" => "",//was  "sortby:-m after:\"1 week ago\" ",
 		"searchQueryInBrowser" => "false",
 
 		"favourites" => "Favourites", // standard spelling for default search
