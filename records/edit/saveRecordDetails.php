@@ -573,7 +573,7 @@
                             "dtl_Value",
                             "dtl_AddedByImport",
                             "dtl_UploadedFileID",
-                            "if(dtl_Geo is not null, astext(dtl_Geo),null) as dtl_Geo",
+                            "if(dtl_Geo is not null, ST_AsText(dtl_Geo),null) as dtl_Geo",
                             "dtl_ValShortened",
                             "dtl_Modified");
         $res = $mysqli->query("select ".join(",",$dtlColumns)." from recDetails where dtl_RecID = " . $recID);

@@ -205,7 +205,7 @@
 							array_push($counts,0);
 						}
 						$details = array();
-						$res = $mysqli->query('select dtl_DetailTypeID, dtl_Value, dtl_ID, dtl_UploadedFileID, if(dtl_Geo is not null, astext(dtl_Geo), null) as dtl_Geo
+						$res = $mysqli->query('select dtl_DetailTypeID, dtl_Value, dtl_ID, dtl_UploadedFileID, if(dtl_Geo is not null, ST_AsText(dtl_Geo), null) as dtl_Geo
 						from recDetails
 						where dtl_RecID = ' . $records[$index]['rec_ID'] . '
 						order by dtl_DetailTypeID, dtl_ID');

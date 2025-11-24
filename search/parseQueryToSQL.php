@@ -126,10 +126,10 @@ class Query {
 	private string $search_type;
   public bool $absoluteStrQuery;
   private bool $isPublicOnly;
-	private array $or_limbs;
-	public array $sort_phrases;
-	private array $sort_tables;
-	private array $workgroups;
+	private array $or_limbs = array();
+	public array $sort_phrases = array();
+	private array $sort_tables = array();
+	private array $workgroups = array();
 
   // constructor
 	public function __construct($search_type, $text, $publicOnly, $absoluteStrQuery = false) {
@@ -274,17 +274,19 @@ class AndLimb {
 	public bool $negate, $absoluteStrQuery;
 	public bool $exact, $lessthan, $greaterthan;
 	public Predicate $pred;
-	public OrLimb $parentOrLimb;
+	public OrLimb $orParent;
 
 
-	public function __construct(OrLimb $parentOrLimb, $text) {
-		$this->parentOrLimb = $parentOrLimb;
+	public function __construct(OrLimb $orParent, $text) {
+		$this->orParent = $orParent;
 		$this->absoluteStrQuery = false;
 		if (preg_match('/^".*"$/',$text,$matches)) {
 			$this->absoluteStrQuery = true;
 		}
 
 		$this->exact = false;
+		$this->lessthan = false;
+		$this->greaterthan = false;
 		if ($text[0] == '-') {
 			$this->negate = true;
 			$text = substr($text, 1);
@@ -584,12 +586,12 @@ class SortPhrase {
 
 
 class Predicate {
-	public string $value;
+	public string | array $value;
   public Query $query;
-	public $memParent;
+	public $andParent;
 
-	public function __construct($memParent, string $value) {
-		$this->memParent = $memParent;
+	public function __construct(AndLimb $andParent, string $value) {
+		$this->andParent = $andParent;
 		$this->value = $value;
 	}
 
@@ -599,7 +601,7 @@ class Predicate {
 
 	public function getQuery() : Query{
 		if (! isset($this->query)) {
-			$c = &$this->parent;
+			$c = &$this->andParent;
 			while ($c  &&  strtolower(get_class($c)) != 'query')
 				$c = &$c->parent;
 
@@ -610,15 +612,15 @@ class Predicate {
 
 	public function makeDateClause() : string {
 		$timestamp = strtotime($this->value);
-		if ($this->parent->exact) {
+		if ($this->andParent->exact) {
 			$datestamp = date('Y-m-d H:i:s', $timestamp);
 			return "= '$datestamp'";
 		}
-		else if ($this->parent->lessthan) {
+		else if ($this->andParent->lessthan) {
 			$datestamp = date('Y-m-d H:i:s', $timestamp);
 			return "< '$datestamp'";
 		}
-		else if ($this->parent->greaterthan) {
+		else if ($this->andParent->greaterthan) {
 			$datestamp = date('Y-m-d H:i:s', $timestamp);
 			return "> '$datestamp'";
 		}
@@ -641,14 +643,14 @@ class Predicate {
 
 class TitlePredicate extends Predicate {
 	public function makeSQL() : string {
-		$not = ($this->parent->negate)? 'not ' : '';
+		$not = ($this->andParent->negate)? 'not ' : '';
 
 		$query = &$this->getQuery();
-		if ($this->parent->exact)
+		if ($this->andParent->exact)
 			return $not . 'rec_Title = "'.addslashes($this->value).'"';
-		else if ($this->parent->lessthan)
+		else if ($this->andParent->lessthan)
 			return $not . 'rec_Title < "'.addslashes($this->value).'"';
-		else if ($this->parent->greaterthan)
+		else if ($this->andParent->greaterthan)
 			return $not . 'rec_Title > "'.addslashes($this->value).'"';
 		else
 			return 'rec_Title ' . $not . 'like "%'.addslashes($this->value).'%"';
@@ -659,7 +661,7 @@ class TitlePredicate extends Predicate {
 class TypePredicate extends Predicate {
 	public function makeSQL() : string {
     $value = $this->value;
-    $negate = $this->memParent->negate;
+    $negate = $this->andParent->negate;
 		$eq = ($negate)? '!=' : '=';
 		if (is_numeric($value)) {
 			return "rec_RecTypeID $eq ".intval($value);
@@ -678,7 +680,7 @@ class TypePredicate extends Predicate {
 
 class URLPredicate extends Predicate {
 	public function makeSQL() : string {
-		$not = ($this->parent->negate)? 'not ' : '';
+		$not = ($this->andParent->negate)? 'not ' : '';
 
 		$query = &$this->getQuery();
 		return 'rec_URL ' . $not . 'like "%'.addslashes($this->value).'%"';
@@ -688,7 +690,7 @@ class URLPredicate extends Predicate {
 
 class NotesPredicate extends Predicate {
 	public function makeSQL() : string {
-		$not = ($this->parent->negate)? 'not ' : '';
+		$not = ($this->andParent->negate)? 'not ' : '';
 
 		$query = &$this->getQuery();
 		if ($query->search_type == BOOKMARK)	// saw TODO change this to check for woot match or full text search
@@ -701,7 +703,7 @@ class NotesPredicate extends Predicate {
 
 class UserPredicate extends Predicate {
 	public function makeSQL() : string {
-		$not = ($this->parent->negate)? 'not ' : '';
+		$not = ($this->andParent->negate)? 'not ' : '';
 		if (is_numeric($this->value)) {
 			return $not . 'exists (select * from usrBookmarks bkmk where bkmk.bkm_recID=rec_ID '
 			                                                  . ' and bkmk.bkm_UGrpID = ' . intval($this->value) . ')';
@@ -726,16 +728,16 @@ class UserPredicate extends Predicate {
 
 class AddedByPredicate extends Predicate {
 	public function makeSQL() : string {
-		$eq = ($this->parent->negate)? '!=' : '=';
+		$eq = ($this->andParent->negate)? '!=' : '=';
 		if (is_numeric($this->value)) {
 			return "rec_AddedByUGrpID $eq " . intval($this->value);
 		}
 		else if (preg_match('/^\d+(?:,\d+)+$/', $this->value)) {
-			$not = ($this->parent->negate)? "not" : "";
+			$not = ($this->andParent->negate)? "not" : "";
 			return "rec_AddedByUGrpID $not in (" . $this->value . ")";
 		}
 		else {
-			$not = ($this->parent->negate)? "not" : "";
+			$not = ($this->andParent->negate)? "not" : "";
 			return "rec_AddedByUGrpID $not in (select usr.ugr_ID from ".USERS_DATABASE.".sysUGrps usr where usr.ugr_Name = '" . addslashes($this->value) . "')";
 		}
 	}
@@ -743,7 +745,7 @@ class AddedByPredicate extends Predicate {
 
 class AnyPredicate extends Predicate {
 	public function makeSQL() : string {
-		$not = ($this->parent->negate)? 'not ' : '';
+		$not = ($this->andParent->negate)? 'not ' : '';
 		return $not . ' (exists (select * from recDetails rd '
 		                          . 'left join defDetailTypes on dtl_DetailTypeID=dty_ID '
 		                          . 'left join Records link on rd.dtl_Value=link.rec_ID '
@@ -760,8 +762,8 @@ class FieldPredicate extends Predicate {
 	public string $field_type;
 
 	public function __construct(&$parent, $type, $value) {
+		parent::__construct($parent, $value);
 		$this->field_type = $type;
-		parent::Predicate($parent, $value);
 
 		if ($value[0] == '-') {	// DWIM: user wants a negate, we'll let them put it here
 			$parent->negate = true;
@@ -770,16 +772,17 @@ class FieldPredicate extends Predicate {
 	}
 
 	function makeSQL() : string {
-		$not = ($this->parent->negate)? 'not ' : '';
+
+		$not = ($this->andParent->negate)? 'not ' : '';
 /*****DEBUG****///error_log("FieldPred MakeSql value = ".print_r($this->value,true)." type = ".print_r($this->field_type,true));
 
 		$match_value = is_numeric($this->value)? floatval($this->value) : '"' . addslashes($this->value) . '"';
 
-		if ($this->parent->exact  ||  $this->value === "") {	// SC100
+		if ($this->andParent->exact  ||  $this->value === "") {	// SC100
 			$match_pred = " = $match_value";
-		} else if ($this->parent->lessthan) {
+		} else if ($this->andParent->lessthan) {
 			$match_pred = " < $match_value";
-		} else if ($this->parent->greaterthan) {
+		} else if ($this->andParent->greaterthan) {
 			$match_pred = " > $match_value";
 		} else {
 			$match_pred = " like '%".addslashes($this->value)."%'";
@@ -822,10 +825,10 @@ class FieldPredicate extends Predicate {
 
 
 class TagPredicate extends Predicate {
-	var $wg_value;
+	public $wg_value;
 
-	function TagPredicate(&$parent, $value) {
-		$this->parent = &$parent;
+	function __construct(AndLimb $andParent, $value) {
+		$this->andParent = $andParent;
 
 		$this->value = array();
 		$this->wg_value = array();
@@ -851,7 +854,7 @@ class TagPredicate extends Predicate {
 
 	function makeSQL() {
 		$query = &$this->getQuery();
-		$not = ($this->parent->negate)? 'not ' : '';
+		$not = ($this->andParent->negate)? 'not ' : '';
 		if ($query->search_type == BOOKMARK) {
 			if (is_numeric(join('', $this->value))) {	// if all tag specs are numeric then don't need a join
 				return $not . 'exists (select * from usrRecTagLinks where rtl_RecID=bkm_RecID and rtl_TagID in ('.join(',', $this->value).'))';
@@ -865,7 +868,7 @@ class TagPredicate extends Predicate {
 					if (is_numeric($value)) {
 						$query .= 'rtl_TagID='.intval($value).' ';
 					} else {
-						$query .=     ($this->parent->exact? 'kwd.tag_Text = "'.addslashes($value).'" '
+						$query .=     ($this->andParent->exact? 'kwd.tag_Text = "'.addslashes($value).'" '
 					                                           : 'kwd.tag_Text like "'.addslashes($value).'%" ');
 					}
 					$first_value = false;
@@ -882,11 +885,11 @@ class TagPredicate extends Predicate {
 
 					if ($wg_value) {
 						$query .= '(';
-						$query .=      ($this->parent->exact? 'kwd.tag_Text = "'.addslashes($value).'" '
+						$query .=      ($this->andParent->exact? 'kwd.tag_Text = "'.addslashes($value).'" '
 					                                            : 'kwd.tag_Text like "'.addslashes($value).'%" ');
 						$query .=      ' and ugr_Name = "'.addslashes($wg_value).'") ';
 					} else {
-						$query .=      ($this->parent->exact? 'kwd.tag_Text = "'.addslashes($value).'" '
+						$query .=      ($this->andParent->exact? 'kwd.tag_Text = "'.addslashes($value).'" '
 					                                            : 'kwd.tag_Text like "'.addslashes($value).'%" ');
 					}
 				}
@@ -902,7 +905,7 @@ class TagPredicate extends Predicate {
 					if (is_numeric($value)) {
 						$query .= "kwd.tag_ID=$value ";
 					} else {
-						$query .=      ($this->parent->exact? 'kwd.tag_Text = "'.addslashes($value).'" '
+						$query .=      ($this->andParent->exact? 'kwd.tag_Text = "'.addslashes($value).'" '
 					                                            : 'kwd.tag_Text like "'.addslashes($value).'%" ');
 					}
 					$first_value = false;
@@ -919,7 +922,7 @@ class TagPredicate extends Predicate {
 
 					if ($wg_value) {
 						$query .= '(';
-						$query .=      ($this->parent->exact? 'kwd.tag_Text = "'.addslashes($value).'" '
+						$query .=      ($this->andParent->exact? 'kwd.tag_Text = "'.addslashes($value).'" '
 					                                            : 'kwd.tag_Text like "'.addslashes($value).'%" ');
 						$query .= ' and ugr_Name = "'.addslashes($wg_value).'") ';
 					} else {
@@ -927,7 +930,7 @@ class TagPredicate extends Predicate {
 							$query .= "kwd.tag_ID=$value ";
 						} else {
 							$query .= '(';
-							$query .=      ($this->parent->exact? 'kwd.tag_Text = "'.addslashes($value).'" '
+							$query .=      ($this->andParent->exact? 'kwd.tag_Text = "'.addslashes($value).'" '
 						                                            : 'kwd.tag_Text like "'.addslashes($value).'%" ');
 							$query .= ' and ugr_ID is null) ';
 						}
@@ -944,7 +947,7 @@ class TagPredicate extends Predicate {
 
 class BibIDPredicate extends Predicate {
 	function makeSQL() {
-		$not = ($this->parent->negate)? 'not' : '';
+		$not = ($this->andParent->negate)? 'not' : '';
 		return "rec_ID $not in (" . join(',', array_map('intval', explode(',', $this->value))) . ')';
 	}
 }
@@ -1031,7 +1034,7 @@ class AfterPredicate extends Predicate {
 	function makeSQL() {
 		$timestamp = strtotime($this->value);
 		if ($timestamp  &&  $timestamp != -1) {
-			$not = ($this->parent->negate)? 'not' : '';
+			$not = ($this->andParent->negate)? 'not' : '';
 			$datestamp = date('Y-m-d H:i:s', $timestamp);
 			return "$not rec_Modified >= '$datestamp'";
 		}
@@ -1044,7 +1047,7 @@ class BeforePredicate extends Predicate {
 	function makeSQL() {
 		$timestamp = strtotime($this->value);
 		if ($timestamp  &&  $timestamp != -1) {
-			$not = ($this->parent->negate)? 'not' : '';
+			$not = ($this->andParent->negate)? 'not' : '';
 			$datestamp = date('Y-m-d H:i:s', $timestamp);
 			return "$not rec_Modified <= '$datestamp'";
 		}
@@ -1054,18 +1057,19 @@ class BeforePredicate extends Predicate {
 
 
 class DatePredicate extends Predicate {
-	var $col;
+	public $col;
 
-	function DatePredicate(&$parent, $col, $value) {
+	function __construct(AndLimb $andParent, $col, $value) {
 		$this->col = $col;
-		parent::Predicate($parent, $value);
+		$this->$andParent = $andParent;
+    $this->$value = $value;
 	}
 
 	function makeSQL() {
 		$col = $this->col;
 		$timestamp = strtotime($this->value);
 		if ($timestamp  &&  $timestamp != -1) {
-			$not = ($this->parent->negate)? 'not' : '';
+			$not = ($this->andParent->negate)? 'not' : '';
 			return "$not $col " . $this->makeDateClause();
 		}
 		return '1';
@@ -1073,26 +1077,30 @@ class DatePredicate extends Predicate {
 }
 
 class DateAddedPredicate extends DatePredicate {
-	function DateAddedPredicate(&$parent, $value) {
-		parent::DatePredicate($parent, 'rec_Added', $value);
+	function __construct(AndLimb $andParent, $value) {
+		$this->col = 'rec_Added';
+		$this->$andParent = $andParent;
+    $this->$value = $value;
 	}
 }
 
 class DateModifiedPredicate extends DatePredicate {
-	function DateModifiedPredicate(&$parent, $value) {
-		parent::DatePredicate($parent, 'rec_Modified', $value);
+	function __construct(&$parent, $value) {
+		$this->col = 'rec_Modified';
+		$this->$andParent = $andParent;
+    $this->$value = $value;
 	}
 }
 
 
 class WorkgroupPredicate extends Predicate {
 	function makeSQL() {
-		$eq = ($this->parent->negate)? '!=' : '=';
+		$eq = ($this->andParent->negate)? '!=' : '=';
 		if (is_numeric($this->value)) {
 			return "rec_OwnerUGrpID $eq ".intval($this->value);
 		}
 		else if (preg_match('/^\d+(?:,\d+)+$/', $this->value)) {
-			$in = ($this->parent->negate)? 'not in' : 'in';
+			$in = ($this->andParent->negate)? 'not in' : 'in';
 			return "rec_OwnerUGrpID $in (" . $this->value . ")";
 		}
 		else {
@@ -1105,10 +1113,10 @@ class WorkgroupPredicate extends Predicate {
 class LatitudePredicate extends Predicate {
 	function makeSQL() {
 		$op = '';
-		if ($this->parent->lessthan) {
-			$op = ($this->parent->negate)? '>=' : '<';
-		} else if ($this->parent->greaterthan) {
-			$op = ($this->parent->negate)? '<=' : '>';
+		if ($this->andParent->lessthan) {
+			$op = ($this->andParent->negate)? '>=' : '<';
+		} else if ($this->andParent->greaterthan) {
+			$op = ($this->andParent->negate)? '<=' : '>';
 		}
 
 		if ($op[0] == '<') {
@@ -1124,8 +1132,8 @@ class LatitudePredicate extends Predicate {
 			                   and y( StartPoint( ExteriorRing( Envelope(bd.dtl_Geo) ) ) ) $op " . floatval($this->value) . " limit 1)";
 
 		}
-		else if ($this->parent->exact) {
-			$op = $this->parent->negate? "!=" : "=";
+		else if ($this->andParent->exact) {
+			$op = $this->andParent->negate? "!=" : "=";
 			// see if there is a Point with this exact latitude
 			return "exists (select * from recDetails bd
 			                 where bd.dtl_RecID=TOPBIBLIO.rec_ID and bd.dtl_Geo is not null and bd.dtl_Value = 'p'
@@ -1145,10 +1153,10 @@ class LatitudePredicate extends Predicate {
 class LongitudePredicate extends Predicate {
 	function makeSQL() {
 		$op = '';
-		if ($this->parent->lessthan) {
-			$op = ($this->parent->negate)? '>=' : '<';
-		} else if ($this->parent->greaterthan) {
-			$op = ($this->parent->negate)? '<=' : '>';
+		if ($this->andParent->lessthan) {
+			$op = ($this->andParent->negate)? '>=' : '<';
+		} else if ($this->andParent->greaterthan) {
+			$op = ($this->andParent->negate)? '<=' : '>';
 		}
 
 		if ($op[0] == '<') {
@@ -1164,8 +1172,8 @@ class LongitudePredicate extends Predicate {
 			                   and x( StartPoint( ExteriorRing( Envelope(bd.dtl_Geo) ) ) ) $op " . floatval($this->value) . " limit 1)";
 
 		}
-		else if ($this->parent->exact) {
-			$op = $this->parent->negate? "!=" : "=";
+		else if ($this->andParent->exact) {
+			$op = $this->andParent->negate? "!=" : "=";
 			// see if there is a Point with this exact longitude
 			return "exists (select * from recDetails bd
 			                 where bd.dtl_RecID=TOPBIBLIO.rec_ID and bd.dtl_Geo is not null and bd.dtl_Value = 'p'
@@ -1185,12 +1193,12 @@ class LongitudePredicate extends Predicate {
 class HHashPredicate extends Predicate {
 	function makeSQL() {
 		$op = '';
-		if ($this->parent->exact) {
-			$op = $this->parent->negate? "!=" : "=";
+		if ($this->andParent->exact) {
+			$op = $this->andParent->negate? "!=" : "=";
 			return "rec_Hash $op '" . addslashes($this->value) . "'";
 		}
 		else {
-			$op = $this->parent->negate? " not like " : " like ";
+			$op = $this->andParent->negate? " not like " : " like ";
 			return "rec_Hash $op '" . addslashes($this->value) . "%'";
 		}
 	}

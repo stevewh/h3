@@ -184,7 +184,7 @@
 	if($bibIDs && count($bibIDs)>0)
 	{
 	// Find the records that actually have any geographic data to plot
-	$res = $mysqli->query("select dtl_RecID, dtl_Value, astext(dtl_Geo), astext(envelope(dtl_Geo)) from recDetails where dtl_Geo is not null and dtl_RecID in (" . join(",", $bibIDs) . ")");
+	$res = $mysqli->query("select dtl_RecID, dtl_Value, ST_AsText(dtl_Geo), ST_AsText(envelope(dtl_Geo)) from recDetails where dtl_Geo is not null and dtl_RecID in (" . join(",", $bibIDs) . ")");
 if($mysqli->error) {
 	error_log("ERROR in ShowMap=".$mysqli->error);
 }
@@ -523,7 +523,7 @@ if($mysqli->error) {
 	}
 
 	/**
-	* parse value from database (asText)
+	* parse value from database (ST_AsText)
 	*
 	* @param mixed $recId
 	* @param mixed $type

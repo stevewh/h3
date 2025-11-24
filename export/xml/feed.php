@@ -192,7 +192,7 @@ print "\n	<media:thumbnail url=\"".htmlspecialchars($thubURL)."\"/>";
 	}
 
 //geo rss
-	$geos = mysqli__select_array($mysqli, "recDetails", "if(a.dtl_Geo is null, null, asText(a.dtl_Geo)) as dtl_Geo",
+	$geos = mysqli__select_array($mysqli, "recDetails", "if(a.dtl_Geo is null, null, ST_AsText(a.dtl_Geo)) as dtl_Geo",
 	 						"a.dtl_RecID=".$row[0]." and a.dtl_Geo is not null");
 
 					if(count($geos)>0){

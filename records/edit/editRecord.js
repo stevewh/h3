@@ -2859,7 +2859,7 @@ s
         input.type = "hidden";
         // This is a bit complicated:
         // We don't put in an input if there's already a value,
-        // because MySQL says   bd_geo != geomfromtext(astext(bd_geo))   so we would get false deltas.
+        // because MySQL says   bd_geo != geomfromtext(ST_AsText(bd_geo))   so we would get false deltas.
         // edit/saveRecordDetails.php leaves bib_detail rows alone if they are not mentioned in $_POST.
         // We give it the name (underscore + name), and only give it the proper name if we try to edit the value.
         if (bdValue  &&  bdValue.id  && ! bdValue.geo) {

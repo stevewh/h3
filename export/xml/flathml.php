@@ -251,10 +251,10 @@ while ($row = $res->fetch_assoc()) {
     $TLV[$row['trm_Label']] = $row;
 }
 /// group names
-$mysqli = mysqli_connection_select(USERS_DATABASE) or die($mysqli->error);
-$WGN = mysqli__select_assoc($mysqli, 'sysUGrps grp', 'grp.ugr_ID', 'grp.ugr_Name', "ugr_Type ='workgroup'");
-$UGN = mysqli__select_assoc($mysqli, 'sysUGrps grp', 'grp.ugr_ID', 'grp.ugr_Name', "ugr_Type ='user'");
-$mysqli = mysqli_connection_select(DATABASE) or die($mysqli->error);
+$mysqli_user = mysqli_connection_select(USERS_DATABASE) or die($mysqli_user->error);
+$WGN = mysqli__select_assoc($mysqli_user, 'sysUGrps grp', 'grp.ugr_ID', 'grp.ugr_Name', "ugr_Type ='workgroup'");
+$UGN = mysqli__select_assoc($mysqli_user, 'sysUGrps grp', 'grp.ugr_ID', 'grp.ugr_Name', "ugr_Type ='user'");
+//$mysqli = mysqli_connection_select(DATABASE) or die($mysqli->error);
 $GEO_TYPES = array('r' => 'bounds', 'c' => 'circle', 'pl' => 'polygon', 'l' => 'path', 'p' => 'point');
 // set parameter defaults
 $REVERSE = @$_REQUEST['rev'] === 'no' ? false : true; //default to including reverse pointers
@@ -381,6 +381,7 @@ if (is_logged_in()) {
  */
 function findPointers($qrec_ids, &$recSet, $depth, $rtyIDs, $dtyIDs) {
     global $ACCESSABLE_OWNER_IDS, $PUBONLY;
+    global $mysqli;
     /*****DEBUG****/
     //error_log("in findPointers");
     //saw TODO add error checking for numeric values in $rtyIDs and $dtyIDs
@@ -454,6 +455,7 @@ function findPointers($qrec_ids, &$recSet, $depth, $rtyIDs, $dtyIDs) {
  */
 function findReversePointers($qrec_ids, &$recSet, $depth, $rtyIDs, $dtyIDs) {
     global $REVERSE, $ACCESSABLE_OWNER_IDS, $relRT, $PUBONLY;
+    global $mysqli;
     //if (!$REVERSE) return array();
     /*****DEBUG****///error_log("in findReversePointers");
     $nlrIDs = array(); // new linked record IDs
@@ -516,6 +518,7 @@ function findReversePointers($qrec_ids, &$recSet, $depth, $rtyIDs, $dtyIDs) {
  */
 function findRelatedRecords($qrec_ids, &$recSet, $depth, $rtyIDs, $relTermIDs) {
     global $REVERSE, $ACCESSABLE_OWNER_IDS, $relRT, $relTrgDT, $relTypDT, $relSrcDT, $PUBONLY;
+    global $mysqli;
     /*****DEBUG****/
     //error_log("in findRelatedRecords");
     $nlrIDs = array();
@@ -603,6 +606,7 @@ $outputTerms = array();
  */
 function buildGraphStructure($rec_ids, &$recSet) {
     global $MAX_DEPTH, $REVERSE, $RECTYPE_FILTERS, $RELTYPE_FILTERS, $PTRTYPE_FILTERS, $EXPAND_REV_PTR, $OUTPUT_STUBS;
+    global $mysqli;
     /*****DEBUG****///	error_log("max depth = ".print_r($MAX_DEPTH,true));
     $depth = 0;
     $rtfilter = ((@$RECTYPE_FILTERS && array_key_exists($depth, $RECTYPE_FILTERS)) ? $RECTYPE_FILTERS[$depth] : null);
@@ -1266,6 +1270,7 @@ function outputDurationDetail($attrs, $value) {
  */
 function outputSchema() {
   GLOBAL $outputRecTypes, $outputDetailTypes, $outputTerms;
+    global $mysqli;
   $fullSchema = (count($outputRecTypes) == 0 || array_key_exists('fullSchema',$_REQUEST));
   // record type labels
   openTag('rectypes',null);
@@ -1332,6 +1337,7 @@ function outputSchema() {
  */
 function outputFields($rtyID) {
   GLOBAL $outputRecTypes, $outputDetailTypes, $outputTerms,$DTN, $TL;
+  global $mysqli;
   $query = "SELECT * FROM defRecStructure where rst_RecTypeID = $rtyID";
   $res = $mysqli->query($query);
   while ($row = $res->fetch_assoc()) {
@@ -1448,6 +1454,7 @@ function outputTermSet($termSet, $nonSelectTerms, $isSubTree = false) {
  */
 function outputDetailtypes() {
   GLOBAL $outputRecTypes, $outputDetailTypes, $outputTerms, $TL;
+  global $mysqli;
   $fullSchema = (count($outputRecTypes) == 0 || array_key_exists('fullSchema',$_REQUEST));
   // record type labels
   openTag('detailtypes',null);
@@ -1700,4 +1707,3 @@ if (array_key_exists('error', $result)) {
 }
 closeTag('hml');
 ?>
-

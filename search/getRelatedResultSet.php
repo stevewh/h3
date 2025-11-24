@@ -240,6 +240,7 @@ if (is_logged_in()){
 
 function findPointers($qrec_ids, &$recSet, $depth, $rtyIDs, $dtyIDs) {
 global $ACCESSABLE_OWNER_IDS;
+global $mysqli;
 /*****DEBUG****///error_log("in findPointers");
 	$nlrIDs = array(); // new linked record IDs
 	$query = 'SELECT dtl_RecID as srcRecID, src.rec_RecTypeID as srcType,'.
@@ -347,6 +348,7 @@ $relTrgDT = (defined('DT_TARGET_RESOURCE')?DT_TARGET_RESOURCE:0);
 
 function findReversePointers($qrec_ids, &$recSet, $depth, $rtyIDs, $dtyIDs) {
 global $REVERSE, $ACCESSABLE_OWNER_IDS, $relRT;
+global $mysqli;
 //if (!$REVERSE) return array();
 /*****DEBUG****///error_log("in findReversePointers");
 	$nlrIDs = array(); // new linked record IDs
@@ -447,6 +449,7 @@ global $REVERSE, $ACCESSABLE_OWNER_IDS, $relRT;
 
 function findRelatedRecords($qrec_ids, &$recSet, $depth, $rtyIDs, $relTermIDs) {
 	global $REVERSE, $ACCESSABLE_OWNER_IDS, $relRT, $relSrcDT, $relTrgDT, $relTypDT;
+  global $mysqli;
 //*****DEBUG****//error_log("in findRelatedRecords");
 	$nlrIDs = array();
 	$query = 'SELECT f.dtl_Value as srcRecID, rel.rec_ID as relID, '.// from detail
@@ -609,6 +612,7 @@ function findRelatedRecords($qrec_ids, &$recSet, $depth, $rtyIDs, $relTermIDs) {
 
 function buildFilteredGraphStructure($rec_ids, &$recSet, $depth = 0) {
 	global $MAX_DEPTH, $REVERSE, $RECTYPE_FILTERS, $RELTYPE_FILTERS, $PTRTYPE_FILTERS, $EXPAND_REV_PTR;
+  global $mysqli;
 	$rtfilter = (array_key_exists($depth, $RECTYPE_FILTERS) ? $RECTYPE_FILTERS[$depth]: null );
 	if ($rtfilter){// apply rctype filterring as we may have just the query results
 		$query = 'SELECT rec_ID from Records '.

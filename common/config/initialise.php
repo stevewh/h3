@@ -144,7 +144,7 @@ define('ADMIN_DBUSERNAME', $dbAdminUsername); //user with all rights so we can c
 define('ADMIN_DBUSERPSWD', $dbAdminPassword);
 define('READONLY_DBUSERNAME', $dbReadonlyUsername); //readonly user for access to user and heurist databases
 define('READONLY_DBUSERPSWD', $dbReadonlyPassword);
-define('HEURIST_DB_PREFIX', (@$_REQUEST['prefix'] ? $_REQUEST['prefix'] : $dbPrefix)); //database name prefix which is added to db=name to compose the mysql dbname used in queries, normally hdb_
+define('HEURIST_DB_PREFIX', (array_key_exists('prefix',$_REQUEST) ? $_REQUEST['prefix'] : $dbPrefix)); //database name prefix which is added to db=name to compose the mysql dbname used in queries, normally hdb_
 define('HEURIST_REFERENCE_BASE_URL', "http://localhost/h3zag/"); // Heurist Installation which contains reference structure definitions (registered DB # 3)
 define('HEURIST_INDEX_BASE_URL', "http://localhost/h3zag/"); //@todo: CHANGE TP h3 back!!!! Heurist Installation which contains index of registered Heurist databases (registered DB # 1)
 define('HEURIST_SYS_GROUP_ID', 1); // ID of Heurist System User Group which has special privileges - deprecated, although more generally group 1 on every database is the Database Managers group
@@ -184,7 +184,7 @@ if (!defined('HEURIST_UPLOAD_ROOT')) {
 	error_log('No upload root defined that is a writable directory');
 }
 /*****DEBUG****/// error_log("initialise REQUEST = ".print_r($_REQUEST,true));
-if (@$_REQUEST["db"]) { //if uri has DB then use it
+if (array_key_exists("db",$_REQUEST)) { //if uri has DB then use it
 	$dbName = $_REQUEST["db"];
 } else if (@$_SERVER["HTTP_REFERER"] && preg_match("/.*db=([^&]*).*/", $_SERVER["HTTP_REFERER"], $refer_db)) { //else check refer
 	$dbName = $refer_db[1];
@@ -590,13 +590,17 @@ function rectypeLocalIDLookup($rtID, $dbID = 2) {
 		$RTIDs = array();
 		while ($row = $res->fetch_assoc()) {
 			/*****DEBUG****///		error_log("rt ". print_r($row,true));
-			if (!@$RTIDs[$row['dbID']]) {
-				$RTIDs[$row['dbID']] = array();
-			}
-			$RTIDs[$row['dbID']][$row['id']] = $row['localID'];
+      if ($row['dbID']) {
+        if (!array_key_exists($row['dbID'],$RTIDs)) {
+          $RTIDs[$row['dbID']] = array();
+        }
+        if ($row['id']) {
+          $RTIDs[$row['dbID']][$row['id']] = $row['localID'];
+        }
+      }
 		}
 	}
-	return (@$RTIDs[$dbID][$rtID] ? $RTIDs[$dbID][$rtID] : null);
+	return (array_key_exists($rtID,$RTIDs[$dbID]) ? $RTIDs[$dbID][$rtID] : null);
 }
 /**
 * lookup local id for a given detailtype concept id pair
@@ -614,13 +618,20 @@ function detailtypeLocalIDLookup($dtID, $dbID = 2) {
 		if (!$res) returnErrorMsgPage(0, "Unable to build internal field type lookup table, MySQL error: " . $mysqliro->error);
 		$DTIDs = array();
 		while ($row = $res->fetch_assoc()) {
-			if (!@$DTIDs[$row['dbID']]) {
-				$DTIDs[$row['dbID']] = array();
-			}
-			$DTIDs[$row['dbID']][$row['id']] = $row['localID'];
+      if ($row['dbID']) {
+        if (!array_key_exists($row['dbID'],$DTIDs)) {
+          $DTIDs[$row['dbID']] = array();
+        }
+        if ($row['id']) {
+			    $DTIDs[$row['dbID']][$row['id']] = $row['localID'];
+        }
+      }
 		}
 	}
-	return (@$DTIDs[$dbID][$dtID] ? $DTIDs[$dbID][$dtID] : null);
+	if (!array_key_exists($dbID,$DTIDs)) {
+    return null;
+  }
+	return (array_key_exists($dtID,$DTIDs[$dbID]) ? $DTIDs[$dbID][$dtID] : null);
 }
 /**
 * for directory or file path defines, test writability before creating define.

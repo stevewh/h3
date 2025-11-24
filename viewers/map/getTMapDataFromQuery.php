@@ -105,7 +105,7 @@
 	// Find the records that actually have any geographic data to plot
 	$geoObjects = array();
 	$geoBibIDs = array();
-	$res = $mysqli->query("select dtl_RecID, dtl_Value, astext(dtl_Geo), astext(envelope(dtl_Geo)) from recDetails where dtl_Geo is not null and dtl_RecID in (" . join(",", $bibIDs) . ")");
+	$res = $mysqli->query("select dtl_RecID, dtl_Value, ST_AsText(dtl_Geo), ST_AsText(envelope(dtl_Geo)) from recDetails where dtl_Geo is not null and dtl_RecID in (" . join(",", $bibIDs) . ")");
 	/*****DEBUG****///error_log($mysqli->error);
 	while ($val = $res->fetch_row()) {
 		// get the bounding box

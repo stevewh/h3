@@ -1992,7 +1992,8 @@ top.HEURIST.search = {
 
 		if (pageNum < 0) {
 			pageNum = 0;
-		} else if (top.HEURIST.search.results.totalQueryResultRecordCount <= pageNum*top.HEURIST.search.resultsPerPage) {
+		} else if (top.HEURIST.search.result && top.HEURIST.search.result.totalQueryResultRecordCount &&
+              top.HEURIST.search.results.totalQueryResultRecordCount <= pageNum*top.HEURIST.search.resultsPerPage) {
 			pageNum = Math.floor(top.HEURIST.search.results.totalQueryResultRecordCount / top.HEURIST.search.resultsPerPage);
 		}
 

@@ -11,6 +11,7 @@ RUN apt-get update -y --fix-missing \
                libssl-dev \
                libzip-dev \
                zlib1g-dev -y \
+               libxslt1-dev \
                libmagick++-dev \
                libmagickwand-dev \
                libfreetype6-dev \
@@ -19,6 +20,7 @@ RUN apt-get update -y --fix-missing \
                libedit-dev && \
     printf "" | pecl install -D 'with-libmemcached-dir="/usr"' memcached && \
     docker-php-ext-enable memcached && \
+    docker-php-ext-install xsl && \
     rm -rf /var/lib/apt/lists/*
 
 # FOR DEVELOPMENT DEBUGGING (REMOVE FOR PRODUCTION)

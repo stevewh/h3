@@ -48,7 +48,9 @@ services:
     volumes: 
       - sharebin:/usr/bin # share mysql tools with php server to help maintain databases
       - ../..:/var/www/html/ # path_to_workspaceroot:absolute path in apache container for document root
-      - ../../../heuristfilestore:/var/www/heuristfilestore # path_to_database_sql files:absolute path to apache container of heuristfilestore
+      - ../../../heuristfilestore:/var/www/html/HEURIST_FILESTORE # path_to_database_sql files:absolute path to apache container of heuristfilestore
+      - ../../../heuristfilestore/ZAPData:/var/www/ZAPData # path_to_database_sql files:absolute path to apache container of heuristfilestore
+      - ../../../heuristfilestore/ZAPData:/var/www/html/ZAPData # path_to_database_sql files:absolute path to apache container of heuristfilestore
     depends_on: 
       - mydb
 
