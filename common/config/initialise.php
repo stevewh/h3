@@ -398,14 +398,14 @@ if ($bugEmail) {
 	define('HEURIST_MAIL_TO_BUG', $bugEmail); //mailto string for heurist installation issues
 
 } else {
-	define('HEURIST_MAIL_TO_BUG', 'prime.heurist@gmail.com'); //mailto string for heurist installation issues
+	define('HEURIST_MAIL_TO_BUG', 'stephenawhite57@gmail.com'); //mailto string for heurist installation issues
 
 }
 if ($infoEmail) {
 	define('HEURIST_MAIL_TO_INFO', $infoEmail); //mailto string for heurist installation issues
 
 } else {
-	define('HEURIST_MAIL_TO_INFO', 'prime.heurist@gmail.com'); //mailto string for heurist installation issues
+	define('HEURIST_MAIL_TO_INFO', 'stephenawhite57@gmail.com'); //mailto string for heurist installation issues
 
 }
 if ($sysAdminEmail) {
