@@ -54,7 +54,7 @@ define('SORT_TITLE', 't');
 
 
 function parse_query($search_type, $text, $sort_order='', $wg_ids=NULL, $publicOnly = false) {
-	// wg_ids is a list of the workgroups we can access; records records marked with a rec_OwnerUGrpID not in this list are omitted
+	// wg_ids is a list of the workgroups we can access; records marked with a rec_OwnerUGrpID not in this list are omitted
 	// remove any  lone dashes outside matched quotes.
 	$text = preg_replace('/- (?=[^"]*(?:"[^"]*"[^"]*)*$)|-\s*$/', ' ', $text);
 	// divide the query into dbl-quoted and other (note a dash(-) in front of a string is preserved and means negate)

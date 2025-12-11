@@ -306,7 +306,7 @@ or do not belong to the group of users who own it.
 </p>
 <p>
 Please log in as an administrator or contact
-<a href="mailto:info@heuristscholar.org">Ian Johnson</a> to request a higher<br>
+<a href="mailto:stephenawhite57@gmail.com">Steve White</a> to request a higher<br>
 level of access or membership of the group of owners of this function.
 </p>
 </td></tr>

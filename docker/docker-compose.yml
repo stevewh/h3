@@ -9,7 +9,7 @@ services:
     env_file:
       - ../.env
     volumes:
-      - sharebin:/usr/bin #make mysql tools available to other services
+#      - sharebin:/usr/bin #make mysql tools available to other services
       - ../../../heuristfilestore/mysqldata:/var/lib/mysql # using relative path to bind host dir to persist mysql data
       - ../../../heuristfilestore:/var/heuristfilestore # using relative path to bind host dir to /var/heuristfilestore
     ports:
@@ -29,10 +29,9 @@ services:
       - ../../../heuristfilestore:/var/heuristfilestore # using relative path to bind host dir to /var/heuristfilestore
       - ../../../heuristfilestore/myadmin:/var/lib/myadmin # using relative path to bind host dir to /pgadmin_queries
       - ../../../heuristfilestore/myadminstorage:/var/lib/myadmin/storage
-#    links: 
-#      - "mydb:db" 
     depends_on: 
       - mydb
+       
   h3zag:
     build: ./php-apache
     ports:
@@ -46,7 +45,7 @@ services:
     env_file:
       - ../.env
     volumes: 
-      - sharebin:/usr/bin # share mysql tools with php server to help maintain databases
+#      - sharebin:/usr/bin # share mysql tools with php server to help maintain databases
       - ../..:/var/www/html/ # path_to_workspaceroot:absolute path in apache container for document root
       - ../../../heuristfilestore:/var/www/html/HEURIST_FILESTORE # path_to_database_sql files:absolute path to apache container of heuristfilestore
       - ../../../heuristfilestore/ZAPData:/var/www/ZAPData # path_to_database_sql files:absolute path to apache container of heuristfilestore
@@ -61,9 +60,8 @@ services:
     restart: unless-stopped
     ports:
       - "11211:11211"
-#    command: memcached -m 64 -o modern
+    command: memcached -m 64 -o modern
 
-#
 #  redis:
 #    image: 'redis:3.0-alpine'
 #    command: redis-server --requirepass devpassword
@@ -91,8 +89,8 @@ services:
 #    ports:
 #      - '8001:8000'
 
-volumes: #these volumes will be saved in docker storage until deleted
-  sharebin:
+#volumes: #these volumes will be saved in docker storage until deleted
+#  sharebin:
 #  db-data:
 #  db-pgadmin:
 #  redis:

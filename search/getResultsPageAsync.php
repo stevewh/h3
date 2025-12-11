@@ -299,14 +299,17 @@ function print_result($row) {
 
 	print "	[";
 	foreach ($row as $i => $val) {
+    if ($i > 0) print ',';
     if ($val) {
-      if ($i > 0) print ',';
-      print "'".str_replace("\n", '\\n', str_replace("\r", '', addslashes($val)))."'";
+      $str_val = "'".str_replace("\n", '\\n', str_replace("\r", '', addslashes($val)))."'";
+//      print "'".str_replace("\n", '\\n', str_replace("\r", '', addslashes($val)))."'";
+      print $str_val;
+    }else{
+      print "''";
     }
 	}
 
 	$thumb_url = getThumbnailURL($row[2]);
-
 	print ",'$thumb_url'";
 	print "]";
 
