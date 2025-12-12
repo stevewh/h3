@@ -230,7 +230,7 @@ class Query {
 
 class OrLimb {
 	private array $and_limbs;
-	private Query $parent;
+	public Query $parent;
   private bool $absoluteStrQuery;
 
 	function __construct(Query $parentQuery, string $text) {
@@ -602,8 +602,15 @@ class Predicate {
 	public function getQuery() : Query{
 		if (! isset($this->query)) {
 			$c = &$this->andParent;
-			while ($c  &&  strtolower(get_class($c)) != 'query')
-				$c = &$c->parent;
+			while ($c  &&  strtolower(get_class($c)) != 'query') {
+        if (property_exists($c,'parent')) {
+				  $c = &$c->parent;
+        } else if (property_exists($c,'andParent')) {
+				  $c = &$c->andParent;
+        } else if (property_exists($c,'orParent')) {
+				  $c = &$c->orParent;
+        }
+      }
 
 			$this->query = &$c;
 		}
