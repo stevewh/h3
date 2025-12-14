@@ -123,7 +123,7 @@ error_log("in parse_query q = ".$q);
 
 
 class Query {
-	private string $search_type;
+	public string $search_type;
   public bool $absoluteStrQuery;
   private bool $isPublicOnly;
 	private array $or_limbs = array();
@@ -587,7 +587,7 @@ class SortPhrase {
 
 class Predicate {
 	public string | array $value;
-  public Query $query;
+  public Query | null $query;
 	public $andParent;
 
 	public function __construct(AndLimb $andParent, string $value) {
