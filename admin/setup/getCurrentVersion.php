@@ -43,7 +43,11 @@
     require_once(dirname(__FILE__)."/../../common/config/initialise.php");
     require_once(dirname(__FILE__)."/../../records/files/fileUtils.php");
 
-    $is_check = @$_REQUEST["check"];
+    if (array_key_exists('check',$_REQUEST)) {
+      $ischeck = $_REQUEST["check"];
+    } else {
+      $is_check = false;
+    }
 
     if($is_check){ // || HEURIST_INDEX_BASE_URL==HEURIST_BASE_URL){ //this is main server
         //return current db and code versions

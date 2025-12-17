@@ -1701,10 +1701,10 @@ div#layout-doc.yui-layout-doc div#yui-gen1.yui-layout-unit {
 	padding:0;
 	position:relative;
 	width:128px;
-	user-select: none;
 	-moz-user-select: none;
 	-khtml-user-select:none;
 	user-select: none;
+	-webkit-user-select: none;
 }
 .result_thumb_inner {
 	position: absolute;
@@ -1947,7 +1947,7 @@ div.recorddiv:hover {
     box-shadow: 0 2px 2px 1px gray;
     margin: 7px 0;
 }
-}
+
 #results div#results-message {
 	box-shadow:none;
 }
@@ -2226,7 +2226,7 @@ div.recorddiv:hover > #rec_edit_link {
 	/*background-color: rgba(100, 100, 100, 0.6);*/
 	border-radius: 3px;
 	color: #CCC;
-	display: none;
+	display: inline;
 	text-align:right;
 	font-size: 10px;
 	height: 9px;
