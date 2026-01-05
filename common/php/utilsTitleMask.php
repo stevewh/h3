@@ -34,7 +34,7 @@
 
 require_once('Temporal.php');
 
-//$mysqli = mysqli_connection_select(DATABASE);
+$mysqli = mysqli_connection_select(DATABASE);
 
 function check_title_mask($mask, $rt) {
 	return check_title_mask2($mask, $rt, false);
@@ -299,7 +299,7 @@ function checkPointerRec($field_name, $rdr, &$matches)
 */
 function _title_mask__get_field_value($field_name, $rec_id, $rt)
 {
-	global $surnameDT, $authRT, $enum_params;
+	global $surnameDT, $authRT, $enum_params, $mysqli;
 
 /*****DEBUG****///error_log("[$field_name]  rec [$rec_id]  rty [$rt]");
 /*****DEBUG****///error_log(" rt info ".print_r($rt,true));
@@ -469,7 +469,8 @@ function _title_mask__get_field_value($field_name, $rec_id, $rt)
 */
 function _title_mask__get_enum_value($rec_id, $rdt_id, $enum_param_name)
 {
-	$resval = null;
+	global $mysqli;
+  $resval = null;
 
 	//find enum values in details
 	$res = $mysqli->query('
@@ -502,7 +503,8 @@ function _title_mask__get_enum_value($rec_id, $rdt_id, $enum_param_name)
 */
 function _title_mask__get_rec_detail($rec_id, $rdt_id)
 {
-	static $rec_details;
+	global $mysqli;
+  static $rec_details;
 	if (! $rec_details) $rec_details = array();
 
 	if (array_key_exists($rec_id, $rec_details)  &&
@@ -625,7 +627,8 @@ function _title_mask__get_rec_detail($rec_id, $rdt_id)
 
 
 function _title_mask__get_rec_types($rt) {
-	static $rct;
+	global $mysqli;
+  static $rct;
 	if (! $rct) {
 
 		$cond = ($rt) ?'rty_ID='.$rt :'1';
@@ -640,6 +643,7 @@ function _title_mask__get_rec_types($rt) {
 *
 */
 function _title_mask__get_rec_detail_requirements() {
+  global $mysqli;
 	static $rdr;
 
 	if (! $rdr) {
@@ -673,7 +677,8 @@ function _title_mask__get_rec_detail_requirements() {
 * Returns ALL (AO: !!!!!) field types definitions into static array
 */
 function _title_mask__get_rec_detail_types() {
-	static $rdt;
+	global $mysqli;
+  static $rdt;
 
 	if (! $rdt) {
 		$rdt = array();

@@ -51,7 +51,7 @@ if (! defined("USING-XSS")) {
 }
 */
 
-if(@$_REQUEST['url']){
+if(array_key_exists('url',$_REQUEST) && $_REQUEST['url']){
 	$sURL = $_REQUEST['url']; //url to be thumbnailed
 	$res = generate_thumbnail($sURL, true);
 	print json_format($res);

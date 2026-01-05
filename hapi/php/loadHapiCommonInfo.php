@@ -282,11 +282,11 @@ $commonData = array(
 	"detailTypes" => $detailTypes,
 	"detailRequirements" =>$detailRequirements
 );
-if (! @$_REQUEST["json"]) {
+if (! array_key_exists('json', $_REQUEST) || ! $_REQUEST["json"]) {
 	print "var HAPI_commonData = ";
 }
 print json_encode($commonData);
-if (! @$_REQUEST["json"]) {
+if (! array_key_exists('json', $_REQUEST) || ! $_REQUEST["json"]) {
 	print ";\n";
 }
 

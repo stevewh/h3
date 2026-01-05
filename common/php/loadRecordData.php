@@ -89,10 +89,12 @@ if (!defined("JSON_RESPONSE")) {
 }
 
 $mysqli = mysqli_connection_select(DATABASE);
-list($rec_id, $bkm_ID, $replaced) = getResolvedIDs(@$_REQUEST["recID"],@$_REQUEST['bkmk_id']);
+$recID = (array_key_exists('recID', $_REQUEST) ? $_REQUEST["recID"] : 0);
+$bkmID = (array_key_exists('bkmk_id', $_REQUEST) ? $_REQUEST["bkmk_id"]: 0);
+list($rec_id, $bkm_ID, $replaced) = getResolvedIDs($recID,$bkmID);
 /*****DEBUG****///error_log("rec_id ".print_r($rec_id,true));
 
-if(@$_REQUEST["action"]=="getrelated"){
+if(array_key_exists('action',$_REQUEST) && $_REQUEST["action"]=="getrelated"){
 
 	if ($rec_id) {
 		$related = getAllRelatedRecords($rec_id);
@@ -121,13 +123,16 @@ if (! $rec_id) {
 /*****DEBUG****///error_log("base Properties".print_r($record,true));
 	if (@$record["workgroupID"] && $record["workgroupID"] != get_user_id() &&
 			$record[@"visibility"] == "hidden"  &&
-			! $_SESSION[HEURIST_SESSION_DB_PREFIX.'heurist']["user_access"][$record["workgroupID"]]) {
+			! (array_key_exists($record["workgroupID"],$_SESSION[HEURIST_SESSION_DB_PREFIX.'heurist']["user_access"]) && 
+         $_SESSION[HEURIST_SESSION_DB_PREFIX.'heurist']["user_access"][$record["workgroupID"]])) {
 		// record is hidden and user is not the owner or a member of owning workgroup
 		$record = array();
 		$record["denied"] = true;
 	} else {
     $isOwner = @$record["workgroupID"] && $record["workgroupID"] == get_user_id() ||
-               $_SESSION[HEURIST_SESSION_DB_PREFIX.'heurist']["user_access"][$record["workgroupID"]] ||
+               //$_SESSION[HEURIST_SESSION_DB_PREFIX.'heurist']["user_access"][$record["workgroupID"]] ||
+               (array_key_exists($record["workgroupID"],$_SESSION[HEURIST_SESSION_DB_PREFIX.'heurist']["user_access"]) &&
+                $_SESSION[HEURIST_SESSION_DB_PREFIX.'heurist']["user_access"][$record["workgroupID"]]) ||
                @$record["workgroupID"] == 0 && is_logged_in();
 
     $record["bdValuesByType"] = getAllRecordDetails($rec_id, $record["rectypeID"], $isOwner);

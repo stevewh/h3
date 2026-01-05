@@ -30,7 +30,7 @@
 
 
 function findFuzzyMatches($fields, $rec_types, $rec_id=NULL, $fuzziness=NULL) {
-
+  global $mysqli;
 	if (! $fuzziness) $fuzziness = 0.5;
 
 	// Get some data about the matching data for the given record type

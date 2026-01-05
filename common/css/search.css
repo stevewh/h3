@@ -787,8 +787,8 @@ div.right_margin_info div.mini-tools a {
 .sidebar-firstlevel.hide {
 	background-image:url(../images/heading_saved_search-hidden.png);
 }
-#curated-collections {/*border-bottom-width: 1px;border-bottom-style: solid;border-bottom-color: #BEC8D6;border-top:1px solid #FFFFFF;*/
-}
+/*#curated-collections {/*border-bottom-width: 1px;border-bottom-style: solid;border-bottom-color: #BEC8D6;border-top:1px solid #FFFFFF;*/
+/*}*/
 #curated-collections div {
 	padding-top: 5px;
 	padding-right: 6px;
@@ -804,9 +804,9 @@ div.right_margin_info div.mini-tools a {
 	padding-bottom: 5px;
 	margin-bottom:5px;
 }
-#workgroup-saved-searches-searches div.content {
+/*#workgroup-saved-searches-searches div.content {
 
-}
+}*/
 #workgroup-saved-searches div.content div#workgroup-saved-searches-searches > div {
 	background-color:RGBA(255,255,255,0.5);
 	margin-left:15px;
@@ -1277,6 +1277,7 @@ input[type=checkbox] {
 /* map window */
 #mapDiv {
 	-moz-border-radius:0 0 5px 5px;
+	border-radius:0 0 5px 5px;
 	position:absolute;
 	background-color: #FFF;
 	z-index: 100000;
@@ -1471,8 +1472,8 @@ div#layout-doc.yui-layout-doc div#yui-gen1.yui-layout-unit {
 /* summary div */
 .summaryDiv {
 	-moz-user-select: none;
-	user-select: none;
 	-webkit-user-select: none;
+	user-select: none;
 	background:#EEE;
 	background:-moz-linear-gradient(center top, #FFFFFF, #EEEEEE) repeat scroll 0 0 transparent;
 	background:-webkit-gradient(linear, left top, left bottom, from(#FFFFFF), to(#EEEEEE));
@@ -1503,7 +1504,7 @@ div#layout-doc.yui-layout-doc div#yui-gen1.yui-layout-unit {
 	right: 32px;
 	text-overflow: ellipsis;
 	top: 8px;
-	vertical-align: middle;
+/*	vertical-align: middle;*/
 	white-space: nowrap;
 }
 .summaryDiv .rectypeCount {
@@ -1515,7 +1516,7 @@ div#layout-doc.yui-layout-doc div#yui-gen1.yui-layout-unit {
 	width: 40px;
 	text-overflow: ellipsis;
 	top: 8px;
-	vertical-align: middle;
+/*	vertical-align: middle;*/
  	text-align: right;
  	font-weight: bold;
 }
@@ -1528,8 +1529,8 @@ div#layout-doc.yui-layout-doc div#yui-gen1.yui-layout-unit {
 /* record templates */
 .recordDiv {
 	-moz-user-select: none;
-	user-select: none;
 	-webkit-user-select: none;
+	user-select: none;
 	background:#EEE;
 	background:-moz-linear-gradient(center top, #FFFFFF, #EEEEEE) repeat scroll 0 0 transparent;
 	background:-webkit-gradient(linear, left top, left bottom, from(#FFFFFF), to(#EEEEEE));
@@ -1567,7 +1568,7 @@ div#layout-doc.yui-layout-doc div#yui-gen1.yui-layout-unit {
 	right: 32px;
 	text-overflow: ellipsis;
 	top: 8px;
-	vertical-align: middle;
+/*	vertical-align: middle;*/
 	white-space: nowrap;
 }
 .list .recordDiv .recordIcons, .two-col .recordDiv .recordIcons {
@@ -1688,10 +1689,10 @@ div#layout-doc.yui-layout-doc div#yui-gen1.yui-layout-unit {
 .thumbnails .recordDiv, .thumbs .recordDiv {
 	-moz-border-radius:6px;
 	-moz-box-shadow:0 2px 4px #BBB;
-	border-radius:6px;
-	box-shadow:0 2px 4px #BBB;
 	-webkit-border-radius:6px;
+	border-radius:6px;
 	-webkit-box-shadow:0 2px 4px #BBB;
+	box-shadow:0 2px 4px #BBB;
 	border:3px solid #FFF;
 	border-collapse:collapse;
 	display:inline-block;
@@ -1703,8 +1704,8 @@ div#layout-doc.yui-layout-doc div#yui-gen1.yui-layout-unit {
 	width:128px;
 	-moz-user-select: none;
 	-khtml-user-select:none;
-	user-select: none;
 	-webkit-user-select: none;
+	user-select: none;
 }
 .result_thumb_inner {
 	position: absolute;

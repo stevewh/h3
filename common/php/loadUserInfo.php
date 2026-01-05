@@ -138,7 +138,7 @@
 			$res = $mysqli->query("select svs_UGrpID, svs_ID, svs_Name, svs_Query from usrSavedSearches left join ".USERS_DATABASE.".sysUGrps grp on grp.ugr_ID = svs_UGrpID where svs_UGrpID in (".join(",", $workgroups).") order by grp.ugr_Name, svs_Name");
 			while ($row = $res->fetch_assoc()) {
 				$wg = $row['svs_UGrpID'];
-				if (! @$ws[$wg])
+				if (! array_key_exists($wg, $ws))
 					$ws[$wg] = array();
 				//this is for searches from  obsolete published-searches table. they start with "q";
 				if (preg_match('/^q/', $row['svs_Query'])) {

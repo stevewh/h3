@@ -201,7 +201,7 @@
         }
 
         rt = parseInt(document.getElementById('rectype_elt').value);
-        //Since 2012-12-13 Ian asked to disable it again! if (! rt) rt = <?=RT_NOTE?> ;  //added ian 19/9/08 to re-enable notes as default
+        //Since 2012-12-13 Ian asked to disable it again! if (! rt) rt = <?=$rtDefines['RT_NOTE'][1]?> ;  //added ian 19/9/08 to re-enable notes as default
         if(rt<1){
           alert('Please select record type');
           return;
@@ -291,7 +291,7 @@
         <div class="input-header-cell">Record type:</div>
         <div class="input-cell">
           <?php
-            $res = $mysqli->query("select distinct rty_ID,rty_Name,rty_Description, rtg_Name
+            $res = $mysqli->query("select distinct rty_ID,rty_Name,rty_Description, rtg_Order, rty_OrderInGroup, rtg_Name
               from defRecTypes left join defRecTypeGroups on rtg_ID = rty_RecTypeGroupID
             where rty_ShowInLists = 1 order by rtg_Order, rtg_Name, rty_OrderInGroup, rty_Name");
           ?>

@@ -31,14 +31,14 @@
 
 
 // translate variable names
-if (@$_REQUEST['t']) $_REQUEST['bkmrk_bkmk_title'] = $_REQUEST['t'];
-if (@$_REQUEST['u']) $_REQUEST['bkmrk_bkmk_url'] = $_REQUEST['u'];
-if (@$_REQUEST['d']) $_REQUEST['bkmrk_bkmk_description'] = $_REQUEST['d'];
-if (@$_REQUEST['v']) $_REQUEST['version'] = $_REQUEST['v'];
-if (@$_REQUEST['k']) $_REQUEST['tag'] = $_REQUEST['k'];
+if (array_key_exists('t',$_REQUEST)) $_REQUEST['bkmrk_bkmk_title'] = $_REQUEST['t'];
+if (array_key_exists('u',$_REQUEST)) $_REQUEST['bkmrk_bkmk_url'] = $_REQUEST['u'];
+if (array_key_exists('d',$_REQUEST)) $_REQUEST['bkmrk_bkmk_description'] = $_REQUEST['d'];
+if (array_key_exists('v',$_REQUEST)) $_REQUEST['version'] = $_REQUEST['v'];
+if (array_key_exists('k',$_REQUEST)) $_REQUEST['tag'] = $_REQUEST['k'];
 // $_REQUEST['bkmrk_bkmk_description'] = mb_convert_encoding($_REQUEST['bkmrk_bkmk_description'], 'utf-8');
 
-if (! @$_REQUEST['bkmrk_bkmk_title']) $_REQUEST['bkmrk_bkmk_title'] = '';
+if (! array_key_exists('bkmrk_bkmk_title',$_REQUEST)) $_REQUEST['bkmrk_bkmk_title'] = '';
 
 /*****DEBUG****///error_log("in add record request - ".print_r($_REQUEST,true));
 
@@ -61,7 +61,8 @@ if (@$_REQUEST['addref']) {	// add a record		//saw TODO: change this to addrec
 		$outdate = '';
 }
 // url with no rectype specified gets treated as an internet bookmark
-if (@$_REQUEST['bkmrk_bkmk_url']  &&  ! @$_REQUEST['rec_rectype'])
+if (array_key_exists('bkmrk_bkmk_url',$_REQUEST) && $_REQUEST['bkmrk_bkmk_url'] && 
+    !(array_key_exists('rec_rectype',$_REQUEST) && $_REQUEST['rec_rectype']))
 	$_REQUEST['rec_rectype'] = (defined('RT_INTERNET_BOOKMARK')?RT_INTERNET_BOOKMARK:0);
 
 
@@ -82,8 +83,14 @@ $usrID = get_user_id();
 $mysqli = mysqli_connection_overwrite(DATABASE);
 $mysqli->query("set @logged_in_user_id = $usrID");	//saw TODO: check where else this needs to be used
 
-$addRecDefaults = @$_SESSION[HEURIST_SESSION_DB_PREFIX.'heurist']["display-preferences"]['addRecDefaults'];
-if ($addRecDefaults){
+$addRecDefaults = false;
+if (array_key_exists('addRecDefaults', $_SESSION[HEURIST_SESSION_DB_PREFIX.'heurist']["display-preferences"])) {
+  $addRecDefaults = @$_SESSION[HEURIST_SESSION_DB_PREFIX.'heurist']["display-preferences"]['addRecDefaults'];
+}
+$userDefaultRectype = null;
+$userDefaultOwnerGroupID = null;
+$userDefaultVisibility = null;
+if (is_array($addRecDefaults)){
 	if ($addRecDefaults[0]){
 		$userDefaultRectype = intval($addRecDefaults[0]);
 	}
@@ -96,7 +103,7 @@ if ($addRecDefaults){
 }
 
 /* preprocess any description */
-if (@$_REQUEST['bkmrk_bkmk_description']) {
+if (array_key_exists('bkmrk_bkmk_description',$_REQUEST)) {
 	$description = $_REQUEST['bkmrk_bkmk_description'];
 
 /* use UNIX-style lines */
@@ -117,7 +124,7 @@ if (@$_REQUEST['bkmrk_bkmk_description']) {
 		$description .= ' [source: web page ' . date('Y-m-d') . ']';
 	}
 } else {
-	$description = NULL;
+	$description = '';
 }
 
 /*  extract all id from descriptions for bibliographic references */
@@ -138,11 +145,11 @@ if (preg_match_all('!ISSN(?:-?1[03])?[^a-z]*?([0-9]{4}-?[0-9]{3}[0-9X])!i', $des
 }
 
 /*  fix url to be complete with protocol and remove any trailing slash */
-if (@$_REQUEST['bkmrk_bkmk_url']  &&  ! preg_match('!^[a-z]+:!i', $_REQUEST['bkmrk_bkmk_url']))
+if (array_key_exists('bkmrk_bkmk_url',$_REQUEST)  &&  ! preg_match('!^[a-z]+:!i', $_REQUEST['bkmrk_bkmk_url']))
 	// prefix http:// if no protocol specified
 	$_REQUEST['bkmrk_bkmk_url'] = 'http://' . $_REQUEST['bkmrk_bkmk_url'];
-
-if (@$_REQUEST['bkmrk_bkmk_url']) {
+$bkmk = null;
+if (array_key_exists('bkmrk_bkmk_url',$_REQUEST)) {
 	$burl = $_REQUEST['bkmrk_bkmk_url'];
 	if (substr($burl, -1) == '/') $burl = substr($burl, 0, strlen($burl)-1);
 
@@ -158,11 +165,11 @@ if (@$_REQUEST['bkmrk_bkmk_url']) {
 
 	$url = $_REQUEST['bkmrk_bkmk_url'];
 }
-
-if (@$_REQUEST['recID'] == -1) { // signalled to create a new record
+$rec_id = NULL;
+if (array_key_exists('recID',$_REQUEST) && $_REQUEST['recID'] == -1) { // signalled to create a new record
 	$rec_id = NULL;
 	$force_new = 1;
-} else if (@$_REQUEST['recID'] > 0){
+} else if (array_key_exists('recID',$_REQUEST) && $_REQUEST['recID'] > 0){
 	$rec_id = intval($_REQUEST['recID']);
 	$force_new = 0;
 }
@@ -170,7 +177,7 @@ if (@$_REQUEST['recID'] == -1) { // signalled to create a new record
 $wg = "";
 
 // check workgroup permissions
-if (@$_REQUEST['rec_owner'] && $_REQUEST['rec_owner'] != $usrID) {
+if (array_key_exists('rec_owner',$_REQUEST) && $_REQUEST['rec_owner'] != $usrID) {
 	$res = $mysqli->query("select ugl_GroupID from ".USERS_DATABASE.".sysUsrGrpLinks where ugl_GroupID=".intval($_REQUEST['rec_owner'])." and ugl_UserID=$usrID");
 	if ($res->num_rows == 0) { // user not a member so add wg to parameters for editRecord
 		$wg = '&wg=' . intval($_REQUEST['rec_owner']);
@@ -179,7 +186,7 @@ if (@$_REQUEST['rec_owner'] && $_REQUEST['rec_owner'] != $usrID) {
 }
 
 //  Preprocess tags for workgroups ensuring that the user is a member of the workgroup
-if (@$_REQUEST['tag']  &&  strpos($_REQUEST['tag'], "\\")) {
+if (array_key_exists('tag',$_REQUEST) && strpos($_REQUEST['tag'], "\\")) {
 	// workgroup tag
 	// workgroup is ...
 	$tags = explode(',', $_REQUEST['tag']);
@@ -219,7 +226,7 @@ $relSrcDT = (defined('DT_PRIMARY_RESOURCE')?DT_PRIMARY_RESOURCE:0);
 $relTrgDT = (defined('DT_TARGET_RESOURCE')?DT_TARGET_RESOURCE:0);
 
 /* arrive with a new (un-bookmarked) URL to process */
-if (! @$_REQUEST['_submit']  &&  @$_REQUEST['bkmrk_bkmk_url']) {
+if (! array_key_exists('_submit',$_REQUEST) &&  array_key_exists('bkmrk_bkmk_url',$_REQUEST)) {
 
 	if (! @$rec_id  &&  ! @$force_new) {
 
@@ -294,10 +301,10 @@ if (! @$_REQUEST['_submit']  &&  @$_REQUEST['bkmrk_bkmk_url']) {
 										'rec_AddedByUGrpID' => intval($usrID),
 										'rec_RecTypeID' => $rt? $rt : RT_INTERNET_BOOKMARK,
 										'rec_OwnerUGrpID' => (intval(@$_REQUEST['rec_owner'])?intval($_REQUEST['rec_owner']):
-															(@$userDefaultOwnerGroupID ? $userDefaultOwnerGroupID :
+															($userDefaultOwnerGroupID ? $userDefaultOwnerGroupID :
 																(defined('HEURIST_NEWREC_OWNER_ID') ? HEURIST_NEWREC_OWNER_ID: intval($usrID)))),
 										'rec_NonOwnerVisibility' => (@$_REQUEST['rec_visibility']?(strtolower($_REQUEST['rec_visibility'])):
-															(@$userDefaultVisibility ? $userDefaultVisibility :
+															($userDefaultVisibility ? $userDefaultVisibility :
 																(defined('HEURIST_NEWREC_ACCESS') ? HEURIST_NEWREC_ACCESS: 'viewable'))),
 										'rec_FlagTemporary' => ! ($url  ||  $_REQUEST['bkmrk_bkmk_title'])));
 		$rec_id = $mysqli->insert_id;
@@ -323,7 +330,7 @@ if (! @$_REQUEST['_submit']  &&  @$_REQUEST['bkmrk_bkmk_url']) {
 } // end pre-processing of url
 
 // no recID or url passed in so create a new record
-if (! @$rec_id  and  ! @$_REQUEST['bkmrk_bkmk_url']) {
+if (! $rec_id  and  ! array_key_exists('bkmrk_bkmk_url',$_REQUEST)) {
 	/* create a new public note */
 /*****DEBUG****///error_log("in add making new records new reco ownid = ". HEURIST_NEWREC_OWNER_ID);
 	$isNewRecID = true;
@@ -359,7 +366,7 @@ if (! @$rec_id  and  ! @$_REQUEST['bkmrk_bkmk_url']) {
 	}
 	$inserts = array();
 	foreach ($dois as $doi) array_push($inserts, "($rec_id, $doiDT, '" . addslashes($doi) . "')");
-	if (@$_REQUEST["f"]) array_push($inserts, "($rec_id, $webIconDT, '" . addslashes($_REQUEST["f"]) . "')");
+	if (array_key_exists('f',$_REQUEST) && $_REQUEST["f"]) array_push($inserts, "($rec_id, $webIconDT, '" . addslashes($_REQUEST["f"]) . "')");
 	foreach ($isbns as $isbn) array_push($inserts, "($rec_id, $isbnDT, '" . addslashes($isbn) . "')");
 	foreach ($issns as $issn) array_push($inserts, "($rec_id, $issnDT, '" . addslashes($issn) . "')");
 	if ($inserts) $mysqli->query('insert into recDetails (dtl_RecID, dtl_DetailTypeID, dtl_Value) values ' . join(",", $inserts));
@@ -369,7 +376,7 @@ if (! @$rec_id  and  ! @$_REQUEST['bkmrk_bkmk_url']) {
 }
 
 // there is a record and it wasn't forced directly   //SAW shouldn't this test rfw_NewRecID
-if ($rec_id  &&  ! @$_REQUEST['force_new']) {
+if ($rec_id  && array_key_exists('force_new',$_REQUEST) && !$_REQUEST['force_new']) {
 	/* user has selected a bookmark that they may or may not have bookmarked already. FFSI!
 	 * If they do in fact have it bookmarked, redirect to the edit page
 	 * and add the new notes to the end of their existing notes.  FMS
@@ -420,7 +427,7 @@ if ($rec_id) {
 	$bkm_ID = $mysqli->insert_id;
 
 	// add tag
-	if (@$_REQUEST['tag']) {
+	if (array_key_exists('tag',$_REQUEST) && $_REQUEST['tag']) {
 		$tags = explode(',', $_REQUEST['tag']);
 		foreach ($tags as $tag) {
 			if (strpos($tag, "\\")) {
@@ -456,10 +463,10 @@ if ($rec_id) {
 		}
 	}
 	// handle request for relationship records
-	if (@$_REQUEST["related"]) {
+	if (array_key_exists('related',$_REQUEST) && $_REQUEST["related"]) {
 		$other_bib_id = $_REQUEST["related"];
 		$reln_type = "IsRelatedTo";
-		if (@$_REQUEST["reltype"]) {
+		if (array_key_exists('reltype',$_REQUEST) && $_REQUEST["reltype"]) {
 			$mysqli->query("select trm_ID,trm_Label from defTerms where trm_Label like '".addslashes($_REQUEST["reltype"])."' limit 1;");
 			if ($res->num_rows > 0) {
 				$row = $res->fetch_assoc();
@@ -529,6 +536,7 @@ function insert_woot_content($rec_id, $content) {
 }
 
 function check_rectype_exist($rt) {
+  global $mysqli;
 	$res = $mysqli->query("select distinct rty_ID,rty_Name from defRecTypes where rty_ID = $rt");
 	while ($row = $res->fetch_assoc()) {
 		if ($row["rty_ID"] == $rt) {
@@ -540,6 +548,7 @@ function check_rectype_exist($rt) {
 
 //artem - generate thumbnail and insert detail about it
 function insert_thumbnail_content($recid, $url){
+  global $mysqli;
 
 	if(defined('DT_THUMBNAIL')){
 

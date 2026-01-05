@@ -488,7 +488,7 @@ function attachChild($parentIndex, $childIndex, $terms) {
     $terms = array();
     // create array of parent => child arrays
     while ($row = $res->fetch_assoc()) {
-        if (!@$terms[$row["pID"]]) {
+        if (!array_key_exists($row["pID"],$terms)) {
             $terms[$row["pID"]] = array();
         }
         if ($row['cID']) {//insert child under parent
@@ -854,24 +854,24 @@ function getAllRectypeConstraint() {
         $max = (@$row['max'] === null ? 'unlimited' : $row['max']);
         $notes = $row['notes'];
         $hasChildren = $row['hasChildren'];
-        if (!@$cnstrnts[$srcID]) {//first instance of this recType as source, create structure
+        if (!array_key_exists($srcID,$cnstrnts)) {//first instance of this recType as source, create structure
             $cnstrnts[$srcID] = array('byTerm' => array(), 'byTarget' => array());
         }
-        if (!@$cnstrnts[$srcID]['byTerm'][$trmID]) {//first instance of this recType as target, create structure
+        if (!array_key_exists($trmID,$cnstrnts[$srcID]['byTerm'])) {//first instance of this recType as target, create structure
             $cnstrnts[$srcID]['byTerm'][$trmID] = array($trgID => array('limit' => $max));
         }
-        if (!@$cnstrnts[$srcID]['byTarget'][$trgID]) {//first instance of this recType as bytarget target, create structure
+        if (!array_key_exists($trgID,$cnstrnts[$srcID]['byTarget'])) {//first instance of this recType as bytarget target, create structure
             $cnstrnts[$srcID]['byTarget'][$trgID] = array($trmID => array('limit' => $max, "notes" => $notes));
-        } else if (!@$cnstrnts[$srcID]['byTarget'][$trgID][$trmID]) {
+        } else if (!array_key_exists($trmID,$cnstrnts[$srcID]['byTarget'][$trgID])) {
             $cnstrnts[$srcID]['byTarget'][$trgID][$trmID] = array('limit' => $max, "notes" => $notes);
         }
-        if (!@$cnstrnts[$srcID]['byTerm'][$trmID][$trgID]) {//new target for term lookup
+        if (!array_key_exists($trgID,$cnstrnts[$srcID]['byTerm'][$trmID])) {//new target for term lookup
             $cnstrnts[$srcID]['byTerm'][$trmID][$trgID] = array('limit' => $max);
         }
-        if (@$cnstrnts[$srcID]['byTerm'][$trmID][$trgID]['addsTo']) {
+        if (array_key_exists('addsTo',$cnstrnts[$srcID]['byTerm'][$trmID][$trgID])) {
             $cnstrnts[$srcID]['byTerm'][$trmID][$trgID]['limit'] = $max;
         }
-        if (@$cnstrnts[$srcID]['byTarget'][$trgID][$trmID]['addsTo']) {
+        if (array_key_exists('addsTo',$cnstrnts[$srcID]['byTarget'][$trgID][$trmID])) {
             $cnstrnts[$srcID]['byTarget'][$trgID][$trmID]['limit'] = $max;
         }
         $offspring = $trmID && $trmID !== "any" && $hasChildren ? getTermOffspringList($trmID) : null;
@@ -1313,7 +1313,7 @@ function getTransformsByOwnerGroup() {
         if (!$uri) {
             continue;
         }
-        if (!@$transforms["groups"][$row['grpName']]) {
+        if (!array_key_exists($row['grpName'], $transforms["groups"])) {
             $transforms["groups"][$row['grpName']] = array($transRecID);
             array_push($transforms["groupOrder"], $row['grpName']);
         } else {

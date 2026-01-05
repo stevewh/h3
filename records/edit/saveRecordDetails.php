@@ -94,7 +94,7 @@
         }
         $matches = findFuzzyMatches($fields, $rec_types, $rec_id);
 
-        if (count($matches)) {
+        if ($matches != null and count($matches)) {
             print '({ matches: ' . json_format($matches) . ' })';
             return;
         }
@@ -173,6 +173,7 @@
     }
 
     function isValidID($id, $dtyID, $rtyID = null) {
+        global $mysqli;
         static $rtFieldDefs = null;
         static $dtyIDDefs = null;
         if (!is_numeric($id)) return false;
@@ -201,7 +202,12 @@
                     }
                 } else if ($row[1] === 'resource') {
                     // create list of valid rectypes
-                    if (count($row[4])>0 && $row[4] != "") {
+                    if (is_array($row[4])) {
+                      $has_elements = count($row[4])>0;
+                    } else {
+                      $has_elements = false;
+                    }
+                    if ($has_elements || (is_string($row[4]) && $row[4] != "")) {
                         $temp = explode(",",$row[4]);
                         if (!empty($temp)) {
                             $dtyIDDefs[$row[0]] = $temp;
@@ -242,7 +248,13 @@
                     }
                 } else if ($row[1] === 'resource') {
                     // create list of valid rectypes
-                    if (count($row[5])>0 && $row[5] != "") {
+                    if (is_array($row[5])) {
+                      $has_elements = count($row[5])>0;
+                    }else{
+                      $has_elements = false;
+                    }
+                    if ($has_elements || (is_string($row[5]) && $row[5] != "")) {
+//                    if (count($row[5])>0 && $row[5] != "") {
                         $temp = explode(",",$row[5]);
                         if (!empty($temp)) {
                             $rtFieldDefs[$row[0]] = $temp;
@@ -274,6 +286,7 @@
         // we need to separate this into updates, inserts and deletes.
         // We get the currect record details and compare them against the post
         // if the details id is in the post[dtyID][dtlID] then compare the values
+        global $mysqli;
 
         $recID = intval($recID);
 
@@ -505,6 +518,7 @@
 
 
     function insertRecord($rtyID = null) {
+        global $mysqli;
 // check if there is preference for OwnerGroup and visibility
         $addRecDefaults = @$_SESSION[HEURIST_SESSION_DB_PREFIX.'heurist']["display-preferences"]['addRecDefaults'];
         if ($addRecDefaults){
@@ -565,6 +579,7 @@
     }
 
     function getRecordDetails($recID) {
+        global $mysqli;
         $recID = intval($recID);
         $details = array();
         $dtlColumns = array("dtl_ID",
@@ -647,6 +662,7 @@
     * @return mixed - class to parse the particular detail type in POST
     */
     function getInputHandlerForType($dtyID) {
+        global $mysqli;
         static $dtyToBaseType = null;
         if (! $dtyToBaseType) {
             $dtyToBaseType = mysqli__select_assoc($mysqli, "defDetailTypes", "dty_ID", "dty_Type", "1");
@@ -739,6 +755,10 @@
     }
     class BibDetailResourceInput extends BibDetailInput {
         function inputOK($postVal, $dtyID, $rtyID) {
+            global $mysqli;
+            if ($postVal == "") {
+              return false;
+            }
             $res = $mysqli->query("select rec_RecTypeID from Records where rec_ID = ".$postVal);
             if ($res){
                 $tempRtyID = $res->fetch_row();
@@ -765,6 +785,7 @@
     class BibDetailDropdownInput extends BibDetailInput {
         static $labelToID = null;
         function convertPostToMysql($postVal) {
+            global $mysqli;
             //SAW  TODO: need to validate that the term is valid for given dtyID also need to accept concept ids
             /*  query for concept id  to local id lookup
             select trm_Label, concat(convert(if(trm_OriginatingDBID is null,
@@ -788,6 +809,7 @@
             }
         }
         function inputOK($postVal, $dtyID, $rtyID) {
+            global $mysqli;
             if (! @$labelToID) {
                 $labelToID = mysqli__select_assoc($mysqli, "defTerms", "trm_Label", "trm_ID", "1");
             }

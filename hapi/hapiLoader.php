@@ -69,7 +69,7 @@ $scripts = array(
 	HAPI_HOME . "js/hapi.js"
 );
 
-if (@$_REQUEST["inclGeo"]) {
+if (array_key_exists("inclGeo", $_REQUEST) && $_REQUEST["inclGeo"]) {
 	array_push($scripts,HAPI_HOME."js/geo.js");
 }
 

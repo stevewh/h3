@@ -86,5 +86,5 @@ require_once("dbMySqlWrappers.php");
 
 ?>
 
-document.write("<" + "scr" +"ipt src=\"<?=HEURIST_BASE_URL?>hapi/hapiLoader.php?db=<?= HEURIST_DBNAME ?><?=(@$_REQUEST["inclGeo"]? "&inclGeo=1":"")?>\"><" + "/script>\n");
+document.write("<" + "scr" +"ipt src=\"<?=HEURIST_BASE_URL?>hapi/hapiLoader.php?db=<?= HEURIST_DBNAME ?><?=(array_key_exists('inclGeo', $_REQUEST) && $_REQUEST["inclGeo"] ? "&inclGeo=1":"")?>\"><" + "/script>\n");
 

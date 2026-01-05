@@ -163,8 +163,9 @@ throw document.location.href + ": include displayPreferences.php in the body, no
 			if (! $first) print ",";  $first = false;
 			print "\n";
 
-			if (@$_SESSION[HEURIST_SESSION_DB_PREFIX.'heurist']["display-preferences"][$property])
+			if (array_key_exists($property, $_SESSION[HEURIST_SESSION_DB_PREFIX.'heurist']["display-preferences"])) {
 				$value = $_SESSION[HEURIST_SESSION_DB_PREFIX.'heurist']["display-preferences"][$property];
+      }
 
 			print "\t\"".addslashes($property)."\": \"".addslashes($value)."\"";
 //SAW TODO: This seems to be unused and deprecated with no comment. Check old code and verify and remove.
