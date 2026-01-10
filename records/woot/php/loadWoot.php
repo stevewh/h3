@@ -30,7 +30,7 @@
 
 require_once(dirname(__FILE__)."/../woot.php");
 
-$data = json_decode(@$_POST["data"]?  $_POST["data"] : base64_decode(@$_GET["data"]), true);
+$data = json_decode(array_key_exists('data', $_POST)?  $_POST["data"] : base64_decode(@$_GET["data"]), true);
 
 print json_encode(loadWoot($data));
 

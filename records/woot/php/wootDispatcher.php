@@ -73,16 +73,16 @@ function outputAsScript($text) {
 }
 
 
-$rxlen = intval(@$_REQUEST["rxlen"]);
-$callback = @$_REQUEST["cb"];
+$rxlen = array_key_exists("rxlen",$_REQUEST) ? intval($_REQUEST["rxlen"]):null;
+$callback = array_key_exists("cb",$_REQUEST) ? $_REQUEST["cb"]:null;
 if ($callback  &&  preg_match('/^cb[0-9]+$/', $callback)) {
 	ob_start("outputAsScript");
 } else {
 	ob_start("outputAsRedirect");
 }
 
-$method = @$_REQUEST["method"];
-$key = @$_REQUEST["key"];
+$method = array_key_exists("method",$_REQUEST) ? $_REQUEST["method"]:null;
+$key = array_key_exists("key",$_REQUEST) ? $_REQUEST["key"]:null;
 
 require_once(dirname(__FILE__)."/../../../common/connect/applyCredentials.php");
 require_once(dirname(__FILE__)."/../../../common/php/dbMySqlWrappers.php");

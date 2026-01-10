@@ -68,7 +68,7 @@
 list($usec, $sec) = explode(' ', microtime());
 $stime = $sec + $usec;
 
-if (@$argv) {
+if (isset($argv) && $argv) {
 	// handle command-line queries
 
 	$ARGV = array();
@@ -169,13 +169,13 @@ $GEO_TYPES = array(
 	'p' => 'point'
 );
 
-if(@$_REQUEST['sid']) {
+if(array_key_exists('sid',$_REQUEST) && $_REQUEST['sid']) {
 	$QSID = $_REQUEST['sid'];//session query id passed in so used session cached version, pore man's progressive query
 }
-$REVERSE = @$_REQUEST['rev'] === 'no' ? false : true;
-$EXPAND_REV_PTR = @$_REQUEST['revexpand'] === 'no' ? false : true;
+$REVERSE = (array_key_exists('rev',$_REQUEST) && $_REQUEST['rev'] === 'no') ? false : true;
+$EXPAND_REV_PTR = (array_key_exists('revexpand',$_REQUEST) && $_REQUEST['revexpand'] === 'no') ? false : true;
 
-$filterString = (@$_REQUEST['rtfilters'] ? $_REQUEST['rtfilters'] : null);
+$filterString = ((array_key_exists('rtfilters',$_REQUEST) &&  $_REQUEST['rtfilters']) ? $_REQUEST['rtfilters'] : null);
 if ( $filterString && preg_match('/[^\\:\\s"\\[\\]\\{\\}0-9\\,]/',$filterString)) {
 	die(" error invalid json rectype filters string");
 }
@@ -185,7 +185,7 @@ if (!isset($RECTYPE_FILTERS)) {
 }
 /*****DEBUG****///error_log("rt filters".print_r($RECTYPE_FILTERS,true));
 
-$filterString = (@$_REQUEST['relfilters'] ? $_REQUEST['relfilters'] : null);
+$filterString = ((array_key_exists('relfilters',$_REQUEST) &&  $_REQUEST['relfilters'])? $_REQUEST['relfilters'] : null);
 if ( $filterString && preg_match('/[^\\:\\s"\\[\\]\\{\\}0-9\\,]/',$filterString)) {
 	die(" error invalid json relation type filters string");
 }
@@ -195,7 +195,7 @@ if (!isset($RELTYPE_FILTERS)) {
 }
 /*****DEBUG****///error_log("rel filters".print_r($RELTYPE_FILTERS,true));
 
-$filterString = (@$_REQUEST['ptrfilters'] ? $_REQUEST['ptrfilters'] : null);
+$filterString = ((array_key_exists('ptrfilters',$_REQUEST) &&  $_REQUEST['ptrfilters']) ? $_REQUEST['ptrfilters'] : null);
 if ( $filterString && preg_match('/[^\\:\\s"\\[\\]\\{\\}0-9\\,]/',$filterString)) {
 	die(" error invalid json pointer type filters string");
 }
@@ -214,7 +214,7 @@ if (preg_match('/_COLLECTED_/', $_REQUEST['q'])) {
 	}
 }
 
-$MAX_DEPTH = (@$_REQUEST['depth'] ? intval($_REQUEST['depth']) :
+$MAX_DEPTH = (array_key_exists('depth', $_REQUEST) ? intval($_REQUEST['depth']) :
 			min((count(array_merge(array_keys($PTRTYPE_FILTERS),array_keys($RELTYPE_FILTERS),array_keys($RECTYPE_FILTERS)))>0?
 				max(array_merge(array_keys($PTRTYPE_FILTERS),array_keys($RELTYPE_FILTERS),array_keys($RECTYPE_FILTERS)))+1:1),3));	// default to only one level
 
@@ -269,15 +269,15 @@ global $mysqli;
 		// if target is not in the result
 /*****DEBUG****///echo "\n".print_r($row);
 		$nlrIDs[$row['trgRecID']] = 1;	//save it for next level query
-		if (!@$recSet['infoByDepth'][$depth]['ptrtypes']) {
+		if (!array_key_exists('ptrtypes', $recSet['infoByDepth'][$depth])) {
 			$recSet['infoByDepth'][$depth]['ptrtypes'] = array();
 		}
 
-		if (!@$recSet['infoByDepth'][$depth]['ptrtypes']['fwd']) {
+		if (!array_key_exists('fwd', $recSet['infoByDepth'][$depth]['ptrtypes'])) {
 			$recSet['infoByDepth'][$depth]['ptrtypes']['fwd'] = array($row['ptrDetailTypeID']=> array($row['srcRecID']=>array($row['trgRecID'])));
-		}else if (!@$recSet['infoByDepth'][$depth]['ptrtypes']['fwd'][$row['ptrDetailTypeID']]) {
+		}else if (!array_key_exists($row['ptrDetailTypeID'], $recSet['infoByDepth'][$depth]['ptrtypes']['fwd'])) {
 			$recSet['infoByDepth'][$depth]['ptrtypes']['fwd'][$row['ptrDetailTypeID']] = array($row['srcRecID']=>array($row['trgRecID']));
-		}else if (!@$recSet['infoByDepth'][$depth]['ptrtypes']['fwd'][$row['ptrDetailTypeID']][$row['srcRecID']]) {
+		}else if (!array_key_exists($row['srcRecID'], $recSet['infoByDepth'][$depth]['ptrtypes']['fwd'][$row['ptrDetailTypeID']])) {
 			$recSet['infoByDepth'][$depth]['ptrtypes']['fwd'][$row['ptrDetailTypeID']][$row['srcRecID']] = array($row['trgRecID']);
 		}else if ( !in_array($row['trgRecID'],$recSet['infoByDepth'][$depth]['ptrtypes']['fwd'][$row['ptrDetailTypeID']][$row['srcRecID']])){
 			array_push($recSet['infoByDepth'][$depth]['ptrtypes']['fwd'][$row['ptrDetailTypeID']][$row['srcRecID']],$row['trgRecID']);
@@ -292,7 +292,7 @@ global $mysqli;
 		if ( !in_array($row['trgRecID'],$recSet['infoByDepth'][$depth]['recIDs'])){
 			array_push($recSet['infoByDepth'][$depth]['recIDs'],$row['trgRecID']);
 		}
-		if (!@$recSet['infoByDepth'][$depth]['rectypes'][$row['trgType']]) {
+		if (!array_key_exists($row['trgType'], $recSet['infoByDepth'][$depth]['rectypes'])) {
 			$recSet['infoByDepth'][$depth]['rectypes'][$row['trgType']] = array($row['trgRecID']);
 		} else if ( !in_array($row['trgRecID'],$recSet['infoByDepth'][$depth]['rectypes'][$row['trgType']])){
 			array_push($recSet['infoByDepth'][$depth]['rectypes'][$row['trgType']],$row['trgRecID']);
@@ -311,28 +311,28 @@ global $mysqli;
 																				null,
 																				getThumbnailURL($row['trgRecID'])));
 		}
-		if ( !@$recSet['recSet'][$row['trgRecID']]['revPtrLinks']) {
+		if ( !array_key_exists('revPtrLinks', $recSet['recSet'][$row['trgRecID']])) {
 			$recSet['recSet'][$row['trgRecID']]['revPtrLinks']= array('byInvDtlType'=>array(),'byRecIDs' => array());	//create an entry
 		}
-		if ( !@$recSet['recSet'][$row['trgRecID']]['revPtrLinks']['byInvDtlType'][$row['ptrDetailTypeID']]) {
+		if ( !array_key_exists($row['ptrDetailTypeID'], $recSet['recSet'][$row['trgRecID']]['revPtrLinks']['byInvDtlType'])) {
 			$recSet['recSet'][$row['trgRecID']]['revPtrLinks']['byInvDtlType'][$row['ptrDetailTypeID']] = array($row['srcRecID']);
 		}else if ( !in_array($row['srcRecID'],$recSet['recSet'][$row['trgRecID']]['revPtrLinks']['byInvDtlType'][$row['ptrDetailTypeID']])){
 			array_push($recSet['recSet'][$row['trgRecID']]['revPtrLinks']['byInvDtlType'][$row['ptrDetailTypeID']],$row['srcRecID']);
 		}
-		if ( !@$recSet['recSet'][$row['trgRecID']]['revPtrLinks']['byRecIDs'][$row['srcRecID']]) {
+		if ( !array_key_exists($row['srcRecID'], $recSet['recSet'][$row['trgRecID']]['revPtrLinks']['byRecIDs'])) {
 			$recSet['recSet'][$row['trgRecID']]['revPtrLinks']['byRecIDs'][$row['srcRecID']] = array($row['ptrDetailTypeID']);
 		}else if ( !in_array($row['ptrDetailTypeID'],$recSet['recSet'][$row['trgRecID']]['revPtrLinks']['byRecIDs'][$row['srcRecID']])){
 			array_push($recSet['recSet'][$row['trgRecID']]['revPtrLinks']['byRecIDs'][$row['srcRecID']],$row['ptrDetailTypeID']);
 		}
-		if ( !@$recSet['recSet'][$row['srcRecID']]['ptrLinks']) {
+		if ( !array_key_exists('ptrLinks', $recSet['recSet'][$row['srcRecID']])) {
 			$recSet['recSet'][$row['srcRecID']]['ptrLinks']= array('byDtlType'=>array(),'byRecIDs' => array());	//create an entry
 		}
-		if ( !@$recSet['recSet'][$row['srcRecID']]['ptrLinks']['byDtlType'][$row['ptrDetailTypeID']]) {
+		if ( !array_key_exists($row['ptrDetailTypeID'], $recSet['recSet'][$row['srcRecID']]['ptrLinks']['byDtlType'])) {
 			$recSet['recSet'][$row['srcRecID']]['ptrLinks']['byDtlType'][$row['ptrDetailTypeID']] = array($row['trgRecID']);
 		}else if ( !in_array($row['trgRecID'],$recSet['recSet'][$row['srcRecID']]['ptrLinks']['byDtlType'][$row['ptrDetailTypeID']])){
 			array_push($recSet['recSet'][$row['srcRecID']]['ptrLinks']['byDtlType'][$row['ptrDetailTypeID']],$row['trgRecID']);
 		}
-		if ( !@$recSet['recSet'][$row['srcRecID']]['ptrLinks']['byRecIDs'][$row['trgRecID']]) {
+		if ( !array_key_exists($row['trgRecID'], $recSet['recSet'][$row['srcRecID']]['ptrLinks']['byRecIDs'])) {
 			$recSet['recSet'][$row['srcRecID']]['ptrLinks']['byRecIDs'][$row['trgRecID']] = array($row['ptrDetailTypeID']);
 		}else if ( !in_array($row['ptrDetailTypeID'],$recSet['recSet'][$row['srcRecID']]['ptrLinks']['byRecIDs'][$row['trgRecID']])){
 			array_push($recSet['recSet'][$row['srcRecID']]['ptrLinks']['byRecIDs'][$row['trgRecID']],$row['ptrDetailTypeID']);
@@ -380,11 +380,11 @@ global $mysqli;
 			$recSet['infoByDepth'][$depth]['ptrtypes'] = array();
 		}
 
-		if (!@$recSet['infoByDepth'][$depth]['ptrtypes']['rev']) {
+		if (!array_key_exists('rev', $recSet['infoByDepth'][$depth]['ptrtypes'])) {
 			$recSet['infoByDepth'][$depth]['ptrtypes']['rev'] = array($row['ptrDetailTypeID']=> array($row['srcRecID']=>array($row['trgRecID'])));
-		}else if (!@$recSet['infoByDepth'][$depth]['ptrtypes']['rev'][$row['ptrDetailTypeID']]) {
+		}else if (!array_key_exists($row['ptrDetailTypeID'], $recSet['infoByDepth'][$depth]['ptrtypes']['rev'])) {
 			$recSet['infoByDepth'][$depth]['ptrtypes']['rev'][$row['ptrDetailTypeID']] = array($row['srcRecID']=>array($row['trgRecID']));
-		}else if (!@$recSet['infoByDepth'][$depth]['ptrtypes']['rev'][$row['ptrDetailTypeID']][$row['srcRecID']]) {
+		}else if (!array_key_exists($row['srcRecID'], $recSet['infoByDepth'][$depth]['ptrtypes']['rev'][$row['ptrDetailTypeID']])) {
 			$recSet['infoByDepth'][$depth]['ptrtypes']['rev'][$row['ptrDetailTypeID']][$row['srcRecID']] = array($row['trgRecID']);
 		}else if ( !in_array($row['trgRecID'],$recSet['infoByDepth'][$depth]['ptrtypes']['rev'][$row['ptrDetailTypeID']][$row['srcRecID']])){
 			array_push($recSet['infoByDepth'][$depth]['ptrtypes']['rev'][$row['ptrDetailTypeID']][$row['srcRecID']],$row['trgRecID']);
@@ -398,7 +398,7 @@ global $mysqli;
 		if ( !in_array($row['trgRecID'],$recSet['infoByDepth'][$depth]['recIDs'])){
 			array_push($recSet['infoByDepth'][$depth]['recIDs'],$row['trgRecID']);
 		}
-		if (!@$recSet['infoByDepth'][$depth]['rectypes'][$row['trgType']]) {
+		if (!array_key_exists($row['trgType'], $recSet['infoByDepth'][$depth]['rectypes'])) {
 			$recSet['infoByDepth'][$depth]['rectypes'][$row['trgType']] = array($row['trgRecID']);
 		} else if ( !in_array($row['trgRecID'],$recSet['infoByDepth'][$depth]['rectypes'][$row['trgType']])){
 			array_push($recSet['infoByDepth'][$depth]['rectypes'][$row['trgType']],$row['trgRecID']);
@@ -417,28 +417,28 @@ global $mysqli;
 																				null,
 																				getThumbnailURL($row['trgRecID'])));
 		}
-		if ( !@$recSet['recSet'][$row['trgRecID']]['ptrLinks']) {
+		if ( !array_key_exists('ptrLinks', $recSet['recSet'][$row['trgRecID']])) {
 			$recSet['recSet'][$row['trgRecID']]['ptrLinks']= array('byDtlType'=>array(),'byRecIDs' => array());	//create an entry
 		}
-		if ( !@$recSet['recSet'][$row['trgRecID']]['ptrLinks']['byDtlType'][$row['ptrDetailTypeID']]) {
+		if ( !array_key_exists($row['ptrDetailTypeID'], $recSet['recSet'][$row['trgRecID']]['ptrLinks']['byDtlType'])) {
 			$recSet['recSet'][$row['trgRecID']]['ptrLinks']['byDtlType'][$row['ptrDetailTypeID']] = array($row['srcRecID']);
 		}else if ( !in_array($row['srcRecID'],$recSet['recSet'][$row['trgRecID']]['ptrLinks']['byDtlType'][$row['ptrDetailTypeID']])){
 			array_push($recSet['recSet'][$row['trgRecID']]['ptrLinks']['byDtlType'][$row['ptrDetailTypeID']],$row['srcRecID']);
 		}
-		if ( !@$recSet['recSet'][$row['trgRecID']]['ptrLinks']['byRecIDs'][$row['srcRecID']]) {
+		if ( !array_key_exists($row['srcRecID'], $recSet['recSet'][$row['trgRecID']]['ptrLinks']['byRecIDs'])) {
 			$recSet['recSet'][$row['trgRecID']]['ptrLinks']['byRecIDs'][$row['srcRecID']] = array($row['ptrDetailTypeID']);
 		}else if ( !in_array($row['ptrDetailTypeID'],$recSet['recSet'][$row['trgRecID']]['ptrLinks']['byRecIDs'][$row['srcRecID']])){
 			array_push($recSet['recSet'][$row['trgRecID']]['ptrLinks']['byRecIDs'][$row['srcRecID']],$row['ptrDetailTypeID']);
 		}
-		if ( !@$recSet['recSet'][$row['srcRecID']]['revPtrLinks']) {
+		if ( !array_key_exists('revPtrLinks', $recSet['recSet'][$row['srcRecID']])) {
 			$recSet['recSet'][$row['srcRecID']]['revPtrLinks']= array('byInvDtlType'=>array(),'byRecIDs' => array());	//create an entry
 		}
-		if ( !@$recSet['recSet'][$row['srcRecID']]['revPtrLinks']['byInvDtlType'][$row['ptrDetailTypeID']]) {
+		if ( !array_key_exists($row['ptrDetailTypeID'], $recSet['recSet'][$row['srcRecID']]['revPtrLinks']['byInvDtlType'])) {
 			$recSet['recSet'][$row['srcRecID']]['revPtrLinks']['byInvDtlType'][$row['ptrDetailTypeID']] = array($row['trgRecID']);
 		}else if ( !in_array($row['trgRecID'],$recSet['recSet'][$row['srcRecID']]['revPtrLinks']['byInvDtlType'][$row['ptrDetailTypeID']])){
 			array_push($recSet['recSet'][$row['srcRecID']]['revPtrLinks']['byInvDtlType'][$row['ptrDetailTypeID']],$row['trgRecID']);
 		}
-		if ( !@$recSet['recSet'][$row['srcRecID']]['revPtrLinks']['byRecIDs'][$row['trgRecID']]) {
+		if ( !array_key_exists($row['trgRecID'], $recSet['recSet'][$row['srcRecID']]['revPtrLinks']['byRecIDs'])) {
 			$recSet['recSet'][$row['srcRecID']]['revPtrLinks']['byRecIDs'][$row['trgRecID']] = array($row['ptrDetailTypeID']);
 		}else if ( !in_array($row['ptrDetailTypeID'],$recSet['recSet'][$row['srcRecID']]['revPtrLinks']['byRecIDs'][$row['trgRecID']])){
 			array_push($recSet['recSet'][$row['srcRecID']]['revPtrLinks']['byRecIDs'][$row['trgRecID']],$row['ptrDetailTypeID']);
@@ -488,17 +488,17 @@ function findRelatedRecords($qrec_ids, &$recSet, $depth, $rtyIDs, $relTermIDs) {
 		}
 //echo "row is ".print_r($row,true);
 		// if source is not in the result
-		if (!@$recSet['infoByDepth'][$depth]['reltypes']) {
+		if (!array_key_exists('reltypes', $recSet['infoByDepth'][$depth])) {
 			$recSet['infoByDepth'][$depth]['reltypes'] = array();
 		}
 		if ($row['srcIsFrom']== 1) {//qrec_id is source or primary resource of the relationship
 			$nlrIDs[$row['trgRecID']] = 1;	//save it for next level query
 
-			if (!@$recSet['infoByDepth'][$depth]['reltypes']['fwd']) {
+			if (!array_key_exists('fwd', $recSet['infoByDepth'][$depth]['reltypes'])) {
 				$recSet['infoByDepth'][$depth]['reltypes']['fwd'] = array($row['relType']=> array($row['srcRecID']=>array($row['trgRecID'])));
-			}else if (!@$recSet['infoByDepth'][$depth]['reltypes']['fwd'][$row['relType']]) {
+			}else if (!array_key_exists($row['relType'], $recSet['infoByDepth'][$depth]['reltypes']['fwd'])) {
 				$recSet['infoByDepth'][$depth]['reltypes']['fwd'][$row['relType']] = array($row['srcRecID']=>array($row['trgRecID']));
-			}else if (!@$recSet['infoByDepth'][$depth]['reltypes']['fwd'][$row['relType']][$row['srcRecID']]) {
+			}else if (!array_key_exists($row['srcRecID'], $recSet['infoByDepth'][$depth]['reltypes']['fwd'][$row['relType']])) {
 				$recSet['infoByDepth'][$depth]['reltypes']['fwd'][$row['relType']][$row['srcRecID']] = array($row['trgRecID']);
 			}else if ( !in_array($row['trgRecID'],$recSet['infoByDepth'][$depth]['reltypes']['fwd'][$row['relType']][$row['srcRecID']])){
 				array_push($recSet['infoByDepth'][$depth]['reltypes']['fwd'][$row['relType']][$row['srcRecID']],$row['trgRecID']);
@@ -507,7 +507,7 @@ function findRelatedRecords($qrec_ids, &$recSet, $depth, $rtyIDs, $relTermIDs) {
 			if ( !in_array($row['trgRecID'],$recSet['infoByDepth'][$depth]['recIDs'])){
 				array_push($recSet['infoByDepth'][$depth]['recIDs'],$row['trgRecID']);
 			}
-			if (!@$recSet['infoByDepth'][$depth]['rectypes'][$row['trgType']]) {
+			if (!array_key_exists($row['trgType'], $recSet['infoByDepth'][$depth]['rectypes'])) {
 				$recSet['infoByDepth'][$depth]['rectypes'][$row['trgType']] = array($row['trgRecID']);
 			} else if ( !in_array($row['trgRecID'],$recSet['infoByDepth'][$depth]['rectypes'][$row['trgType']])){
 				array_push($recSet['infoByDepth'][$depth]['rectypes'][$row['trgType']],$row['trgRecID']);
@@ -520,11 +520,11 @@ function findRelatedRecords($qrec_ids, &$recSet, $depth, $rtyIDs, $relTermIDs) {
 		}else{//inverse relation meaning that the qrec_ids are the target of the relation so the trg is actually the primary
 			$nlrIDs[$row['srcRecID']] = 1;	//save it for next level query
 
-			if (!@$recSet['infoByDepth'][$depth]['reltypes']['rev']) {
+			if (!array_key_exists('rev', $recSet['infoByDepth'][$depth]['reltypes'])) {
 				$recSet['infoByDepth'][$depth]['reltypes']['rev'] = array($row['relType']=> array($row['trgRecID']=>array($row['srcRecID'])));
-			}else if (!@$recSet['infoByDepth'][$depth]['reltypes']['rev'][$row['relType']]) {
+			}else if (!array_key_exists($row['relType'], $recSet['infoByDepth'][$depth]['reltypes']['rev'])) {
 				$recSet['infoByDepth'][$depth]['reltypes']['rev'][$row['relType']] = array($row['trgRecID']=>array($row['srcRecID']));
-			}else if (!@$recSet['infoByDepth'][$depth]['reltypes']['rev'][$row['relType']][$row['trgRecID']]) {
+			}else if (!array_key_exists($row['trgRecID'], $recSet['infoByDepth'][$depth]['reltypes']['rev'][$row['relType']])) {
 				$recSet['infoByDepth'][$depth]['reltypes']['rev'][$row['relType']][$row['trgRecID']] = array($row['srcRecID']);
 			}else if ( !in_array($row['srcRecID'],$recSet['infoByDepth'][$depth]['reltypes']['rev'][$row['relType']][$row['trgRecID']])){
 				array_push($recSet['infoByDepth'][$depth]['reltypes']['rev'][$row['relType']][$row['trgRecID']],$row['srcRecID']);
@@ -533,7 +533,7 @@ function findRelatedRecords($qrec_ids, &$recSet, $depth, $rtyIDs, $relTermIDs) {
 			if ( !in_array($row['srcRecID'],$recSet['infoByDepth'][$depth]['recIDs'])){
 				array_push($recSet['infoByDepth'][$depth]['recIDs'],$row['srcRecID']);
 			}
-			if (!@$recSet['infoByDepth'][$depth]['rectypes'][$row['srcType']]) {
+			if (!array_key_exists($row['srcType'], $recSet['infoByDepth'][$depth]['rectypes'])) {
 				$recSet['infoByDepth'][$depth]['rectypes'][$row['srcType']] = array($row['srcRecID']);
 			} else if ( !in_array($row['srcRecID'],$recSet['infoByDepth'][$depth]['rectypes'][$row['srcType']])){
 				array_push($recSet['infoByDepth'][$depth]['rectypes'][$row['srcType']],$row['srcRecID']);
@@ -573,15 +573,15 @@ function findRelatedRecords($qrec_ids, &$recSet, $depth, $rtyIDs, $relTermIDs) {
 									null,
 									getThumbnailURL($row['trgRecID'])));
 		}
-		if ( !@$recSet['recSet'][$row['srcRecID']]['relLinks']) {
+		if ( !array_key_exists('relLinks', $recSet['recSet'][$row['srcRecID']])) {
 			$recSet['recSet'][$row['srcRecID']]['relLinks']= array('byRelType'=>array(),'byRecIDs' => array(), 'relRecIDs'=> array());	//create an entry
 		}
-		if ( !@$recSet['recSet'][$row['srcRecID']]['relLinks']['byRelType'][$row['relType']]) {
+		if ( !array_key_exists($row['relType'], $recSet['recSet'][$row['srcRecID']]['relLinks']['byRelType'])) {
 			$recSet['recSet'][$row['srcRecID']]['relLinks']['byRelType'][$row['relType']] = array($row['trgRecID']);
 		}else if ( !in_array($row['trgRecID'],$recSet['recSet'][$row['srcRecID']]['relLinks']['byRelType'][$row['relType']])){
 			array_push($recSet['recSet'][$row['srcRecID']]['relLinks']['byRelType'][$row['relType']],$row['trgRecID']);
 		}
-		if ( !@$recSet['recSet'][$row['srcRecID']]['relLinks']['byRecIDs'][$row['trgRecID']]) {
+		if ( !array_key_exists($row['trgRecID'], $recSet['recSet'][$row['srcRecID']]['relLinks']['byRecIDs'])) {
 			$recSet['recSet'][$row['srcRecID']]['relLinks']['byRecIDs'][$row['trgRecID']] = array($row['relType']);
 		}else if ( !in_array($row['relType'],$recSet['recSet'][$row['srcRecID']]['relLinks']['byRecIDs'][$row['trgRecID']])){
 			array_push($recSet['recSet'][$row['srcRecID']]['relLinks']['byRecIDs'][$row['trgRecID']],$row['relType']);
@@ -589,16 +589,16 @@ function findRelatedRecords($qrec_ids, &$recSet, $depth, $rtyIDs, $relTermIDs) {
 		if ( $row['relID'] && !in_array($row['relID'],$recSet['recSet'][$row['srcRecID']]['relLinks']['relRecIDs'])) {
 			array_push($recSet['recSet'][$row['srcRecID']]['relLinks']['relRecIDs'],$row['relID']);
 		}
-		if ( !@$recSet['recSet'][$row['trgRecID']]['revRelLinks']) {
+		if ( !array_key_exists('revRelLinks', $recSet['recSet'][$row['trgRecID']])) {
 			$recSet['recSet'][$row['trgRecID']]['revRelLinks']= array('byInvRelType'=>array(),'byRecIDs' => array(), 'relRecIDs'=> array());	//create an entry
 		}
 		$inverse = $row['invRelType']?$row['invRelType']: "-".$row['relType'];
-		if ( !@$recSet['recSet'][$row['trgRecID']]['revRelLinks']['byInvRelType'][$inverse]) {
+		if ( !array_key_exists($inverse, $recSet['recSet'][$row['trgRecID']]['revRelLinks']['byInvRelType'])) {
 			$recSet['recSet'][$row['trgRecID']]['revRelLinks']['byInvRelType'][$inverse] = array($row['srcRecID']);
 		}else if ( !in_array($row['srcRecID'],$recSet['recSet'][$row['trgRecID']]['revRelLinks']['byInvRelType'][$inverse])){
 			array_push($recSet['recSet'][$row['trgRecID']]['revRelLinks']['byInvRelType'][$inverse],$row['srcRecID']);
 		}
-		if ( !@$recSet['recSet'][$row['trgRecID']]['revRelLinks']['byRecIDs'][$row['srcRecID']]) {
+		if ( !array_key_exists($row['srcRecID'], $recSet['recSet'][$row['trgRecID']]['revRelLinks']['byRecIDs'])) {
 			$recSet['recSet'][$row['trgRecID']]['revRelLinks']['byRecIDs'][$row['srcRecID']] = array($inverse);
 		}else if ( !in_array($inverse,$recSet['recSet'][$row['trgRecID']]['revRelLinks']['byRecIDs'][$row['srcRecID']])){
 			array_push($recSet['recSet'][$row['trgRecID']]['revRelLinks']['byRecIDs'][$row['srcRecID']],$inverse);
@@ -634,11 +634,11 @@ function buildFilteredGraphStructure($rec_ids, &$recSet, $depth = 0) {
 //echo "depth = $depth  rtfilter = ". print_r($rtfilter,true)."\n<br/>";
 //echo "depth = $depth  ptrfilter = ". print_r($ptrfilter,true)."\n<br/>";
 //echo "depth = $depth  relfilter = ". print_r($relfilter,true)."\n<br/>";
-		if (!@$recSet['infoByDepth'][$depth]) {
+		if (!array_key_exists($depth, $recSet['infoByDepth'])) {
 			$recSet['infoByDepth'][$depth] = array('recIDs'=>array(),'rectypes'=>array());
 		}
 		if ($rtfilter || $ptrfilter || $relfilter) {
-			if (!@$recSet['infoByDepth'][$depth]['filters']) $recSet['infoByDepth'][$depth]['filters'] = array();
+			if (!array_key_exists('filters', $recSet['infoByDepth'][$depth])) $recSet['infoByDepth'][$depth]['filters'] = array();
 			if ($rtfilter) $recSet['infoByDepth'][$depth]['filters']['rtfilter'] = $rtfilter;
 			if ($ptrfilter) $recSet['infoByDepth'][$depth]['filters']['ptrfilter'] = $ptrfilter;
 			if ($relfilter) $recSet['infoByDepth'][$depth]['filters']['relfilter'] = $relfilter;
@@ -684,7 +684,7 @@ function createQueryRecSet() {
 									getThumbnailURL($record['rec_ID'])));
 		array_push($recSet['infoByDepth'][0]['recIDs'],$record['rec_ID']);
 		// add recID to it's rectype array for this depth
-		if (!@$recSet['infoByDepth'][0]['rectypes'][$record['rec_RecTypeID']]) {
+		if (!array_key_exists($record['rec_RecTypeID'], $recSet['infoByDepth'][0]['rectypes'])) {
 			$recSet['infoByDepth'][0]['rectypes'][$record['rec_RecTypeID']] = array($record['rec_ID']);
 		} else if ( !in_array($record['rec_ID'],$recSet['infoByDepth'][0]['rectypes'][$record['rec_RecTypeID']])){
 			array_push($recSet['infoByDepth'][0]['rectypes'][$record['rec_RecTypeID']],$record['rec_ID']);

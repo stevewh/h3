@@ -317,7 +317,7 @@
         foreach ($recDetails as $dtyID => $dtlIDs) {
             $eltName ="type:".$dtyID;
             $skipEltName = "_type:".$dtyID;
-            if (@$_POST[$skipEltName]  &&  is_array($_POST[$skipEltName])) { // handle any _type post meant for ignore, need to remove from recDetails
+            if (array_key_exists($skipEltName, $_POST)  &&  is_array($_POST[$skipEltName])) { // handle any _type post meant for ignore, need to remove from recDetails
               foreach (@$_POST[$skipEltName] as $codedDtlID => $ingnoreVal) {
                 if (! preg_match("/^bd:\\d+$/", $codedDtlID)) continue;
 
@@ -483,7 +483,7 @@
         $notesOut = "";
         $notesMap = array();
         for ($i=0; $i < count($notesIn); ++$i) {
-            if (! @$notesMap[$notesIn[$i]]  ||  ! $notesIn[$i]) {	// preserve blank lines
+            if (!array_key_exists($notesIn[$i], $notesMap)  ||  ! $notesIn[$i]) {	// preserve blank lines
                 $notesOut .= $notesIn[$i] . "\n";
                 $notesMap[$notesIn[$i]] = true;
             }
@@ -596,7 +596,7 @@
             $dtyID = $val["dtl_DetailTypeID"];
             $dtlID = $val["dtl_ID"];
 
-            if (! @$details[$dtyID]) {
+            if (! array_key_exists($dtyID, $details)) {
                 $details[$dtyID] = array();
             }
             $details[$dtyID][$dtlID] = $val;
@@ -725,6 +725,7 @@
             return array("dtl_Value" => trim($postVal));
         }
         function inputOK($postVal, $dtyID, $rtyID) {
+            if (is_null($postVal)) return false;
             return (strlen(trim($postVal)) > 0);
         }
     }

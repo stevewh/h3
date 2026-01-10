@@ -211,14 +211,14 @@
         if (tags) {
           extra_parms += (extra_parms.match(/&tag=/))  ?  "," + tags  :  "&tag=" + tags; // warning! code assumes that &tag= is at the end of string
         }
-        if ( <?= @$_REQUEST['related'] ? '1' : '0' ?> ) {
+        if ( <?=array_key_exists('related', $_REQUEST) ? 1 : 0 ?> ) {
           extra_parms += '&related=<?= @$_REQUEST['related'] ?>';
-          if (<?= @$_REQUEST['reltype'] ? '1' : '0' ?>) {
+          if (<?= array_key_exists('reltype', $_REQUEST) ? 1 : 0 ?>) {
             extra_parms += '&reltype=<?= @$_REQUEST['reltype'] ?>';
           }
         }
         // added to pass on the title if the user got here from add.php? ... &t=  we just pass it back around
-        extra_parms += '<?= @$_REQUEST['t'] ? '&t='.$_REQUEST['t'] : '' ?>';
+        extra_parms += '<?= array_key_exists('t', $_REQUEST) ? '&t='.$_REQUEST['t'] : '' ?>';
 
 
         if (document.getElementById('defaults_elt').checked) {

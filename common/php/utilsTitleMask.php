@@ -323,7 +323,7 @@ function _title_mask__get_field_value($field_name, $rec_id, $rt)
 	}
 
 //	if (! @$rdt) $rdt = _title_mask__get_rec_detail_types();
-	if (! @$rdr) $rdr = _title_mask__get_rec_detail_requirements();
+	if (! isset($rdr)) $rdr = _title_mask__get_rec_detail_requirements();
 
 	//check if this is term (enum or relationship)
 	if(strpos($field_name, '.')>0){
@@ -615,7 +615,7 @@ function _title_mask__get_rec_detail($rec_id, $rdt_id)
 
 
 			}
-			if (@$rec_details[$rec_id][$rd['dtl_DetailTypeID']])// repeated values
+			if (array_key_exists($rd['dtl_DetailTypeID'], $rec_details[$rec_id]))// repeated values
 				$rec_details[$rec_id][$rd['dtl_DetailTypeID']] .= ', ' . $rd['dtl_Value'];
 			else
 				$rec_details[$rec_id][$rd['dtl_DetailTypeID']] = $rd['dtl_Value'];
@@ -655,7 +655,7 @@ function _title_mask__get_rec_detail_requirements() {
 								where rst_RequirementType in ("required", "recommended", "optional")
 								order by rst_RecTypeID, dty_ID' );
 		while ($row = $res->fetch_assoc()) {
-			if (@$rdr[$row['rst_RecTypeID']]) {
+			if (array_key_exists($row['rst_RecTypeID'], $rdr)) {
 				$rdr[$row['rst_RecTypeID']][$row['dty_ID']] = $row;
 				$rdr[$row['rst_RecTypeID']][$row['dty_Name']] = $row;
 			} else {
@@ -664,7 +664,7 @@ function _title_mask__get_rec_detail_requirements() {
 					$row['dty_Name'] => $row
 				);
 			}
-			if (!@$rdr[$row['rst_RecTypeID']][$row['rst_DisplayName']]) {
+			if ($row['rst_DisplayName'] && !array_key_exists($row['rst_DisplayName'], $rdr[$row['rst_RecTypeID']])) {
 				$rdr[$row['rst_RecTypeID']][$row['rst_DisplayName']] = $row;
 			}
 		}

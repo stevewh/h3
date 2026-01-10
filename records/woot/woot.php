@@ -169,7 +169,7 @@ function loadWoot($args) {
 	$mysqliro = mysqli_connection_select(DATABASE);
 
 	$wootTitle = addslashes(@$args["title"]);
-	$wootId = intval(@$args["id"]);
+	$wootId = array_key_exists('id',$args) ? intval($args["id"]): null;
 	$wootPermissions = array();
 
 	$query = $wootId? "woot_ID=$wootId" : "woot_Title='$wootTitle'";

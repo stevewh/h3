@@ -56,7 +56,8 @@ require_once(dirname(__FILE__)."/../../records/files/uploadFile.php");
 require_once(dirname(__FILE__).'/../../records/files/fileUtils.php');
 
 
-if (! @$_REQUEST['w']  &&  ! @$_REQUEST['h']  &&  ! @$_REQUEST['maxw']  &&  ! @$_REQUEST['maxh']) {
+if (! array_key_exists('w',$_REQUEST)  &&  ! array_key_exists('h', $_REQUEST)  &&
+   ! array_key_exists('maxw', $_REQUEST)  &&  ! array_key_exists('maxh', $_REQUEST)) {
 	$standard_thumb = true;
 	$x = 100;
 	$y = 100;

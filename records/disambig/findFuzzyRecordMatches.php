@@ -43,7 +43,7 @@ function findFuzzyMatches($fields, $rec_types, $rec_id=NULL, $fuzziness=NULL) {
 		if (! preg_match('/^t:(\d+)/', $key, $matches)) continue;
 		$rdt_id = $matches[1];
 
-		if (! @$types[$rdt_id]) continue;
+		if (! array_key_exists($rdt_id, $types)) continue;
 		if (! $vals) continue;
 
 		switch ($types[$rdt_id]) {

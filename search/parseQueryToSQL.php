@@ -1248,16 +1248,20 @@ function REQUEST_to_query($mysqli, $query, $search_type, $parms=NULL, $wg_ids=NU
 
 	/* use the supplied _REQUEST variables (or $parms if supplied) to construct a query starting with $query */
 	if (! $parms) $parms = $_REQUEST;
-	define('stype', @$parms['stype']);
+  if (array_key_exists('stype',$parms)) {
+	  define('stype', @$parms['stype']);
+  }
 
 	if (! $wg_ids  &&  function_exists('get_user_id')) {
 		$wg_ids = mysqli__select_array($mysqli, USERS_DATABASE.'.sysUsrGrpLinks left join '.USERS_DATABASE.'.sysUGrps grp on grp.ugr_ID=ugl_GroupID', 'ugl_GroupID',
 		                              'ugl_UserID='.get_user_id().' and grp.ugr_Type != "User" order by ugl_GroupID');
 	}
 
-	if (! @$parms['qq']  && @$parms['q'] && ! preg_match('/&&|\\bAND\\b/i', @$parms['q'])) {
-		$query .= parse_query($search_type, @$parms['q'], @$parms['s'], $wg_ids, $publicOnly);
-	} elseif  (@$parms['qq']  || @$parms['q']) {
+	if (! array_key_exists('qq',$parms)  && array_key_exists('q',$parms) && ! preg_match('/&&|\\bAND\\b/i', @$parms['q'])) {
+		$query .= parse_query($search_type, $parms['q'], 
+                          array_key_exists('s',$parms) ? $parms['s'] : null, 
+                          $wg_ids, $publicOnly);
+	} elseif  (array_key_exists('qq',$parms)  || array_key_exists('q',$parms)) {
 		// search-within-search gives us top-level ANDing (full expressiveness of conjunctions and disjunctions! hot damn)
 		// basically for free!
 /*

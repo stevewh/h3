@@ -106,7 +106,7 @@
 			$searchType = BOTH;
 		}
 
-		$fresh = !! @$args["f"];
+		$fresh = !! array_key_exists('f',$args);
 
 		$query = REQUEST_to_query($mysqli, "select SQL_CALC_FOUND_ROWS rec_ID ", $searchType, $args, null, $publicOnly);
 		/*****DEBUG****///error_log("QUERY: $query");
@@ -308,7 +308,7 @@
 				continue;
 			}
 
-			if (! @$details[$rd["dtl_DetailTypeID"]]) $details[$rd["dtl_DetailTypeID"]] = array();
+			if (!array_key_exists($rd["dtl_DetailTypeID"], $details)) $details[$rd["dtl_DetailTypeID"]] = array();
 
 			$detailValue = null;
 

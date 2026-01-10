@@ -97,12 +97,13 @@ $query = 'select SQL_CALC_FOUND_ROWS '
 		.'bkm_PwdReminder ';
 
 
-
+$broken = 0;
 if (preg_match('/\\b_BROKEN_\\b/', $_REQUEST['q'])) {
 	$broken = 1;
 	$_REQUEST['q'] = preg_replace('/\\b_BROKEN_\\b/', '', $_REQUEST['q']);
 }
 
+$collected = 0;
 if (preg_match('/\\b_COLLECTED_\\b/', $_REQUEST['q'])) {
 	$collected = 1;
 	$_REQUEST['q'] = preg_replace('/\\b_COLLECTED_\\b/', '', $_REQUEST['q']);
@@ -149,15 +150,15 @@ session_start();
 
 //update top.HEURIST.user.workgroups
 $isNeedUpdateWorkgroups = false;
-if(@$_SESSION[HEURIST_SESSION_DB_PREFIX.'heurist']['user_access_updated']==1){
+if(array_key_exists('user_access_updated',$_SESSION[HEURIST_SESSION_DB_PREFIX.'heurist']) && $_SESSION[HEURIST_SESSION_DB_PREFIX.'heurist']['user_access_updated']==1){
 	$isNeedUpdateWorkgroups = true;
 	unset($_SESSION[HEURIST_SESSION_DB_PREFIX.'heurist']['user_access_updated']);
 }
-
+$sid = 0;
 if ($num_rows <= SEARCH_SET_SAVE_LIMIT) {
 	$sid = dechex(rand());
 // set up search context for use with edit records prev next
-	if (! @$_SESSION[HEURIST_SESSION_DB_PREFIX.'heurist']['search-results'])
+	if (! array_key_exists('search-results',$_SESSION[HEURIST_SESSION_DB_PREFIX.'heurist']))
 		$_SESSION[HEURIST_SESSION_DB_PREFIX.'heurist']['search-results'] = array();
 
 	// limit to 5 sets of results
@@ -317,7 +318,7 @@ function print_result($row) {
 }
 
 function rss_url() {
-	return HEURIST_BASE_URL.'export/feeds/searchRSS.php?s='.@$_REQUEST['s'].'&w='.@$_REQUEST['w'].'&q='.urlencode(@$_REQUEST['q']);
+	return HEURIST_BASE_URL.'export/feeds/searchRSS.php?s='.(array_key_exists('s',$_REQUEST)? $_REQUEST['s']:'').'&w='.@$_REQUEST['w'].'&q='.urlencode(@$_REQUEST['q']);
 }
 
 ?>

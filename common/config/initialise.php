@@ -186,7 +186,7 @@ if (!defined('HEURIST_UPLOAD_ROOT')) {
 /*****DEBUG****/// error_log("initialise REQUEST = ".print_r($_REQUEST,true));
 if (array_key_exists("db",$_REQUEST)) { //if uri has DB then use it
 	$dbName = $_REQUEST["db"];
-} else if (@$_SERVER["HTTP_REFERER"] && preg_match("/.*db=([^&]*).*/", $_SERVER["HTTP_REFERER"], $refer_db)) { //else check refer
+} else if (array_key_exists("HTTP_REFERER",$_SERVER) && $_SERVER["HTTP_REFERER"] && preg_match("/.*db=([^&]*).*/", $_SERVER["HTTP_REFERER"], $refer_db)) { //else check refer
 	$dbName = $refer_db[1];
 } else if (defined("HEURIST_DEFAULT_DBNAME")) { //if enter at site root  index.php and default is set use it
 	$dbName = HEURIST_DEFAULT_DBNAME;

@@ -72,7 +72,7 @@ $mysqli = mysqli_connection_select(USERS_DATABASE);
 
 
 $LOGIN_ERROR = '';
-if (@$_REQUEST['username']  or  @$_REQUEST['password']) {
+if (array_key_exists('username',$_REQUEST)  or  array_key_exists('password',$_REQUEST)) {
 
 	$res = $mysqli->query('select * from '.USERS_TABLE.' where '.USERS_USERNAME_FIELD.' = "'.addslashes($_REQUEST['username']).'"');
     if ( ($user = $res->fetch_assoc())  &&
@@ -122,7 +122,7 @@ if (@$_REQUEST['username']  or  @$_REQUEST['password']) {
 }
 
 
-if (@$_REQUEST['logout']) {
+if (array_key_exists('logout',$_REQUEST)) {
 	unset($_SESSION[HEURIST_SESSION_DB_PREFIX.'heurist']['user_name']);
 	unset($_SESSION[HEURIST_SESSION_DB_PREFIX.'heurist']['user_realname']);
 	unset($_SESSION[HEURIST_SESSION_DB_PREFIX.'heurist']['user_id']);

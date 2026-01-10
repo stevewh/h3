@@ -75,7 +75,7 @@ if ($bkm_ID  &&  $_POST["save-mode"] == "edit") {
 
 
 function doTagInsertion($bkm_ID) {
-global $usrID;
+global $usrID, $mysqli;
 	//translate bmkID to record IT
 	$res = $mysqli->query("select bkm_recID from usrBookmarks where bkm_ID=$bkm_ID");
 	$rec_id = $res->fetch_row();

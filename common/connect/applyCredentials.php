@@ -81,7 +81,8 @@ function get_roles() {
 function _is_logged_in() {
 /*****DEBUG****///	error_log("in _is_logged_in instance prefix = ".HEURIST_SESSION_DB_PREFIX);
 /*****DEBUG****///	error_log("in _is_logged_in restrict = ".defined('HEURIST_RESTRICT_GROUP_ID'));
-	return (!!@$_SESSION[HEURIST_SESSION_DB_PREFIX.'heurist']['user_name']  &&
+	return (array_key_exists(HEURIST_SESSION_DB_PREFIX.'heurist', $_SESSION) && 
+          array_key_exists('user_name',$_SESSION[HEURIST_SESSION_DB_PREFIX.'heurist'])  &&
 			(!defined('HEURIST_RESTRICT_GROUP_ID')  ||
 				(@$_SESSION[HEURIST_SESSION_DB_PREFIX.'heurist']['user_access'][HEURIST_RESTRICT_GROUP_ID]  ||
 				@$_SESSION[HEURIST_SESSION_DB_PREFIX.'heurist']['user_access'][HEURIST_SYS_GROUP_ID]))  &&
@@ -124,7 +125,8 @@ if (!_is_logged_in()  &&  defined("BYPASS_LOGIN")) {
 	}
 
 	function get_user_id() {
-		if (@$_SESSION[HEURIST_SESSION_DB_PREFIX.'heurist']['user_id']) {
+		if (array_key_exists(HEURIST_SESSION_DB_PREFIX.'heurist', $_SESSION) &&
+        array_key_exists('user_id',$_SESSION[HEURIST_SESSION_DB_PREFIX.'heurist'])) {
 			return $_SESSION[HEURIST_SESSION_DB_PREFIX.'heurist']['user_id'];
 		}else if (!is_logged_in()){
 			return 0;
@@ -133,7 +135,8 @@ if (!_is_logged_in()  &&  defined("BYPASS_LOGIN")) {
 	}
 
 	function get_group_ids() {
-		if (@$_SESSION[HEURIST_SESSION_DB_PREFIX.'heurist']["user_access"]) {
+		if (array_key_exists(HEURIST_SESSION_DB_PREFIX.'heurist', $_SESSION) &&
+        array_key_exists('user_access',$_SESSION[HEURIST_SESSION_DB_PREFIX.'heurist'])) {
 			return array_keys($_SESSION[HEURIST_SESSION_DB_PREFIX.'heurist']["user_access"]);
 		}
 		else {
@@ -141,8 +144,20 @@ if (!_is_logged_in()  &&  defined("BYPASS_LOGIN")) {
 		}
 	}
 
-	function get_user_name() { return @$_SESSION[HEURIST_SESSION_DB_PREFIX.'heurist']['user_realname']; }
-	function get_user_username() { return @$_SESSION[HEURIST_SESSION_DB_PREFIX.'heurist']['user_name']; }
+	function get_user_name() { 
+    if (array_key_exists(HEURIST_SESSION_DB_PREFIX.'heurist', $_SESSION) &&
+        array_key_exists('user_realname',$_SESSION[HEURIST_SESSION_DB_PREFIX.'heurist'])) {
+      return @$_SESSION[HEURIST_SESSION_DB_PREFIX.'heurist']['user_realname'];
+    }
+    return 'unknown';
+  }
+	function get_user_username() {
+    if (array_key_exists(HEURIST_SESSION_DB_PREFIX.'heurist', $_SESSION) &&
+        array_key_exists('user_name',$_SESSION[HEURIST_SESSION_DB_PREFIX.'heurist'])) {
+      return @$_SESSION[HEURIST_SESSION_DB_PREFIX.'heurist']['user_name'];
+    }
+    return 'unknown';
+  }
 }
 
 function get_user_access() { // T1000.php only
