@@ -361,7 +361,7 @@ function getAllRecordDetails($recID,$rtyID,$isOwner = false) {
             $wkt = $row["dtl_Value"] . " " . $row["dtl_Geo"]; // well-known text value
             $detail["geo"] = array("minX" => $minX, "minY" => $minY, "maxX" => $maxX, "maxY" => $maxY, "x" => $x, "y" => $y, "type" => $type, "value" => $wkt);
         }
-        if (!@$recDetails[$row["dtl_DetailTypeID"]]) $recDetails[$row["dtl_DetailTypeID"]] = array();
+        if (!array_key_exists($row["dtl_DetailTypeID"], $recDetails)) $recDetails[$row["dtl_DetailTypeID"]] = array();
         array_push($recDetails[$row["dtl_DetailTypeID"]], $detail);
     }
     return $recDetails;

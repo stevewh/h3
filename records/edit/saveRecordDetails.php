@@ -471,7 +471,7 @@
         $deletedRowCount = 0;
         if ($bibDetailDeletes) {
             /*****DEBUG****///error_log(" in saveRecord delete details ".print_r($bibDetailDeletes,true));
-            $mysqli->query("delete from recDetails where dtl_ID in (" . join($bibDetailDeletes, ",") . ") and dtl_RecID=$recID");
+            $mysqli->query("delete from recDetails where dtl_ID in (" . join(",",$bibDetailDeletes) . ") and dtl_RecID=$recID");
             if ($mysqli->affected_rows > 0) {
                 $deletedRowCount = $mysqli->affected_rows;
             }

@@ -79,7 +79,7 @@ if ($rec_id  &&  $actions) {
 	}
 
 	if (count($deletions) > 0){
-		$mysqli->query("delete from usrRecTagLinks where rtl_RecID=$rec_id and rtl_TagID in (" . join($deletions,",") . ")");
+		$mysqli->query("delete from usrRecTagLinks where rtl_RecID=$rec_id and rtl_TagID in (" . join(",",$deletions) . ")");
 	}
 	if (count($additions) > 0){
 		$query = "insert into usrRecTagLinks (rtl_TagID, rtl_RecID) values (" . join(",$rec_id), (", $additions) . ",$rec_id)";

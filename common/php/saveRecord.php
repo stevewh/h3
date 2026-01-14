@@ -329,7 +329,7 @@
             if (! ($bdtID = intval(substr($dtyID, 2)))) continue;
             array_push($dtyIDs, $bdtID);
         }
-        $dtyVarieties = mysqli__select_assoc($mysqli, "defDetailTypes", "dty_ID", "dty_Type", "dty_ID in (" . join($dtyIDs, ",") . ")");
+        $dtyVarieties = mysqli__select_assoc($mysqli, "defDetailTypes", "dty_ID", "dty_Type", "dty_ID in (" . join(",",$dtyIDs) . ")");
         if($modeImport!=2){ //import without check of record type structure
             //TODO saw: need to change this to include min value or perhaps we let it go and allow saving the min across multiple saves.
             $repeats = mysqli__select_assoc($mysqli, "defRecStructure", "rst_DetailTypeID", "rst_MaxValues", "rst_RecTypeID=" . $recordType);
