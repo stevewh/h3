@@ -159,11 +159,12 @@ throw document.location.href + ": include displayPreferences.php in the body, no
 		$first = true;
 		$classNames = "";
 		$replaceClassNames = "";
+    $displayPrefsExist = array_key_exists(HEURIST_SESSION_DB_PREFIX.'heurist', $_SESSION) && array_key_exists('display-preferences', $_SESSION[HEURIST_SESSION_DB_PREFIX.'heurist']);
 		foreach ($prefs as $property => $value) {
 			if (! $first) print ",";  $first = false;
 			print "\n";
 
-			if (array_key_exists($property, $_SESSION[HEURIST_SESSION_DB_PREFIX.'heurist']["display-preferences"])) {
+			if ($displayPrefsExist && array_key_exists($property, $_SESSION[HEURIST_SESSION_DB_PREFIX.'heurist']["display-preferences"])) {
 				$value = $_SESSION[HEURIST_SESSION_DB_PREFIX.'heurist']["display-preferences"][$property];
       }
 
