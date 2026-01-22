@@ -652,7 +652,7 @@ class TitlePredicate extends Predicate {
 	public function makeSQL() : string {
 		$not = ($this->andParent->negate)? 'not ' : '';
 
-		$query = &$this->getQuery();
+//		$query = &$this->getQuery();
 		if ($this->andParent->exact)
 			return $not . 'rec_Title = "'.addslashes($this->value).'"';
 		else if ($this->andParent->lessthan)

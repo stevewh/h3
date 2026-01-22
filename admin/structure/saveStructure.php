@@ -1034,6 +1034,7 @@
 				foreach ($dtFieldNames as $colName) {
 
 					$val = array_shift($fieldVals);
+          if ($colName =='rst_Modified') continue;
 
 					/*****DEBUG****///error_log(">>".$dtyID."   ".$colName."=".$val);
 
