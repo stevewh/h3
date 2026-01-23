@@ -77,8 +77,8 @@ if (array_key_exists('username',$_REQUEST)  or  array_key_exists('password',$_RE
 	$res = $mysqli->query('select * from '.USERS_TABLE.' where '.USERS_USERNAME_FIELD.' = "'.addslashes($_REQUEST['username']).'"');
     if ( ($user = $res->fetch_assoc())  &&
 		 $user[USERS_ACTIVE_FIELD] == 'y'  &&
-		 $_REQUEST['password'] == $user[USERS_PASSWORD_FIELD] ) {
-		 //crypt($_REQUEST['password'], $user[USERS_PASSWORD_FIELD]) == $user[USERS_PASSWORD_FIELD] ) {
+		 //$_REQUEST['password'] == $user[USERS_PASSWORD_FIELD] ) {
+		 crypt($_REQUEST['password'], $user[USERS_PASSWORD_FIELD]) == $user[USERS_PASSWORD_FIELD] ) {
 /*****DEBUG****///error_log("in login  after crypt check");
 
 		$groups = reloadUserGroups($user[USERS_ID_FIELD]);

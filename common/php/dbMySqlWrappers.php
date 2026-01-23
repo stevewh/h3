@@ -392,6 +392,7 @@ function mysqli__lookup($mysqli, $query) {
 * @return   string slashed string with \n for return
 */
 function slash($str) {
+  if (is_null($str)) return '';
 	return preg_replace("/\r\n|\r|\n/", "\\n", addslashes($str));
 }
 /**
@@ -531,7 +532,7 @@ function get_dbowner_email($mysqli)
 * @param    boolean [$retCnt] true to return row count false to return an array with the values;
 */
 function execSQL($mysqli, $sql, $params, $retCnt=true) {
-	$result;
+	$result = null;
 	if ($params == null || count($params) < 1) {// not parameterised
 		if ($result = $mysqli->query($sql)) {
 			if ($retCnt) {

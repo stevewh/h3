@@ -408,7 +408,7 @@
 	*
 	*/
 	function sendNewUserInfoEmail($recID){
-    global $mysql;
+    global $mysqli;
         $dbowner_Email = get_dbowner_email();
         if($dbowner_Email)
         {
@@ -449,8 +449,8 @@
 	*   Send approval message to user
 	*/
 	function sendApprovalEmail($recID, $tmp_password){
-    global $mysql;
-        $dbowner_Email = get_dbowner_email();
+    global $mysqli;
+        $dbowner_Email = get_dbowner_email($mysqli);
         if($dbowner_Email)
         {
 		//$mysqli = mysqli_connection_overwrite(DATABASE);
