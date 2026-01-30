@@ -554,6 +554,7 @@
                 "rec_AddedByUGrpID" => get_user_id(),
                 "rec_RecTypeID" => intval($rtyID),
                 "rec_ScratchPad" => @$_POST["notes"] ? $_POST["notes"]:null,
+                "rec_Title" => "",
                 "rec_OwnerUGrpID" => $owner,
                 "rec_NonOwnerVisibility" => $nonownervisibility,
                 "rec_URL" => @$_POST["rec_url"]? $_POST["rec_url"] : ""));

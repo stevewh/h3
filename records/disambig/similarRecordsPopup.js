@@ -65,21 +65,23 @@ function _popupDisambiguation(matches, continueAction) {
 			td.className = "radio";
 			td.style.padding = "5px 0";
 		var radioButton;
-		try {
+		//try {
 			// this is for IE
-			radioButton = document.createElement("<input type=radio name=choice/>");
-		} catch (e) {
-			radioButton = document.createElement("input");
-			radioButton.type = "radio";
-			radioButton.name = "choice";
-		}
-			radioButton.value = match.id;
-			radioButton.expando = 1;
-			radioButton.details = match;
-			radioButton.style.padding = 0;
-			radioButton.style.margin = 0;
-			radioButton.style.verticalAlign = "middle";
-			radioButton.onclick = function() { continueButton.disabled = false; };
+			//radioButton = document.createElement("<input type=radio name=choice/>");
+		//} catch (e) {
+		radioButton = document.createElement("input");
+		radioButton.type = "radio";
+		radioButton.name = "choice";
+		//}
+		radioButton.value = match.id;
+		radioButton.expando = 1;
+		radioButton.details = match;
+		radioButton.style.padding = 0;
+		radioButton.style.margin = 0;
+		radioButton.style.verticalAlign = "middle";
+		radioButton.onclick = function() { 
+      continueButton.disabled = false; 
+    };
 		td.appendChild(radioButton);
 		choices.push(radioButton);
 
@@ -106,18 +108,14 @@ function _popupDisambiguation(matches, continueAction) {
 		td.className = "radio";
 		td.style.padding = "5px 0";
 	var radioButton;
-	try {
-		radioButton = document.createElement("<input type=radio name=choice/>");
-	} catch (e) {
-		radioButton = document.createElement("input");
-		radioButton.type = "radio";
-		radioButton.name = "choice";
-	}
-		radioButton.value = -1;
-		radioButton.style.padding = 0;
-		radioButton.style.margin = 0;
-		radioButton.style.verticalAlign = "middle";
-		radioButton.onclick = function() { continueButton.disabled = false; };
+	radioButton = document.createElement("input");
+	radioButton.type = "radio";
+	radioButton.name = "choice";
+	radioButton.value = -1;
+	radioButton.style.padding = 0;
+	radioButton.style.margin = 0;
+	radioButton.style.verticalAlign = "middle";
+	radioButton.onclick = function() { continueButton.disabled = false; };
 	td.appendChild(radioButton);
 	choices.push(radioButton);
 

@@ -2917,13 +2917,13 @@ HAPI.XHR = {
 				name = "fr" + Math.round(Math.random() * 1000000);
 			} while (HAPI.XHR.iframePoolByName[name]);
 
-			try {
+			//try {
 				// try creating the iframe IE style
-				fr = document.createElement("<iframe name=\"" + name + "\">");
-			} catch (e) {
+			//	fr = document.createElement('<iframe name="' + name + '">');
+			//} catch (e) {
 				fr = document.createElement("iframe");
 				fr.name = name;
-			}
+			//}
 			fr.style.position = "absolute";
 			fr.style.width = fr.style.height = 0;
 			fr.frameBorder = 0;

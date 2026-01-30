@@ -190,7 +190,7 @@ if (! rectype) {  //rectype is not defined - select from dropdown
 function popupDisambiguation(matches) {
 	_popupDisambiguation(matches, function(choice) {
 		if (choice.value == -1) {
-			window.HEURIST.record.forceSave = true;
+			window.HEURIST.edit.record.forceSave = true;
 			var editFrame = document.getElementById("edit-frame");
 			editFrame.contentWindow.document.forms[0].heuristSubmit();
 		}
