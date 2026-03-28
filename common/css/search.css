@@ -1552,7 +1552,7 @@ div#layout-doc.yui-layout-doc div#yui-gen1.yui-layout-unit {
 	text-align: left;
 	overflow:hidden;
 }
-.two-col .recorddiv {
+.two-col .recordDiv {
 	margin: 0;
 	max-width: 50%;
 	padding-left: 0;
@@ -1798,7 +1798,7 @@ div#layout-doc.yui-layout-doc div#yui-gen1.yui-layout-unit {
 .thumbnails .recordDiv .recordIcons input, .thumbs .recordDiv .recordIcons input {
 	vertical-align: text-bottom;
 }
-.recorddiv.linkselected {
+.recordDiv.linkselected {
 	border-color:#B0D3FB;
 }
 
@@ -1813,46 +1813,46 @@ div#layout-doc.yui-layout-doc div#yui-gen1.yui-layout-unit {
 	-webkit-box-shadow:0 0 3px 2px #DC8501;
 	box-shadow: 0px 0px 3px 2px #DC8501;
 }
-.recorddiv.selected, .recorddiv.selected:hover {
+.recordDiv.selected, .recordDiv.selected:hover {
 	border-color:#62A7F8;
 	background:#CCC;
 	background:-moz-linear-gradient(center top, #e6f8fd, #bee4f8) repeat scroll 0 0 transparent;
 	background:-webkit-gradient(linear, left top, left bottom, from(#e6f8fd), to(#bee4f8));
 }
-.recorddiv.relateSelected, .recorddiv.relateSelected:hover {
+.recordDiv.relateSelected, .recordDiv.relateSelected:hover {
 	border-color:#62A7F8;
 	/*background:#EEF;
 	background:-moz-linear-gradient(center top, #f6fbfe, #ceedfb) repeat scroll 0 0 transparent;
 	background:-webkit-gradient(linear, left top, left bottom, from(#f6fbfe), to(#ceedfb));*/
 }
 /* related selected progress */
-.recorddiv.relateSelected2 {
+.recordDiv.relateSelected2 {
 	border:2px solid #62A7F8;
 	padding:1px;
 }
-.recorddiv.relateSelected3 {
+.recordDiv.relateSelected3 {
 	border:1px solid #62A7F8;
 	padding:2px;
 }
-.recorddiv.selected.linkselected {
+.recordDiv.selected.linkselected {
 	border-color:#62A7F8;
 	background:#CCC;
 	background:-moz-linear-gradient(center top, #e6f8fd, #bee4f8) repeat scroll 0 0 transparent;
 	background:-webkit-gradient(linear, left top, left bottom, from(#e6f8fd), to(#bee4f8));
 }
-.recorddiv.relateSelected.linkselected {
+.recordDiv.relateSelected.linkselected {
 	border-color:#62A7F8;
 	background:#CCC;
 	background:-moz-linear-gradient(center top, #f6fbfe, #ceedfb) repeat scroll 0 0 transparent;
 	background:-webkit-gradient(linear, left top, left bottom, from(#f6fbfe), to(#ceedfb));
 }
-.two-col .recorddiv.selected {
+.two-col .recordDiv.selected {
 	border-left: 1px solid #62A7F8;
 	border-right: 1px solid #62A7F8;
 	margin: 0 -2px;
 	z-index: 1;
 }
-.two-col .recorddiv .recordIcons {
+.two-col .recordDiv .recordIcons {
 	border-left: 1px solid #AAA;
 	bottom: 0;
 	height: auto;
@@ -1860,11 +1860,11 @@ div#layout-doc.yui-layout-doc div#yui-gen1.yui-layout-unit {
 	position: absolute;
 	top: 0;
 }
-.recorddiv .recordIcons {
+.recordDiv .recordIcons {
 	width:35px;
 	white-space:nowrap;
 }
-div.recorddiv:hover {
+div.recordDiv:hover {
 	-moz-box-shadow:0 1px 4px #000;
 	-webkit-box-shadow:0 1px 4px #000;
 	box-shadow:0 1px 4px #000;
@@ -2220,7 +2220,7 @@ div.allfiltered{
 .filter ul li ul {
 	overflow-y: auto
 }
-div.recorddiv:hover > #rec_edit_link {
+div.recordDiv:hover > #rec_edit_link {
 	display: block;
 }
 #recordID {
@@ -2285,7 +2285,7 @@ div.recorddiv:hover > #rec_edit_link {
 	top: 0;
 	width: auto;
 }
-div.recorddiv:hover > #recordID {
+div.recordDiv:hover > #recordID {
 	display: block
 }
 .recordTitle a.daysbad {
