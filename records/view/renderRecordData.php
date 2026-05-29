@@ -450,12 +450,14 @@ function print_private_details($bib) {
 
 				$bd['val'] = temporalToHumanReadableString($bd['val'], true);
 				$bd['val'] = output_chunker($bd['val']);
-
+                
 			}else if ($bd['dty_Type'] == 'resource') {
 
 				$res = $mysqliro->query('select rec_Title from Records where rec_ID='.intval($bd['val']));
 				$row = $res->fetch_row();
-				$bd['val'] = '<a target="_new" href="'.HEURIST_SITE_PATH.'records/view/renderRecordData.php?db='.HEURIST_DBNAME.'&recID='.$bd['val'].(defined('use_alt_db')? '&alt' : '').'" onclick="return link_open(this);">'.htmlspecialchars($row[0]).'</a>';
+        if (!is_null($row)) {
+				  $bd['val'] = '<a target="_new" href="'.HEURIST_SITE_PATH.'records/view/renderRecordData.php?db='.HEURIST_DBNAME.'&recID='.$bd['val'].(defined('use_alt_db')? '&alt' : '').'" onclick="return link_open(this);">'.htmlspecialchars($row[0]).'</a>';
+        }
 			}
 			else if ($bd['dty_Type'] == 'file'  &&  $bd['dtl_UploadedFileID']) {
 

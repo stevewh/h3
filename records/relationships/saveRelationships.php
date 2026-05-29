@@ -102,7 +102,7 @@ if ($addRecDefaults){
 		$userDefaultVisibility = $addRecDefaults[2];
 	}
 }
-
+$deletions = array();
 if (@$_REQUEST["delete"]  && $recID) {
 	$deletions = array_map("intval", $_REQUEST["delete"]);
 }
@@ -167,7 +167,8 @@ if (count(@$deletions) > 0) {
 }
 
 function saveRelationship($recID, $relTermID, $trgRecID, $interpRecID, $title, $notes, $start_date, $end_date) {
-	$relval = mysqli_fetch_assoc($mysqli->query("select trm_Label from defTerms where trm_ID = $relTermID"));
+  global $mysqli;
+  $relval = mysqli_fetch_assoc($mysqli->query("select trm_Label from defTerms where trm_ID = $relTermID"));
 	$relval = $relval['trm_Label'];
 	$srcTitle = mysqli_fetch_assoc($mysqli->query("select rec_Title from Records where rec_ID = $recID"));
 	$srcTitle = $srcTitle['rec_Title'];

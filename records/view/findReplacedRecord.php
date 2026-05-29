@@ -35,16 +35,17 @@
 
 require_once(dirname(__FILE__).'/../../common/php/dbMySqlWrappers.php');
 
-
+$mysqliro = mysqli_connection_select(DATABASE);
 
 function get_replacement_bib_id ($rec_id) {
-	$res = $mysqli->query("select rfw_NewRecID from recForwarding where rfw_OldRecID=" . intval($rec_id));
+  global $mysqliro;
+	$res = $mysqliro->query("select rfw_NewRecID from recForwarding where rfw_OldRecID=" . intval($rec_id));
 	$recurseLimit = 10;
 	while ($res->num_rows > 0) {
 		$row = $res->fetch_row();
 		$rec_id = $row[0];
 		$replaced = true;
-		$res = $mysqli->query("select rfw_NewRecID from recForwarding where rfw_OldRecID=" . $rec_id);
+		$res = $mysqliro->query("select rfw_NewRecID from recForwarding where rfw_OldRecID=" . $rec_id);
 
 		if ($recurseLimit-- === 0) { break; }
 	}

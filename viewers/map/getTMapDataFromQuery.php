@@ -42,7 +42,7 @@
 	header("Content-type: text/javascript");
 
 
-	$mysqli = mysqli_connection_select(DATABASE);
+	$mysqliro = mysqli_connection_select(DATABASE);
 
 	if (! @$_REQUEST['q']  ||  (@$_REQUEST['ver'] && intval(@$_REQUEST['ver']) < SEARCH_VERSION))
 		construct_legacy_search();      // migration path
@@ -54,11 +54,11 @@
 
 	// find all matching records
 	$cols = "rec_ID as bibID, rec_RecTypeID as rectype, rec_Title as title, rec_URL as URL";
-	$query = REQUEST_to_query($mysqli, "select $cols ", $search_type);
+	$query = REQUEST_to_query($mysqliro, "select $cols ", $search_type);
 
 	/*****DEBUG****///error_log($query);
-	$res = $mysqli->query($query);
-	print $mysqli->error;
+	$res = $mysqliro->query($query);
+	print $mysqliro->error;
 
 	$records = array();
 	$bibIDs = array();
@@ -78,7 +78,7 @@
 		// 223 thumbnail
 		// 224 images
 
-		$res = $mysqli->query("select a.dtl_Value, b.dtl_Value, rec_URL,c.dtl_UploadedFileID,d.dtl_UploadedFileID,e.dtl_UploadedFileID,f.dtl_UploadedFileID
+		$res = $mysqliro->query("select a.dtl_Value, b.dtl_Value, rec_URL,c.dtl_UploadedFileID,d.dtl_UploadedFileID,e.dtl_UploadedFileID,f.dtl_UploadedFileID
 			from Records
 			left join recDetails a on a.dtl_RecID=rec_ID and a.dtl_DetailTypeID=".(DT_SHORT_SUMMARY?DT_SHORT_SUMMARY:"303").
 			" left join recDetails b on b.dtl_RecID=rec_ID and b.dtl_DetailTypeID=".(DT_EXTENDED_DESCRIPTION?DT_EXTENDED_DESCRIPTION:"191").
@@ -92,7 +92,7 @@
 		$records[$bibID]["url"] = ($row[2] ? $row[2] : '');
 		$fileID = ($row[3] ? $row[3] : ($row[4] ? $row[4] : ($row[5] ? $row[5] :($row[6] ? $row[6] :""))));
 		if ($fileID) {
-			$fres = $mysqli->query(
+			$fres = $mysqliro->query(
 				"select file_nonce
 				from files
 				where file_id = " . intval($fileID));
@@ -105,7 +105,7 @@
 	// Find the records that actually have any geographic data to plot
 	$geoObjects = array();
 	$geoBibIDs = array();
-	$res = $mysqli->query("select dtl_RecID, dtl_Value, ST_AsText(dtl_Geo), ST_AsText(envelope(dtl_Geo)) from recDetails where dtl_Geo is not null and dtl_RecID in (" . join(",", $bibIDs) . ")");
+	$res = $mysqliro->query("select dtl_RecID, dtl_Value, ST_AsText(dtl_Geo), ST_AsText(ST_Envelope(dtl_Geo)) from recDetails where dtl_Geo is not null and dtl_RecID in (" . join(",", $bibIDs) . ")");
 	/*****DEBUG****///error_log($mysqli->error);
 	while ($val = $res->fetch_row()) {
 		// get the bounding box
@@ -190,7 +190,7 @@
 	//"
 	$dates = array();
 	$years =array();
-	$res = $mysqli->query("select rec_ID, min(d.dtl_Value), max(d.dtl_Value)
+	$res = $mysqliro->query("select rec_ID, min(d.dtl_Value), max(d.dtl_Value)
 		from Records
 		cross join defDetailTypes dt
 		left join recDetails d on d.dtl_RecID = rec_ID and d.dtl_DetailTypeID = dt.dty_ID
@@ -208,7 +208,7 @@
 		$dates[$val[0]] = array($val[1],$val[2]);
 	}
 
-	$res = $mysqli->query("select rec_ID, min(d.dtl_Value), max(d.dtl_Value)
+	$res = $mysqliro->query("select rec_ID, min(d.dtl_Value), max(d.dtl_Value)
 		from Records
 		cross join defDetailTypes yt
 		left join recDetails y on y.dtl_RecID = rec_ID and y.dtl_DetailTypeID = yt.dty_ID

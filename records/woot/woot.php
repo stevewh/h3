@@ -166,7 +166,7 @@ function getWritableChunks($wootId=NULL, $restrictToCurrent=false) {
 */
 function loadWoot($args) {
 
-	$mysqliro = mysqli_connection_select(DATABASE);
+	global $mysqliro; // = mysqli_connection_select(DATABASE);
 
 	$wootTitle = addslashes(@$args["title"]);
 	$wootId = array_key_exists('id',$args) ? intval($args["id"]): null;
@@ -291,12 +291,12 @@ function loadWoot($args) {
 
 */
 function saveWoot($args) {
-
+  global $mysqli;
 	if (! is_logged_in()) {
 		return(array("success" => false, "errorType" => "no logged-in user"));
 	}
 
-	$mysqli = mysqli_connection_overwrite(DATABASE);
+	//$mysqli = mysqli_connection_overwrite(DATABASE);
 
 	$wootId = intval(@$args["id"]);
 	$wootTitle = addslashes(@$args["title"]);
@@ -516,7 +516,7 @@ function saveWoot($args) {
 
 
 function insertPermissions($chunkId, &$chunk, $creatorId) {
-   global $mysqli;
+  global $mysqli;
 
 	$myGroups = array(-1 => true);
 	foreach (get_group_ids() as $groupId) {
@@ -577,6 +577,7 @@ function insertPermissions($chunkId, &$chunk, $creatorId) {
 }
 
 function insertWootPermissions($wootId, &$woot) {
+  global $mysqli;
 	$myGroups = array(-1 => true);
 	foreach (get_group_ids() as $groupId) {
 		$myGroups[$groupId] = true;
@@ -637,15 +638,16 @@ function insertWootPermissions($wootId, &$woot) {
 /* SEARCHING */
 
 function searchWoots($args) {
+  global $mysqliro;
 
-	$mysqli = mysqli_connection_select(DATABASE);
+//	$mysqli = mysqli_connection_select(DATABASE);
 
 	$text_search = getTextSearch($args["q"]);
 	if (! $text_search) {
 		return(array("success" => false, "errorType" => "invalid query"));
 	}
 
-	$res = $mysqli->query("select distinct woot_ID, woot_Title, woot_Version
+	$res = $mysqliro->query("select distinct woot_ID, woot_Title, woot_Version
 						  from ".WOOT_TABLE.",".CHUNK_TABLE."
 						 where woot_ID=chunk_WootID and chunk_IsLatest and !chunk_Deleted
 							   and " . $text_search . "

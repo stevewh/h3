@@ -31,12 +31,13 @@
 
 // ARTEM - used in viewRecord.php only
 
-
+$mysqliro = mysqli_connection_select(DATABASE);
 
 function have_bkmk_permissions($bkm_ID) {
+  global $mysqliro;
 
 	$bkm_ID = intval($bkm_ID);
-	$res = $mysqli->query('select * from usrBookmarks left join Records on bkm_recID=rec_ID '.
+	$res = $mysqliro->query('select * from usrBookmarks left join Records on bkm_recID=rec_ID '.
 						'where bkm_ID='.$bkm_ID.' and bkm_UGrpID='.get_user_id());
 
 	// they're not the owner
@@ -54,9 +55,10 @@ function have_bkmk_permissions($bkm_ID) {
 
 
 function canViewRecord($rec_id) {
+  global $mysqliro;
 
 	$recID = intval($rec_id);
-	$res = $mysqli->query('select * from Records where rec_ID='.$recID);
+	$res = $mysqliro->query('select * from Records where rec_ID='.$recID);
 	if ($res->num_rows < 1) return false;
 
 	$rec = $res->fetch_assoc();
@@ -67,7 +69,7 @@ function canViewRecord($rec_id) {
 	}
 
 	if ($rec['rec_OwnerUGrpID'] && function_exists("get_user_id") && get_user_id()) {
-		$res = $mysqli->query('select * from '.USERS_DATABASE.'.sysUsrGrpLinks '.
+		$res = $mysqliro->query('select * from '.USERS_DATABASE.'.sysUsrGrpLinks '.
 							'where ugl_GroupID='.intval($rec['rec_OwnerUGrpID']).
 							' and ugl_UserID='.get_user_id());
 		// they're not in the restricted workgroup

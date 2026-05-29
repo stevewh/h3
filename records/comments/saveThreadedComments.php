@@ -85,7 +85,7 @@ else if (@$cmt) {
 			"modified" => $cmt["cmt_Modified"],
 			*/
 			"user" => $cmt["ugr_FirstName"].' '.$cmt["ugr_LastName"],
-			"userID" => $cmt["cmt_OwnerUGrpID"],
+			"userID" => $cmt["cmt_OwnerUgrpID"],
 			"deleted" => false
 		)) . " })";
 }

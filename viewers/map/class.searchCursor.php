@@ -41,6 +41,7 @@ require_once(dirname(__FILE__).'/../../search/parseQueryToSQL.php');
 class Search{
   var $result;
   var $querry;
+  var $mysqliro;
 
   /**
    *  Constructor
@@ -60,7 +61,7 @@ class Search{
    *
    */
   function _dbConnect(){
-    $mysqli = mysqli_connection_select(DATABASE);
+    $this->mysqliro = mysqli_connection_select(DATABASE);
   }
 
 
@@ -71,7 +72,7 @@ class Search{
    *
    */
   function _getDBData(){
-    return $mysqli->query($this->querry);
+    return $this->mysqliro->query($this->querry);
   }
 
   /**

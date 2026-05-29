@@ -32,25 +32,27 @@
 
 	require_once(dirname(__FILE__).'/../../search/parseQueryToSQL.php');
 	require_once(dirname(__FILE__).'/../../records/files/uploadFile.php');
+	require_once(dirname(__FILE__).'/../../common/php/dbMySqlWrappers.php');
 	require_once("encodePolyline.php");
+
+	$mysqli = mysqli_connection_overwrite(DATABASE);
 
 	/**
 	* Returns array of mapobjects
-
-	 	$mapobjects = array(
-		"records"=>$geoRecords,
-		"geoObjects"=>$geoObjects,
-		"cntWithGeo"=>$cnt_geo,
-		"cntWithTime"=>$cnt_time,
-		"layers"=>$layers);
-
+	* 	$mapobjects = array(
+	*	"records"=>$geoRecords,
+	*	"geoObjects"=>$geoObjects,
+	*	"cntWithGeo"=>$cnt_geo,
+	*	"cntWithTime"=>$cnt_time,
+	*	"layers"=>$layers);
 	*/
 	function getMapObjects($request){
+  global $mysqli;
 
 	$imagelayerRT = (defined('RT_IMAGE_LAYER')?RT_IMAGE_LAYER:0);
 	$KMLlayerRT = (defined('RT_KML_LAYER')?RT_KML_LAYER:0);
 
-	$mysqli = mysqli_connection_select(DATABASE);
+	//$mysqli = mysqli_connection_select(DATABASE);
 
 	if (array_key_exists('layers', $request)) { //special mode - load ALL image layers and kml records only - for general drop down list on map
 
@@ -142,12 +144,11 @@
 		" left join recDetails j on j.dtl_RecID=rec_ID and j.dtl_DetailTypeID=".(defined('DT_SHOW_IN_MAP_BG_LIST')?DT_SHOW_IN_MAP_BG_LIST:"0").
 		" where rec_ID=$bibID";
 
-//*****DEBUG****//error_log(">>>>>>QUERY=".$squery);
+/*****DEBUG****/ error_log(">>>>>>QUERY=".$squery);
 
 		$res = $mysqli->query($squery);
 		$row = $res->fetch_row();
-		if($row)
-		{
+		if ($row) {
 			$records[$bibID]["recID"] = $bibID;
 			$records[$bibID]["rectype"] = $row[7];
 			$records[$bibID]["description"] = ( $row[0] ?$row[0] :($row[1]?$row[1]:"") );
@@ -156,7 +157,7 @@
 			$records[$bibID]["icon_url"] = HEURIST_ICON_SITE_PATH . $row[7] . ".png";;
 
 			$thumb_url = getThumbnailURL($bibID); //function from uploadFile.php
-			if($thumb_url==""){  //if thumb not defined - use rectype default thumb
+			if ($thumb_url=="") {  //if thumb not defined - use rectype default thumb
 				$thumb_url = HEURIST_ICON_SITE_PATH.	"thumb/th_" . $row[7] . ".png";
 			}
 
@@ -166,50 +167,49 @@
 				array_push($imageLayers, $row[4]);
 			}
 			$kml_path =  getKmlFilePath($row[3]); //DT_FILE_RESOURCE
-	//*****DEBUG****//error_log(">>>>>>".$row[3]."=".$kml_path);
+	/*****DEBUG****/error_log(">>>>>>".$row[3]."=".$kml_path);
 	// removed by SAW as DT_KML_FILE changed from a file base type to blocktext
 	//		if($kml_path==null){
 	//			$kml_path =  getKmlFilePath($row[6]); //DT_KML_FILE
 	//			}
-			if($kml_path!=null){
+			if ($kml_path!=null) {
 				array_push($geoObjects, array("bibID" => $bibID, "type" => "kmlfile", "fileid" => $kml_path, "title" => $row[8], "isbackground"=>$row[9]));
 				$geoBibIDs[$bibID] = $bibID;
-			}else if ($row[5]) { //DT_KML dtl_value contains KML		saw TODO: modify to check that text is valid KML.
+			} else if ($row[5]) { //DT_KML dtl_value contains KML		saw TODO: modify to check that text is valid KML.
 				array_push($geoObjects, array("bibID" => $bibID, "type" => "kml", "recid" => $bibID, "title" => $row[8]));
 				$geoBibIDs[$bibID] = $bibID;
 			}
-		}
-	}//for
+		}//if $row
+	}//foreach
 
-	if($bibIDs && count($bibIDs)>0)
-	{
+	if ($bibIDs && count($bibIDs)>0) {
 	// Find the records that actually have any geographic data to plot
-	$res = $mysqli->query("select dtl_RecID, dtl_Value, ST_AsText(dtl_Geo), ST_AsText(envelope(dtl_Geo)) from recDetails where dtl_Geo is not null and dtl_RecID in (" . join(",", $bibIDs) . ")");
-if($mysqli->error) {
-	error_log("ERROR in ShowMap=".$mysqli->error);
-}
-	if($res){
-		while ($val = $res->fetch_row()) {
-			// get the bounding box
-			if (preg_match("/POLYGON\\(\\((\\S+)\\s+(\\S+),\\s*(\\S+)\\s+(\\S+),\\s*(\\S+)\\s+(\\S+),\\s*(\\S+)\\s+(\\S+),\\s*\\S+\\s+\\S+\\)\\)/i", $val[3], $matches)) {
-				$bbox = array("w" => floatval($matches[1]), "s" => floatval($matches[2]), "e" => floatval($matches[5]), "n" => floatval($matches[6]));
-			}
-			else $bbox = null;
+  	$res = $mysqli->query("select dtl_RecID, dtl_Value, ST_AsText(dtl_Geo), ST_AsText(ST_Envelope(dtl_Geo)) from recDetails where dtl_Geo is not null and dtl_RecID in (" . join(",", $bibIDs) . ")");
+    if ($mysqli->error) {
+      error_log("ERROR in ShowMap=".$mysqli->error);
+    }
+  	if ($res) {
+  		while ($val = $res->fetch_row()) {
+  			// get the bounding box
+  			if (preg_match("/POLYGON\\(\\((\\S+)\\s+(\\S+),\\s*(\\S+)\\s+(\\S+),\\s*(\\S+)\\s+(\\S+),\\s*(\\S+)\\s+(\\S+),\\s*\\S+\\s+\\S+\\)\\)/i", $val[3], $matches)) {
+  				$bbox = array("w" => floatval($matches[1]), "s" => floatval($matches[2]), "e" => floatval($matches[5]), "n" => floatval($matches[6]));
+  			}
+  			else $bbox = null;
 
-			$geoobj = parseValueFromDb($val[0], $val[1], $val[2], $bbox);
-			if($geoobj){
-				array_push($geoObjects, $geoobj);
-				$geoBibIDs[$val[0]] = $val[0];
-			}
+  			$geoobj = parseValueFromDb($val[0], $val[1], $val[2], $bbox);
+  			if ($geoobj) {
+  				array_push($geoObjects, $geoobj);
+  				$geoBibIDs[$val[0]] = $val[0];
+  			}
 
 
 
-/*****DEBUG****///error_log("ADDED1:".is_string($val[0])."    ".$geoBibIDs[$val[0]]);
-/*****DEBUG****///error_log("1>>>>>>".$geoBibIDs[$val[0]]);
-/*****DEBUG****///error_log("2>>>>>>".$geoBibIDs["97025"]);
-/*****DEBUG****///error_log("3>>>>>>".$geoBibIDs[$bibID]);
-		}
-	}
+  /*****DEBUG****///error_log("ADDED1:".is_string($val[0])."    ".$geoBibIDs[$val[0]]);
+  /*****DEBUG****///error_log("1>>>>>>".$geoBibIDs[$val[0]]);
+  /*****DEBUG****///error_log("2>>>>>>".$geoBibIDs["97025"]);
+  /*****DEBUG****///error_log("3>>>>>>".$geoBibIDs[$bibID]);
+  		}
+  	}
 	}//$bibIDs!=null
 
 	// OLD WAY TO STORE GEO DATA - directly in dtl_value as dettypes: 210(long) and 211(lat)
@@ -224,12 +224,12 @@ if($mysqli->error) {
 */
 	// some records may contain reference to map image layer record (dettype 588),
 	// but we may have such records in search result as well rectype=$imagelayerRT
-	if($bibIDs && count($bibIDs)>0){
+	if ($bibIDs && count($bibIDs)>0) {
 		$squery = "select rec_ID  from Records
 							 where rec_ID in (" . join(",", $bibIDs) . ") and rec_RecTypeID=$imagelayerRT";
-/*****DEBUG****///error_log($squery);
+/*****DEBUG****/error_log('>>>>>QUERY image layers   '.$squery);
 		$res = $mysqli->query($squery);
-		if($res){
+		if ($res) {
 			while ($val = $res->fetch_row()) {
 				array_push($imageLayers, $val[0]);
 				$geoBibIDs[$val[0]] = $val[0];
@@ -240,7 +240,7 @@ if($mysqli->error) {
 
 	$layers = array();
 	//find image layers
-	if(count($imageLayers)>0){
+	if (count($imageLayers)>0) {
 
 		$squery = "select rec_ID, a.dtl_Value as title,".
 		" (select trm_Label from defTerms where trm_ID=b.dtl_Value) as type,".
@@ -257,7 +257,7 @@ if($mysqli->error) {
 		" left join recDetails g on g.dtl_RecID=rec_ID and g.dtl_DetailTypeID=".(defined('DT_ALTERNATE_NAME')?DT_ALTERNATE_NAME:"0").
 		" left join recDetails j on j.dtl_RecID=rec_ID and j.dtl_DetailTypeID=".(defined('DT_SHOW_IN_MAP_BG_LIST')?DT_SHOW_IN_MAP_BG_LIST:"0").
 		" where rec_ID in (" . join(",", $imageLayers) . ")";
-/*****DEBUG****///error_log($squery);
+/*****DEBUG****/error_log($squery);
 		$res = $mysqli->query($squery);
 /*****DEBUG****///error_log($mysqli->error);
 		while ($rec = $res->fetch_assoc()) {
@@ -384,7 +384,7 @@ if($mysqli->error) {
 			}
 		}
 
-		$res = $mysqli->query("select rec_ID, min(d.dtl_Value), max(d.dtl_Value)
+		$res = $mysqli->query("select rec_ID, min(y.dtl_Value), max(y.dtl_Value)
 		from Records
 		cross join defDetailTypes yt
 		left join recDetails y on y.dtl_RecID = rec_ID and y.dtl_DetailTypeID = yt.dty_ID
@@ -479,6 +479,8 @@ if($mysqli->error) {
 	*/
 
 	function getKmlFilePath($fileID){
+    global $mysqli;
+  
 		if ($fileID) {/* search for KML file */
 			$fres = $mysqli->query(
 			"select ulf_ObfuscatedFileID, ulf_MimeExt, ulf_FileName from recUploadedFiles where ulf_ID = ".intval($fileID));
