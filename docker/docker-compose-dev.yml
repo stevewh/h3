@@ -1,13 +1,15 @@
-name: 'h3prod'
+name: 'h3dev'
 
 services: 
   mydb:
     build: ./mysql
-    restart: always
+    restart: unless-stopped
     secrets:
       - mysql_root_password
     environment:
       MYSQL_ROOT_PASSWORD_FILE: /run/secrets/mysql_root_password
+    env_file:
+      - ./php-apache-dev/.env
     volumes:
       - ${MYSQL_DATA_DIR}:/var/lib/mysql # using relative path to bind host dir to persist mysql data
       - ${HEURISTFILE_STORE}:/var/heuristfilestore # using relative path to bind host dir to /var/heuristfilestore
@@ -18,21 +20,26 @@ services:
     build: ./myadmin
     restart: unless-stopped
     environment: 
-      PMA_HOST: mydb
-#     PMA_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+     PMA_HOST: mydb
+     PMA_PASSWORD_: ${MYSQL_ROOT_PASSWORD}
+    env_file:
+      - ./php-apache-dev/.env
     ports:
       - "8080:80" # "host_port:container_port". phpmyadmin can be found from host browser as localhost:8080
     volumes: 
       - ${HEURISTFILE_STORE}:/var/heuristfilestore # using relative path to bind host dir to /var/heuristfilestore
       - ${MYADMIN_DIR}:/var/lib/myadmin # using relative path to bind host dir to /myadmin_queries
       - ${MYADMIN_STORAGE_DIR}:/var/lib/myadmin/storage
+#      - ../../../heuristfilestore:/var/heuristfilestore # using relative path to bind host dir to /var/heuristfilestore
+#      - ../../../heuristfilestore/myadmin:/var/lib/myadmin # using relative path to bind host dir to /myadmin_queries
+#      - ../../../heuristfilestore/myadminstorage:/var/lib/myadmin/storage
     depends_on: 
-      - mydb
+     - mydb
 #      mydb:
 #        condition: service_healthy
-      
+       
   h3zag:
-    build: ./php-apache
+    build: ./php-apache-dev
     ports:
       - "80:80" # map container port 80 to host port 80. This will allow the use of localhost directly
     extra_hosts:
@@ -55,6 +62,8 @@ services:
       MYSQL_SERVERNAME_FILE: /run/secrets/mysql_servername
       HEURIST_SERVERNAME_FILE: /run/secrets/heurist_servername
       HDEFAULT_DBNAME_FILE: /run/secrets/hdefault_dbname
+    env_file:
+      - ./php-apache-dev/.env
     volumes: 
       - ${PATH_TO_HEURIST_SITE}:/var/www/html/ # path_to_workspaceroot:absolute path in apache container for document root
       - ${HEURISTFILE_STORE}:/var/www/html/HEURIST_FILESTORE # path_to_database_sql files:absolute path to apache container of heuristfilestore
@@ -98,3 +107,36 @@ secrets:
     file: ${SECRETS_BASE_PATH}/heurist_servername.txt
   hdefault_dbname:
     file: ${SECRETS_BASE_PATH}/hdefault_dbname.txt
+
+#  redis:
+#    image: 'redis:3.0-alpine'
+#    command: redis-server --requirepass devpassword
+#    volumes:
+#      - 'redis:/var/lib/redis/data'
+#    ports:
+#      - '6379:6379'
+
+#  readmin:
+#    build: ../admin
+#    command: >
+#      gunicorn -b 0.0.0.0:8000
+#        --access-logfile -
+#        --reload
+#        --workers=2
+#        "wsgi:application"
+#    environment:
+#      PYTHONUNBUFFERED: 'true'
+#    env_file:
+#      - ../.env
+#    volumes:
+#      - '../admin:/readadmin'
+#      - sharebin:/usr/bin # share mysql tools with php server to help maintain databases
+#      - ../../../heuristfilestore:/var/www/heuristfilestore # path_to_database_sql's:absolute path to apache container of readfilestore
+#    ports:
+#      - '8001:8000'
+
+#volumes: #these volumes will be saved in docker storage until deleted
+#  sharebin:
+#  db-data:
+#  db-pgadmin:
+#  redis:

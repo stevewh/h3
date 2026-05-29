@@ -34,26 +34,56 @@
 // [server]
 // enter the server name or IP address of your Web server, null will pull SERVER_NAME from the request header
 // for example $serverName = "heuristscholar.org";  Be sure to include teh port if not port 80
-$serverName = null; // override default taken from request header SERVER_NAME
+$filepath = getenv("HEURIST_SERVERNAME_FILE");
+if ($filepath === false || trim($filepath) === ''){
+    $serverName = null; // override default taken from request header SERVER_NAME
+} else {
+    $serverName = file_get_contents($filepath);
+}
 
 // [database]
 // enter the host name or IP address of your MySQL server, blank --> localhost
 // for example $dbHost = "heuristscholar.org";  will cause the code to use mysql on the server at heuristscholar.org
 //$dbHost = "zag-db-pro-1.ucc.usyd.edu.au"; // required
-$dbHost = "mydb"; // required
+$filepath = getenv("MYSQL_SERVERNAME_FILE");
+if ($filepath === false || trim($filepath) === ''){
+    $dbHost = null; // override default taken from request header SERVER_NAME
+} else {
+    $dbHost = file_get_contents($filepath);
+}
 
 // MySQL user with full write (create) access on this database server
 // The default installation of MySql gives you "root" as the master user with whatever password you set up for this,
 // but you can specify another user and password with full access if preferred
-$dbAdminUsername = "rwZAGDB"; // required
-$dbAdminPassword = "rwZAG4zagora"; //required
+$filepath = getenv("HRW_USER_FILE");
+if ($filepath === false || trim($filepath) === ''){
+    $dbAdminUsername = "hrw_user";
+} else {
+    $dbAdminUsername = file_get_contents($filepath);
+}
+$filepath = getenv("HRW_PASS_FILE");
+if ($filepath === false || trim($filepath) === ''){
+    $dbAdminPassword = "hrw_userpwd"; 
+} else {
+    $dbAdminPassword = file_get_contents($filepath);
+}
 
 // MySQL user with readonly access on this database server
 // For example, if there is a user account "readonly" with a password "readonlypwd", then you would use:
 // $dbReadonlyUsername = "readonly";
 // $dbAReadonlyPassword = "readonlypwd";
-$dbReadonlyUsername = "roZAGDB"; // required
-$dbReadonlyPassword = "roZAG4zagora"; //required
+$filepath = getenv("HRO_USER_FILE");
+if ($filepath === false || trim($filepath) === ''){
+    $dbReadonlyUsername = "hro_user";
+} else {
+    $dbReadonlyUsername = file_get_contents($filepath);
+}
+$filepath = getenv("HRO_PASS_FILE");
+if ($filepath === false || trim($filepath) === ''){
+    $dbReadonlyPassword = "hro_userpwd";
+} else {
+    $dbReadonlyPassword = file_get_contents($filepath);
+}
 
 // dbPrefix will be prepended to all database names so that you can easily distinguish Heurist databases on your database server
 // from other MySQL databases. Some Admin tools such as PHPMyAdmin will group databases with common prefixes ending in underscore
@@ -64,14 +94,24 @@ $dbPrefix = "hdb_"; // recommended
 // If the users of this server nearly always use a shared database eg. a workgroup database of web bookmarks, bibliographic or other research data,
 // specify its name here. DO NOT include the prefix, this will be added automatically.
 // If defaultDBName is blank, a list of available databases will be displayed on startup if none is specified
-$defaultDBname = "zagora"; // may be left blank
+$filepath = getenv("HDEFAULT_DBNAME_FILE");
+if ($filepath === false || trim($filepath) === ''){
+    $defaultDBname = "";
+} else {
+    $defaultDBname = file_get_contents($filepath);
+}
 
 // The HTTP address:port of the proxy server that will allow access to the internet for external URI's
 // this address will allow heurist to request content through the firewall for general Internet URI's
 $httpProxy = ""; // blank = assumes direct internet access from server - ok for laptop installations.
 
 // A challenge password for creation of new databsaes. If left blank, any logged in user can create a new database
-$passwordForDatabaseCreation="AandBzap"; // blank = any logged in user can create
+$filepath = getenv("HPWD_4DBCREATE_FILE");
+if ($filepath === false || trim($filepath) === ''){
+    $passwordForDatabaseCreation = "dbCreatePwd";
+} else {
+    $passwordForDatabaseCreation = file_get_contents($filepath);
+}
 
 // [folders]
 
@@ -100,15 +140,24 @@ $siteRelativeIconUploadBasePath = ""; // recommended
 // email address for the system administrator/installer of Heurist
 // where you would like Heurist to deliver system alerts.
 // Leaving this blank will suppress system alert emails
-$sysAdminEmail = "stephenawhite@hotmail.com"; // recommended
+$sysAdminEmail = getenv("ADMIN_EMAIL");
+if ($sysAdminEmail === false || trim($sysAdminEmail) === ''){
+    $sysAdminEmail = "";
+}
 
 // email address to which info@<installation server> will be redirected.
 // Leaving this blank will suppress info inquiry emails
-$infoEmail = "stephenawhite@hotmail.com"; // recommended
+$infoEmail = getenv("INFO_EMAIL");
+if ($infoEmail === false || trim($infoEmail) === ''){
+    $infoEmail = "stephenawhite@hotmail.com"; // recommended
+}
 
 // email address to which bug reports will be sent.
 // Leaving this blank will send to heurist development
-$bugEmail = ""; // recommended
+$bugEmail = getenv("BUG_EMAIL");
+if ($bugEmail === false || trim($bugEmail) === ''){
+    $bugEmail = "stephenawhite@hotmail.com"; // recommended
+}
 
 
 // system default file - if a heuristConfigIni.php file exists in the parent directory of the installation,
