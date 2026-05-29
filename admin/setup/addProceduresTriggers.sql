@@ -303,7 +303,7 @@ DELIMITER $$
 	TRIGGER `insert_Details_precis_trigger`
 	BEFORE INSERT ON `recDetails`
 	FOR EACH ROW
-		begin set NEW.dtl_ValShortened = ifnull(liposuction(NEW.dtl_Value), ''); end$$
+		begin set NEW.dtl_ValShortened = substring(ifnull(liposuction(NEW.dtl_Value), ''),1,63); end$$
 
 DELIMITER ;
 DELIMITER $$
@@ -357,7 +357,7 @@ DELIMITER $$
 		if asbinary(NEW.dtl_Geo)=asbinary(OLD.dtl_Geo) then
 			set NEW.dtl_Geo = OLD.dtl_Geo;
 		end if;
-		set NEW.dtl_ValShortened = ifnull(liposuction(NEW.dtl_Value), '');
+		set NEW.dtl_ValShortened = substring(ifnull(liposuction(NEW.dtl_Value), ''),1,63);
 	end$$
 
 DELIMITER ;
