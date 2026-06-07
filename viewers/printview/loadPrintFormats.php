@@ -93,15 +93,20 @@
 				fclose($handle);
 
 				if (preg_match('/<xsl:comment>/i', $contents)){
-
+          $out = $name = null;
+          
 					$out1 = explode('[output]', $contents);
-					$out = explode ('[/output]', $out1[1]);
+          if (is_array($out1) && count($out1) > 1) {
+					  $out = explode ('[/output]', $out1[1]);
+          }
 
 					$name1 = explode('[name]', $contents);
-					$name = explode('[/name]', $name1[1]);
+          if (is_array($name1) && count($name1) > 1) {
+					  $name = explode('[/name]', $name1[1]);
+          }
 
 					//if not empty, read in the styles
-					if ($out[0] && $name[0]){
+					if ( is_array($out) && !empty($out[0]) && $name && is_array($name) && !empty($name[0])){
 						$arr_outputs[$name[0]] = array($out[0],$filePath);
 					}
 				}
