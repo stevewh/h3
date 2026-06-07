@@ -7,10 +7,10 @@ services:
     secrets:
       - mysql_root_password
     environment:
+      # maps the filepath to the mysql root password secret to the MYSQL_ROOT_PASSWORD environment variable in the container. This allows the mysql server to read the root password from the secret file when it starts up. 
       MYSQL_ROOT_PASSWORD_FILE: /run/secrets/mysql_root_password
-    env_file:
-      - ./php-apache-dev/.env
     volumes:
+      # .env file used in the docker compose --env-file command defines the path on the host machine
       - ${MYSQL_DATA_DIR}:/var/lib/mysql # using relative path to bind host dir to persist mysql data
       - ${HEURISTFILE_STORE}:/var/heuristfilestore # using relative path to bind host dir to /var/heuristfilestore
     ports:
@@ -22,11 +22,10 @@ services:
     environment: 
      PMA_HOST: mydb
      PMA_PASSWORD_: ${MYSQL_ROOT_PASSWORD}
-    env_file:
-      - ./php-apache-dev/.env
     ports:
       - "8080:80" # "host_port:container_port". phpmyadmin can be found from host browser as localhost:8080
     volumes: 
+      # .env file used in the docker compose --env-file command defines the path on the host machine
       - ${HEURISTFILE_STORE}:/var/heuristfilestore # using relative path to bind host dir to /var/heuristfilestore
       - ${MYADMIN_DIR}:/var/lib/myadmin # using relative path to bind host dir to /myadmin_queries
       - ${MYADMIN_STORAGE_DIR}:/var/lib/myadmin/storage
@@ -62,9 +61,8 @@ services:
       MYSQL_SERVERNAME_FILE: /run/secrets/mysql_servername
       HEURIST_SERVERNAME_FILE: /run/secrets/heurist_servername
       HDEFAULT_DBNAME_FILE: /run/secrets/hdefault_dbname
-    env_file:
-      - ./php-apache-dev/.env
     volumes: 
+      # .env file used in the docker compose --env-file command defines the path on the host machine
       - ${PATH_TO_HEURIST_SITE}:/var/www/html/ # path_to_workspaceroot:absolute path in apache container for document root
       - ${HEURISTFILE_STORE}:/var/www/html/HEURIST_FILESTORE # path_to_database_sql files:absolute path to apache container of heuristfilestore
       - ${ZAP_WWWDATA_DIR}:/var/www/ZAPData # path_to_database_sql files:absolute path to apache container of heuristfilestore
@@ -89,24 +87,25 @@ services:
     command: memcached -m 64 -o modern
 
 secrets:
+  # paths below assumes docker directory is sibling to secrets directory. Adjust paths if your directory structure is different.
   mysql_root_password:
-    file: ${SECRETS_BASE_PATH}/mysql_root_password.txt
+    file: ../secrets/mysql_root_password.txt
   hro_username:
-    file: ${SECRETS_BASE_PATH}/hro_username.txt
+    file: ../secrets/hro_username.txt
   hro_password:
-    file: ${SECRETS_BASE_PATH}/hro_password.txt
+    file: ../secrets/hro_password.txt
   hrw_username:
-    file: ${SECRETS_BASE_PATH}/hrw_username.txt
+    file: ../secrets/hrw_username.txt
   hrw_password:
-    file: ${SECRETS_BASE_PATH}/hrw_password.txt
+    file: ../secrets/hrw_password.txt
   hpwd_4dbcreate:
-    file: ${SECRETS_BASE_PATH}/hpwd_4dbcreate.txt
+    file: ../secrets/hpwd_4dbcreate.txt
   mysql_servername:
-    file: ${SECRETS_BASE_PATH}/mysql_servername.txt
+    file: ../secrets/mysql_servername.txt
   heurist_servername:
-    file: ${SECRETS_BASE_PATH}/heurist_servername.txt
+    file: ../secrets/heurist_servername.txt
   hdefault_dbname:
-    file: ${SECRETS_BASE_PATH}/hdefault_dbname.txt
+    file: ../secrets/hdefault_dbname.txt
 
 #  redis:
 #    image: 'redis:3.0-alpine'

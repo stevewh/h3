@@ -9,19 +9,15 @@
         "type": "php",
         "request": "launch",
         "port": 9003,
-//        "hostname": "localhost",
-//        "stopOnEntry": true,
-//        "pathMappings": {
-//          "/var/www/html/h3zag/": "${workspaceRoot}"
-//        }
       },
       {
         "name": "Listen on Docker for XDebug",
         "type": "php",
         "request": "launch",
         "port": 9003,
+        "log": true,    //# Log debug adapter activity (optional, for troubleshooting)
         "pathMappings": {
-          "/var/www/html": "${workspaceRoot}"
+          "/var/www/html": "${workspaceFolder}"
         }
       },
       {

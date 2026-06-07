@@ -118,7 +118,7 @@ if (@$broken) {
 if (@$collected) {
 	session_start();
 	$collection = &$_SESSION[HEURIST_SESSION_DB_PREFIX.'heurist']['record-collection'];
-	if (count($collection) > 0) {
+	if ($collection && count($collection) > 0) {
 		$query = str_replace(' where ', ' where rec_ID in (' . join(',', array_keys($collection)) . ') and ', $query);
 	} else {
 		$query = str_replace(' where ', ' where 0 and ', $query);
@@ -257,10 +257,10 @@ if (top.HEURIST && top.HEURIST.firedEvents["heurist-search-html-loaded"] && top.
 		if ($num_rows <= SEARCH_SET_SAVE_LIMIT) {
 			array_push($_SESSION[HEURIST_SESSION_DB_PREFIX.'heurist']['search-results'][$sid]["infoByDepth"][0]["recIDs"], $row[2]);
 			$_SESSION[HEURIST_SESSION_DB_PREFIX.'heurist']['search-results'][$sid]["infoByDepth"][0]["count"]++;
-			if (!@$_SESSION[HEURIST_SESSION_DB_PREFIX.'heurist']['search-results'][$sid]["recSet"][$row[2]]){
+			if (!array_key_exists($row[2],$_SESSION[HEURIST_SESSION_DB_PREFIX.'heurist']['search-results'][$sid]["recSet"])){
 				$_SESSION[HEURIST_SESSION_DB_PREFIX.'heurist']['search-results'][$sid]["recSet"][$row[2]] = array("depth" => $resDepth,
 																												"record" => $row);
-		if (!@$_SESSION[HEURIST_SESSION_DB_PREFIX.'heurist']['search-results'][$sid]['infoByDepth'][0]['rectypes'][$row[4]]) {
+		if (!array_key_exists($row[4], $_SESSION[HEURIST_SESSION_DB_PREFIX.'heurist']['search-results'][$sid]['infoByDepth'][0]['rectypes'])) {
 			$_SESSION[HEURIST_SESSION_DB_PREFIX.'heurist']['search-results'][$sid]['infoByDepth'][0]['rectypes'][$row[4]] = array($row[2]);
 		} else if ( !in_array($row[2],$_SESSION[HEURIST_SESSION_DB_PREFIX.'heurist']['search-results'][$sid]['infoByDepth'][0]['rectypes'][$row[4]])){
 			array_push($_SESSION[HEURIST_SESSION_DB_PREFIX.'heurist']['search-results'][$sid]['infoByDepth'][0]['rectypes'][$row[4]],$row[2]);

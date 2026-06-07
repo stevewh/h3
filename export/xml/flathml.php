@@ -768,39 +768,42 @@ function outputRecord($recordInfo, $recInfos, $outputStub = false, $parentID = n
             $attrs = array();
             if ($details = $relRec['details']) {
                 if ($details[$relTrgDT]) {
-                    list($key, $value) = each($details[$relTrgDT]);
-                    $toRecord = $value;
-                    if (intval($toRecord['id']) != $recID) {
-                        $relatedRecID = $toRecord['id'];
-                    } else {
-                        $attrs['useInverse'] = 'true';
-                        if ($details[$relSrcDT]) {
-                            list($key, $value) = each($details[$relSrcDT]);
-                            $fromRecord = $value;
-                            if (intval($fromRecord['id']) != $recID) {
-                                $relatedRecID = $fromRecord['id'];
+                    foreach ($details[$relTrgDT] as $key => $value) {
+                        $toRecord = $value;
+                        if (intval($toRecord['id']) != $recID) {
+                            $relatedRecID = $toRecord['id'];
+                        } else {
+                            $attrs['useInverse'] = 'true';
+                            if ($details[$relSrcDT]) {
+                                foreach ($details[$relTrgDT] as $key => $value) {
+                                    $fromRecord = $value;
+                                    if (intval($fromRecord['id']) != $recID) {
+                                        $relatedRecID = $fromRecord['id'];
+                                    }
+                                }
                             }
                         }
                     }
                 }
                 if ($details[$relTypDT]) {
-                    list($key, $value) = each($details[$relTypDT]);
-                    preg_replace("/-/", "", $value);
-                    $trmID = $value;
-                    if ($trmID) { //saw Enum change
-                        $attrs['type'] = $TL[$trmID]['trm_Label'];
-                        $attrs['termID'] = $trmID;
-                        $attrs['termConceptID'] = getTermConceptID($trmID);
-                        if ($TL[$trmID]['trm_Code']) {
-                            $attrs['code'] = $TL[$trmID]['trm_Code'];
-                        };
-                        if ($relatedRecID) {
-                            $attrs['relatedRecordID'] = $relatedRecID;
-                        }
-                        if (array_key_exists($trmID, $INV) && $INV[$trmID]) {
-                            $attrs['inverse'] = $TL[$INV[$trmID]]['trm_Label'];
-                            $attrs['invTermID'] = $INV[$trmID];
-                            $attrs['invTermConceptID'] = getTermConceptID($INV[$trmID]);
+                    foreach($details[$relTypDT] as $key => $value) {
+                        preg_replace("/-/", "", $value);
+                        $trmID = $value;
+                        if ($trmID) { //saw Enum change
+                            $attrs['type'] = $TL[$trmID]['trm_Label'];
+                            $attrs['termID'] = $trmID;
+                            $attrs['termConceptID'] = getTermConceptID($trmID);
+                            if ($TL[$trmID]['trm_Code']) {
+                                $attrs['code'] = $TL[$trmID]['trm_Code'];
+                            };
+                            if ($relatedRecID) {
+                                $attrs['relatedRecordID'] = $relatedRecID;
+                            }
+                            if (array_key_exists($trmID, $INV) && $INV[$trmID]) {
+                                $attrs['inverse'] = $TL[$INV[$trmID]]['trm_Label'];
+                                $attrs['invTermID'] = $INV[$trmID];
+                                $attrs['invTermConceptID'] = getTermConceptID($INV[$trmID]);
+                            }
                         }
                     }
                 }
@@ -815,36 +818,39 @@ function outputRecord($recordInfo, $recInfos, $outputStub = false, $parentID = n
             $attrs = array();
             if ($details = $relRec['details']) {
                 if ($details[$relTrgDT]) {
-                    list($key, $value) = each($details[$relTrgDT]);
-                    $toRecord = $value;
-                    if (intval($toRecord['id']) != $recID) {
-                        $relatedRecID = $toRecord['id'];
-                    } else {
-                        $attrs['useInverse'] = 'true';
-                        if ($details[$relSrcDT]) {
-                            list($key, $value) = each($details[$relSrcDT]);
-                            $fromRecord = $value;
-                            if (intval($fromRecord['id']) != $recID) {
-                                $relatedRecID = $fromRecord['id'];
+                    foreach($details[$relTrgDT] as $key => $value) {
+                        $toRecord = $value;
+                        if (intval($toRecord['id']) != $recID) {
+                            $relatedRecID = $toRecord['id'];
+                        } else {
+                            $attrs['useInverse'] = 'true';
+                            if ($details[$relSrcDT]) {
+                                foreach($details[$relSrcDT] as $key => $value) {
+                                    $fromRecord = $value;
+                                    if (intval($fromRecord['id']) != $recID) {
+                                        $relatedRecID = $fromRecord['id'];
+                                    }
+                                }
                             }
                         }
                     }
                 }
                 if ($details[$relTypDT]) {
-                    list($key, $value) = each($details[$relTypDT]);
-                    preg_replace("/-/", "", $value);
-                    $trmID = $value;
-                    if ($trmID) { //saw Enum change
-                        $attrs['type'] = $TL[$trmID]['trm_Label'];
-                        $attrs['termID'] = $trmID;
-                        $attrs['termConceptID'] = getTermConceptID($trmID);
-                        if ($relatedRecID) {
-                            $attrs['relatedRecordID'] = $relatedRecID;
-                        }
-                        if (array_key_exists($trmID, $INV) && $INV[$trmID]) {
-                            $attrs['inverse'] = $TL[$INV[$trmID]]['trm_Label'];
-                            $attrs['invTermID'] = $INV[$trmID];
-                            $attrs['invTermConceptID'] = getTermConceptID($INV[$trmID]);
+                    foreach($details[$relTypDT] as $key => $value) {
+                        preg_replace("/-/", "", $value);
+                        $trmID = $value;
+                        if ($trmID) { //saw Enum change
+                            $attrs['type'] = $TL[$trmID]['trm_Label'];
+                            $attrs['termID'] = $trmID;
+                            $attrs['termConceptID'] = getTermConceptID($trmID);
+                            if ($relatedRecID) {
+                                $attrs['relatedRecordID'] = $relatedRecID;
+                            }
+                            if (array_key_exists($trmID, $INV) && $INV[$trmID]) {
+                                $attrs['inverse'] = $TL[$INV[$trmID]]['trm_Label'];
+                                $attrs['invTermID'] = $INV[$trmID];
+                                $attrs['invTermConceptID'] = getTermConceptID($INV[$trmID]);
+                            }
                         }
                     }
                 }
