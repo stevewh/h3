@@ -45,6 +45,7 @@
 <script src="../external/jquery/jquery-1.6.min.js"></script>
 
 <link rel="stylesheet" type="text/css" href="../external/yui/2.8.2r1/build/menu/assets/skins/sam/menu.css">
+<script type="text/javascript" src="../external/yui/2.8.2r1/build/yahoo/yahoo-min.js"></script>
 <script type="text/javascript" src="../external/yui/2.8.2r1/build/yahoo-dom-event/yahoo-dom-event.js"></script>
 <script type="text/javascript" src="../external/yui/2.8.2r1/build/json/json-min.js"></script>
 <script type="text/javascript" src="../external/yui/2.8.2r1/build/container/container_core-min.js"></script>
@@ -143,11 +144,11 @@
 			top.HEURIST.loadScript(hBase+"common/php/loadUserInfo.php" +
 			(database ? "?db=" + database : "")); // user-specific HEURIST data
 
-			top.HEURIST.whenLoaded(["search-html", "obj-common"], top.HEURIST.util.setDBName);
-			top.HEURIST.whenLoaded(["search-html", "obj-common"], top.HEURIST.util.setDocumentTitle);
-			top.HEURIST.whenLoaded(["search-html", "obj-common"], top.HEURIST.util.setVersion);
+			top.HEURIST.whenLoaded(["search-html", "obj-common", "utilsUI"], () => { top.HEURIST.util.setDBName();});
+			top.HEURIST.whenLoaded(["search-html", "obj-common", "utilsUI"], () => { top.HEURIST.util.setDocumentTitle();});
+			top.HEURIST.whenLoaded(["search-html", "obj-common", "utilsUI"], () => { top.HEURIST.util.setVersion();});
 
-			top.HEURIST.whenLoaded(["search-html", "obj-common", "search-js", "search-layout"], function() {
+			top.HEURIST.whenLoaded(["search-html", "obj-common", "utilsUI", "search-js", "search-layout"], function() {
 /* ART 2012-11-23
 				var action_fr = document.getElementById("i_action");
 				action_fr.src = top.HEURIST.basePath+ "search/actions/actionHandler.php" +
@@ -168,7 +169,7 @@
 				}
 			});
 
-			top.HEURIST.whenLoaded(["search-html", "obj-common", "obj-user", "search-js"], function() {
+			top.HEURIST.whenLoaded(["search-html", "obj-common", "utilsUI", "obj-user", "search-js"], function() {
 				// register handlers and render non-static elements of page
 				top.HEURIST.search.setupSearchPage();
 			});

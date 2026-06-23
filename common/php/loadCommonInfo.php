@@ -182,7 +182,12 @@ top.HEURIST.ratings = {"0": "not rated",
 
 ?>
 
-if (typeof top.HEURIST.fireEvent == "function") top.HEURIST.fireEvent(window, "heurist-obj-common-loaded");
+if (typeof top.HEURIST.fireEvent == "function") {
+  top.HEURIST.fireEvent(window, "heurist-obj-common-loaded");
+  console.log("fired heurist-obj-common-loaded");
+} else {
+  console.log("top.HEURIST.fireEvent is not a function");
+}
 
 <?php
 	ob_end_flush();

@@ -2281,3 +2281,5 @@ function createCustomAlert(txt,args) {
 function removeCustomAlert() {
     document.getElementsByTagName("body")[0].removeChild(document.getElementById("modalContainer"));return;
 }
+
+top.HEURIST.fireEvent(window, "heurist-utilsUI-loaded");

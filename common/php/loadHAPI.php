@@ -85,6 +85,10 @@ require_once(dirname(__FILE__)."/../config/initialise.php");
 require_once("dbMySqlWrappers.php");
 
 ?>
-
-document.write("<" + "scr" +"ipt src=\"<?=HEURIST_BASE_URL?>hapi/hapiLoader.php?db=<?= HEURIST_DBNAME ?><?=(array_key_exists('inclGeo', $_REQUEST) && $_REQUEST["inclGeo"] ? "&inclGeo=1":"")?>\"><" + "/script>\n");
-
+(function() {
+    var s = document.createElement('script');
+    s.src = "<?=HEURIST_BASE_URL?>hapi/hapiLoader.php?db=<?= HEURIST_DBNAME ?><?=(array_key_exists('inclGeo', $_REQUEST) && $_REQUEST["inclGeo"] ? "&inclGeo=1":"")?>";
+    s.async = true; // Non-blocking
+    s.type = "text/javascript";
+    document.head.appendChild(s);
+})();

@@ -97,3 +97,4 @@ if($is_raw){
 	print ";\n";
 }
 ?>
+top.HEURIST.fireEvent(window, "heurist-hapiUser-loaded");

@@ -57,7 +57,8 @@ RUN cp php.ini-development php.ini
 RUN sed -E -i -e 's/max_execution_time = 30/max_execution_time = 300/' php.ini \
  && sed -E -i -e 's/memory_limit = 128M/memory_limit = 5120M/' php.ini \
  && sed -E -i -e 's/post_max_size = 8M/post_max_size = 32000000/' php.ini \
- && sed -E -i -e 's/upload_max_filesize = 2M/upload_max_filesize = 32000000/' php.ini
+ && sed -E -i -e 's/upload_max_filesize = 2M/upload_max_filesize = 32000000/' php.ini \
+ && sed -E -i -e 's/;error_log = syslog/error_log = /dev/stderr/' php.ini
 
 # enable xdebug
 

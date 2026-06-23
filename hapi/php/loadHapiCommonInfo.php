@@ -291,3 +291,4 @@ if (! array_key_exists('json', $_REQUEST) || ! $_REQUEST["json"]) {
 }
 
 ?>
+top.HEURIST.fireEvent(window, "heurist-hapiCommon-loaded");

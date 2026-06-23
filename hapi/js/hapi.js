@@ -46,7 +46,7 @@
 
 if (! window.console) { console = { log: function() { } } }
 if (! window.firebug) { firebug = console; }
-if (! HAPI_userData) { HAPI_userData = {}; }
+if (typeof HAPI_userData === 'undefined') { HAPI_userData = {}; }
 
 /* Google API style, we have two naming systems available:
 * HFooBar is also available as HAPI.FooBar

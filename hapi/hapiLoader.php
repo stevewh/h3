@@ -63,10 +63,10 @@ $instance = (@$_REQUEST["db"] ? $_REQUEST["db"]:"");
 $scripts = array(
 //	HAPI_HOME . "php/loadHapiCommonInfo.php?key=" . addslashes($_REQUEST["key"])."&db=".$instance,
 //	HAPI_HOME . "php/loadHapiUserInfo.php?key=" . addslashes($_REQUEST["key"])."&db=".$instance,
-	HAPI_HOME . "php/loadHapiCommonInfo.php?db=".$instance,
-	HAPI_HOME . "php/loadHapiUserInfo.php?db=".$instance,
+	array(null,HAPI_HOME . "php/loadHapiCommonInfo.php?db=".$instance),
+	array(null,HAPI_HOME . "php/loadHapiUserInfo.php?db=".$instance),
 //	HAPI_HOME . "../common/php/getMagicNumbers.php?db=".$instance,
-	HAPI_HOME . "js/hapi.js"
+	array(array('hapiCommon','hapiUser'),HAPI_HOME . "js/hapi.js")
 );
 
 if (array_key_exists("inclGeo", $_REQUEST) && $_REQUEST["inclGeo"]) {
@@ -82,12 +82,28 @@ var HeuristBaseURL = "<?= addslashes(HEURIST_BASE_URL) ?>";
 var HeuristSitePath = "<?= addslashes(HEURIST_SITE_PATH) ?>";
 var HeuristIconURL = "<?= addslashes(HEURIST_ICON_SITE_PATH) ?>";
 /* Load the necessary JS files from <?= HAPI_HOME ?> */
-(function() {
- <?php
-	foreach ($scripts as $src) {
-		echo "\tdocument.write('<' + 'script src=\"" . $src . "\" type=\"text/javascript\"><' + '/script>');\n";
-	}
+<?php
+	foreach ($scripts as $srcinfo) {
+    $deps = $srcinfo[0];
+    $src = $srcinfo[1];
+    if ($deps) {
+        print "top.HEURIST.whenLoaded(".json_format($deps).", function() {\n";
+    } else {
+        print "(function() {\n";
+    }
 ?>
-})();
+    var s = document.createElement('script');
+    s.src = "<?= $src ?>";
+    s.async = true; // Non-blocking
+    s.type = "text/javascript";
+    document.head.appendChild(s);
+<?php
+    if ($deps) {
+        print "});\n";
+    } else {
+        print "})();\n";
+    }
+  }
+?>
 
 

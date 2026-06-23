@@ -263,7 +263,12 @@ if (! top.HEURIST) {
                 win.document.getElementsByTagName("head")[0].appendChild(scriptElt);
             } else {
                 // We want to do this -- sometimes we don't know the name of the script we need to load inline
-                win.document.write('<script src="' + encodeURI(scriptURL) + '"></script>');
+                //win.document.write('<script src="' + encodeURI(scriptURL) + '"></script>');
+                var s = win.document.createElement('script');
+                s.src = encodeURI(scriptURL);
+                s.async = false; // Non-blocking
+                s.type = "text/javascript";
+                win.document.head.appendChild(s);
             }
         },
 
