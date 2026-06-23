@@ -63,10 +63,10 @@ $instance = (@$_REQUEST["db"] ? $_REQUEST["db"]:"");
 $scripts = array(
 //	HAPI_HOME . "php/loadHapiCommonInfo.php?key=" . addslashes($_REQUEST["key"])."&db=".$instance,
 //	HAPI_HOME . "php/loadHapiUserInfo.php?key=" . addslashes($_REQUEST["key"])."&db=".$instance,
-	array(null,HAPI_HOME . "php/loadHapiCommonInfo.php?db=".$instance),
-	array(null,HAPI_HOME . "php/loadHapiUserInfo.php?db=".$instance),
+	array(array('hapiLoadScripts'),HAPI_HOME . "php/loadHapiCommonInfo.php?db=".$instance),
+	array(array('hapiLoadScripts'),HAPI_HOME . "php/loadHapiUserInfo.php?db=".$instance),
 //	HAPI_HOME . "../common/php/getMagicNumbers.php?db=".$instance,
-	array(array('hapiCommon','hapiUser'),HAPI_HOME . "js/hapi.js")
+	array(array('hapiLoadScripts','hapiCommon','hapiUser'),HAPI_HOME . "js/hapi.js")
 );
 
 if (array_key_exists("inclGeo", $_REQUEST) && $_REQUEST["inclGeo"]) {
@@ -94,7 +94,7 @@ var HeuristIconURL = "<?= addslashes(HEURIST_ICON_SITE_PATH) ?>";
 ?>
     var s = document.createElement('script');
     s.src = "<?= $src ?>";
-    s.async = true; // Non-blocking
+    s.async = false; // blocking
     s.type = "text/javascript";
     document.head.appendChild(s);
 <?php
@@ -104,6 +104,7 @@ var HeuristIconURL = "<?= addslashes(HEURIST_ICON_SITE_PATH) ?>";
         print "})();\n";
     }
   }
+  error_log("hapiLoader finished writing js")
 ?>
-
+top.HEURIST.fireEvent(window, "heurist-hapiLoadScripts-loaded");
 
