@@ -168,7 +168,11 @@ if (! top.HEURIST.edit) {
             var parameters = top.HEURIST.edit.record;
             if (parameters.bibID) urlBits.push("recID=" + parameters.bibID);
             if (parameters.bkmkID) urlBits.push("bkmk_id=" + parameters.bkmkID);
-            if (HAPI.database) urlBits.push("db=" + HAPI.database);
+            if (typeof HAPI !== typeof void 0 && HAPI.database) { 
+              urlBits.push("db=" + HAPI.database);
+            } else if (top.HEURIST.database && top.HEURIST.database.name) {
+              urlBits.push("db=" + top.HEURIST.database.name);
+            }
             var url = module.url;
             if (urlBits.length > 0) url += "?" + urlBits.join("&");
             newIframe.src = url;
