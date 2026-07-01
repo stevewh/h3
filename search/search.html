@@ -104,7 +104,7 @@
 
 		<script src="../common/php/getMagicNumbers.php"></script>
 		<script>
-			var hBase = (top.HEURIST && top.HEURIST.basePath ? "http://" + window.location.host +  top.HEURIST.basePath :
+			var hBase = (top.HEURIST && top.HEURIST.basePath ? location.protocol + "//" + window.location.host +  top.HEURIST.basePath :
 			( HeuristBaseURL ? HeuristBaseURL : ""));
 			var database = location.search.match(/db=([^&]+)/) ? location.search.match(/db=([^&]+)/)[1]:"";
 
