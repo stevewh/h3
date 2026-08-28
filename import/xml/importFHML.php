@@ -38,6 +38,7 @@
   }
 
   function rtIDLookup($rtOrigID, $rtDBID) {
+    global $mysqli;
     $res = mysqli_fetch_assoc($mysqli->query("select rty_ID as localID from defRecTypes where rty_OriginatingDBID = $rtDBID  and rty_IDInOriginatingDB = $rtOrigID "));
     if ($res && array_key_exists('localID', $res)) {
       return $res['localID'];
@@ -46,6 +47,7 @@
   }
 
   function dtIDLookup($dtOrigID, $dtDBID) {
+    global $mysqli;
     $res = mysqli_fetch_assoc($mysqli->query("select dty_ID as localID from defDetailTypes where dty_OriginatingDBID = $dtDBID  and dty_IDInOriginatingDB = $dtOrigID "));
     if ( $res && array_key_exists('localID', $res)) {
       return $res['localID'];

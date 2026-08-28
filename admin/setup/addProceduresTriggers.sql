@@ -66,7 +66,7 @@ CREATE DEFINER=`root`@`localhost` FUNCTION `hhash`(recID int) RETURNS varchar(40
 
 		select rec_RecTypeID into rectype from Records where rec_ID = recID;
 
-		select group_concat(liposuction(upper(dtl_Value)) order by dty_ID, upper(dtl_Value) separator ';')
+		select group_concat(NEW_LIPOSUCTION(upper(dtl_Value)) order by dty_ID, upper(dtl_Value) separator ';')
 			into non_resource_fields
 			from Details, Records, defDetailTypes, defRecStructure
 			where dtl_RecID=rec_ID and
@@ -113,7 +113,7 @@ DROP function IF EXISTS `simple_hash`$$
 		declare non_resource_fields varchar(4095);
 		declare author_fields varchar(4095);
 		select rec_RecTypeID into rectype from Records where rec_ID = recID;
-		select group_concat(liposuction(upper(dtl_Value)) order by dty_ID, upper(dtl_Value) separator ';')
+		select group_concat(NEW_LIPOSUCTION(upper(dtl_Value)) order by dty_ID, upper(dtl_Value) separator ';')
 			into non_resource_fields
 			from Details, Records, defDetailTypes, defRecStructure
 			where dtl_RecID=rec_ID and
@@ -303,7 +303,8 @@ DELIMITER $$
 	TRIGGER `insert_Details_precis_trigger`
 	BEFORE INSERT ON `recDetails`
 	FOR EACH ROW
-		begin set NEW.dtl_ValShortened = substring(ifnull(liposuction(NEW.dtl_Value), ''),1,63); end$$
+--		begin set NEW.dtl_ValShortened = substring(ifnull(NEW_LIPOSUCTION(NEW.dtl_Value), ''),1,63); end$$
+		begin set NEW.dtl_ValShortened = NEW_LIPOSUCTION(NEW.dtl_Value); end$$
 
 DELIMITER ;
 DELIMITER $$
@@ -357,7 +358,7 @@ DELIMITER $$
 		if asbinary(NEW.dtl_Geo)=asbinary(OLD.dtl_Geo) then
 			set NEW.dtl_Geo = OLD.dtl_Geo;
 		end if;
-		set NEW.dtl_ValShortened = substring(ifnull(liposuction(NEW.dtl_Value), ''),1,63);
+		set NEW.dtl_ValShortened = NEW_LIPOSUCTION(NEW.dtl_Value);
 	end$$
 
 DELIMITER ;
@@ -685,7 +686,7 @@ DELIMITER ;
 DELIMITER $$
 
 --  			delete
-	DROP TRIGGER IF EXISTS defDetailTypes_delete;
+	DROP TRIGGER IF EXISTS defDetailTypes_delete$$
 
 	CREATE
 	DEFINER=`root`@`localhost`
@@ -728,7 +729,7 @@ DELIMITER ;
 DELIMITER $$
 
 --  			delete
-	DROP TRIGGER IF EXISTS defRecTypes_delete;
+	DROP TRIGGER IF EXISTS defRecTypes_delete$$
 
 	CREATE
 	DEFINER=`root`@`localhost`
@@ -827,7 +828,7 @@ DELIMITER ;
 DELIMITER $$
 
 --  			insert
-	DROP TRIGGER IF EXISTS defRelationshipConstraints_last_insert;
+	DROP TRIGGER IF EXISTS defRelationshipConstraints_last_insert$$
 
 	CREATE
 	DEFINER=`root`@`localhost`
@@ -840,7 +841,7 @@ DELIMITER ;
 DELIMITER $$
 
 --  			update
-	DROP TRIGGER IF EXISTS defRelationshipConstraints_last_update;
+	DROP TRIGGER IF EXISTS defRelationshipConstraints_last_update$$
 
 	CREATE
 	DEFINER=`root`@`localhost`
@@ -853,7 +854,7 @@ DELIMITER ;
 DELIMITER $$
 
 --  			delete
-	DROP TRIGGER IF EXISTS defRelationshipConstraints_last_delete;
+	DROP TRIGGER IF EXISTS defRelationshipConstraints_last_delete$$
 
 	CREATE
 	DEFINER=`root`@`localhost`
@@ -940,7 +941,7 @@ DELIMITER ;
 DELIMITER $$
 
 --  			delete
-	DROP TRIGGER IF EXISTS defDetailTypeGroups_delete;
+	DROP TRIGGER IF EXISTS defDetailTypeGroups_delete$$
 
 		CREATE
 		DEFINER=`root`@`localhost`
