@@ -88,10 +88,11 @@
 
 	        if (is_numeric($fileID)) {
 
+		        $mysqli->query("commit");
+				
 		        $file = get_uploaded_file_info($fileID, false);
 		        print json_format($file);
 
-		        $mysqli->query("commit");
 	        }
 	        else if ($fileID) {
 		        jsonError($fileID);

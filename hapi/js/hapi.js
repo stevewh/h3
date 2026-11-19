@@ -2716,7 +2716,7 @@ HAPI.XHR = {
 		var method = jso? "POST" : "GET";
 		req.open(method, url, true);
 
-		req.setRequestHeader("User-Agent", "XMLHTTP/1.0");
+//		req.setRequestHeader("User-Agent", "XMLHTTP/1.1");
 		if (jso) {
 			req.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
 		}
@@ -3683,7 +3683,7 @@ var HeuristScholarDB = new HStorageManager();
 		var uploadIdentifier, uploadName;
 		do {
 			uploadIdentifier = Math.floor(Math.random() * 1000000000); //file upload handle/identifier
-			uploadName = "upload-" + uploadIdentifier;
+			uploadName = "upload_progress_" + uploadIdentifier;
 		} while (that.uploadsInProgress.names[uploadName]); //keep trying until we find an unused id
 
 		/* Oh, hello ... what's this?  An undocumented feature?
@@ -3739,7 +3739,7 @@ var HeuristScholarDB = new HStorageManager();
 
 		var uploadIdentifierInput = doc.createElement("input");
 			uploadIdentifierInput.type = "hidden";
-			uploadIdentifierInput.name = "UPLOAD_IDENTIFIER";	// magic name, works with progress indicator - passes to php in request.
+			uploadIdentifierInput.name = "PHP_SESSION_UPLOAD_PROGRESS";	// magic name, works with progress indicator - passes to php in request.
 			uploadIdentifierInput.value = uploadIdentifier;
 			newForm.appendChild(uploadIdentifierInput);
 

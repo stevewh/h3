@@ -134,8 +134,9 @@
 			unlink($tmp_name);
 			return $file_id;
 
-		} else if ($tmp_name==null || move_uploaded_file($tmp_name, HEURIST_UPLOAD_DIR . "/" . $filename)) {
-
+		} else if ($tmp_name==null ) {
+			return $file_id;
+		} else if (move_uploaded_file($tmp_name, HEURIST_UPLOAD_DIR . "/" . $filename)) {
 			return $file_id;
 		} else {
 			/* something messed up ... make a note of it and move on */
@@ -663,8 +664,7 @@
 
 		$res = null;
 
-		$fres = $mysqliro->query(//saw NOTE! these field names match thoses used in HAPI to init an HFile object.
-			'select ulf_ID as id,
+		$query_ulf = 'select ulf_ID as id,
 			ulf_ObfuscatedFileID as nonce,
 			ulf_OrigFileName as origName,
 			ulf_FileSizeKB as fileSize,
@@ -675,15 +675,17 @@
 			ulf_ExternalFileReference as remoteURL,
 			ulf_Parameters as parameters,
 			concat(ulf_FilePath,ulf_FileName) as fullpath,
-      ulf_FileName as fileName,
-      ulf_FilePath as filePath,
+			ulf_FileName as fileName,
+    		ulf_FilePath as filePath,
 			ulf_PreferredSource as prefsource
-
 			from recUploadedFiles left join defFileExtToMimetype on ulf_MimeExt = fxm_Extension
-			where '.(is_numeric($fileID)
-				?'ulf_ID = '.intval($fileID)
-				:'ulf_ObfuscatedFileID = "'.addslashes($fileID).'"') );
+			where '.
+			(is_numeric($fileID) ?'ulf_ID = '.intval($fileID)
+				:'ulf_ObfuscatedFileID = "'.addslashes($fileID).'"');
 
+
+		$fres = $mysqliro->query(//saw NOTE! these field names match thoses used in HAPI to init an HFile object.
+					$query_ulf);
 		if (mysqli_num_rows($fres) == 1) {
 
 			$res = mysqli_fetch_assoc($fres);

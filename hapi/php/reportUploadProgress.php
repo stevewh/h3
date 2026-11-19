@@ -66,21 +66,33 @@ if (! $uploadIDs) {
 }
 
 header("Content-type: text/javascript");
-
+session_start();
 $infos = array();
 foreach ($uploadIDs as $uploadID) {
-	$info = uploadprogress_get_info($uploadID);		// provided by uploadprogress php module
-
+//	$info = uploadprogress_get_info($uploadID);		// provided by uploadprogress php module
+	$info = null;
+	if (array_key_exists($uploadID,$_SESSION)) {
+		$info = $_SESSION[$uploadID];
+	}
 	if ($info === null) {
 		$infos["$uploadID"] = array("done" => true);
 	}
 	else {
+		$timeSpent = time() - $info['start_time'];
+		$averageSpeed = $timeSpent/$info['bytes_processed'];
+		$timeRemaining = ($info['content_length'] - $info['bytes_processed'])/$averageSpeed;
+		$numFiles = count($info['files']);
+		$numUploaded = 0
+		foreach(in $info['files'] as $file) {
+			if ($file.error == 0 && $file.done) $numUploaded++; 
+		}
 		$infos["$uploadID"] = array(
-			"bytesTotal" => intval($info["bytes_total"]),
-			"bytesUploaded" => intval($info["bytes_uploaded"]),
-			"estimatedTimeRemaining" => intval($info["est_sec"]),
-			"averageSpeed" => intval($info["speed_average"]),
-			"filesUploaded" => intval($info["files_uploaded"])
+			"bytesTotal" => intval($info["content_length"]),
+			"bytesUploaded" => intval($info["bytes_processed"]),
+			"estimatedTimeRemaining" => intval($timeRemaining),
+			"averageSpeed" => intval($averageSpeed),
+			"filesUploaded" => intval($numUploaded),
+			"numberFiles" => intval($numFiles);
 		);
 	}
 }
