@@ -48,6 +48,7 @@ require_once(dirname(__FILE__)."/../../records/files/uploadFile.php");
 // important: transaction/rollback must performed in caller of this function
 //
 function deleteRecord($id, $needDeleteFile=true) {
+	global $mysqli;
 	$id = intval($id);
 
 

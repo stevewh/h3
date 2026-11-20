@@ -752,17 +752,18 @@
     }
     class BibDetailBlocktextInput extends BibDetailInput {
         function inputOK($postVal, $dtyID, $rtyID) {
+            if (is_null($postVal)) return false;
             return preg_match("/\\S/", $postVal);
         }
     }
     class BibDetailResourceInput extends BibDetailInput {
         function inputOK($postVal, $dtyID, $rtyID) {
             global $mysqli;
-            if ($postVal == "") {
+            if ($postVal == "" || $postVal == "null" || is_null($postVal)) {
               return false;
             }
             $res = $mysqli->query("select rec_RecTypeID from Records where rec_ID = ".$postVal);
-            if ($res){
+            if ($res && $res->num_rows > 0){
                 $tempRtyID = $res->fetch_row();
                 $tempRtyID = $tempRtyID[0];
             } else {

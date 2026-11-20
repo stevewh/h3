@@ -66,7 +66,7 @@ function findFuzzyMatches($fields, $rec_types, $rec_id=NULL, $fuzziness=NULL) {
 			case "fieldsetmarker":
 			case "calculated":
 			default:
-			continue;
+			continue 2;
 		}
 	}
 	if (count($fuzzyFields) == 0  &&  count($strictFields) == 0) return;

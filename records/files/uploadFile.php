@@ -256,13 +256,14 @@
     * Unregister file: delete record from table and remove file
     */
     function unregister_for_recid2($recid, $needDelete){
+    global $mysqli;
 
         if($needDelete){
 		    // find all files associated with this record
             $query = "select dtl_UploadedFileID from recDetails where dtl_RecID=".$recid;
 		    $res = $mysqli->query($query);
 		    while ($row = $res->fetch_array()) {
-			    deleteUploadedFiles($row[0]);
+			   if (!is_null($row[0])) deleteUploadedFiles($row[0]);
 		    }
         }
 
@@ -610,7 +611,7 @@
 	{
     global $mysqliro;
 		if($needConnect){
-			$mysqli = mysqli_connection_overwrite(DATABASE);
+			$mysqliro = mysqli_connection_select(DATABASE);
 		}
 
 		$recID = null;
@@ -634,7 +635,7 @@
 	{
     global $mysqliro;
 		if($needConnect){
-			$mysqli = mysqli_connection_overwrite(DATABASE);
+			$mysqliro = mysqli_connection_select(DATABASE);
 		}
 
 		$ulf_id = null;
@@ -659,7 +660,7 @@
 	{
     global $mysqliro;
 		if($needConnect){
-			$mysqli = mysqli_connection_overwrite(DATABASE);
+			$mysqliro = mysqli_connection_select(DATABASE);
 		}
 
 		$res = null;

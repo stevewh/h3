@@ -27,6 +27,7 @@
 
 function _popupDisambiguation(matches, continueAction) {
 	var document = top.document;
+	var choices = [];
 
 	var disambig = document.createElement("div");
 		disambig.style.width = "480px";
@@ -41,12 +42,6 @@ function _popupDisambiguation(matches, continueAction) {
 		"<div style='width: 300px; margin-bottom: 10px;'>Please select an existing record instead from the list below, or confirm that you want to create a new one.</div>";
 
 
-	var table = disambigInner.appendChild(document.createElement("table"));
-		table.style.width = "100%";
-		table.cellPadding = "0";
-		table.cellSpacing = "0";
-		table.border = "0";
-	var tbody = table.appendChild(document.createElement("tbody"));
 
 	var continueButton = document.createElement("input");
 		continueButton.type = "button";
@@ -55,7 +50,61 @@ function _popupDisambiguation(matches, continueAction) {
 		continueButton.style.fontWeight = "bold";
 		continueButton.disabled = true;
 
-	var choices = [];
+	continueButton.onclick = function() {
+		var choice = null;
+		for (var i=0; i < choices.length; ++i) {
+			if (choices[i].checked) {
+				choice = choices[i];
+				break;
+			}
+		}
+		if (! choice) return;
+
+		/* okay! We have a decision.
+		 * If the choice is -1 then the user has confirmed that they want to add the new record, so we will force that.
+		 * If the choice is anything else, then we invoke the popup-close function with the relevant details.
+		 */
+		continueAction(choice);
+
+		// FIXME: surely there is a better way to get the id of the top popup!
+		top.HEURIST.util.closePopup(top.HEURIST.util.popups.list[top.HEURIST.util.popups.list.length-1].id);
+	};
+	disambigInner.appendChild(continueButton);
+
+	var divWrapper = disambigInner.appendChild(document.createElement("div"));
+		divWrapper.style.overflow = "scroll";
+
+	var table = divWrapper.appendChild(document.createElement("table"));
+		table.style.width = "100%";
+		table.style.overflow = "scroll";
+
+
+
+	var tbody = table.appendChild(document.createElement("tbody"));
+
+	var tr = tbody.appendChild(document.createElement("tr"));
+		tr.className = "option";
+	var td = tr.appendChild(document.createElement("td"));
+		td.className = "radio";
+		td.style.padding = "5px 0";
+	var radioButton;
+	radioButton = document.createElement("input");
+	radioButton.type = "radio";
+	radioButton.name = "choice";
+	radioButton.value = -1;
+	radioButton.style.padding = 0;
+	radioButton.style.margin = 0;
+	radioButton.style.verticalAlign = "middle";
+	radioButton.onclick = function() { continueButton.disabled = false; };
+	td.appendChild(radioButton);
+	choices.push(radioButton);
+
+	var td = tr.appendChild(document.createElement("td"));
+	var nobr = td.appendChild(document.createElement("span"));
+		nobr.style.whiteSpace = 'nowrap';
+		nobr.appendChild(document.createTextNode("None of the below, create a new record"));
+
+
 	for (var i=0; i < matches.length; ++i) {
 		var match = matches[i];
 
@@ -86,9 +135,11 @@ function _popupDisambiguation(matches, continueAction) {
 		choices.push(radioButton);
 
 		var td = tr.appendChild(document.createElement("td"));
-		var nobr = td.appendChild(document.createElement("nobr"));
+		var nobr = td.appendChild(document.createElement("span"));
+			nobr.style.whiteSpace = 'nowrap';
 			nobr.appendChild(document.createTextNode(match.title));
-		var nobr = td.appendChild(document.createElement("nobr"));
+		var nobr = td.appendChild(document.createElement("span"));
+			nobr.style.whiteSpace = 'nowrap';
 			nobr.appendChild(document.createTextNode(" ["));
 			var a = nobr.appendChild(document.createElement("a"));
 				a.href = "#";
@@ -102,48 +153,6 @@ function _popupDisambiguation(matches, continueAction) {
 			b.appendChild(document.createTextNode("#" + match.id));
 	}
 
-	var tr = tbody.appendChild(document.createElement("tr"));
-		tr.className = "option";
-	var td = tr.appendChild(document.createElement("td"));
-		td.className = "radio";
-		td.style.padding = "5px 0";
-	var radioButton;
-	radioButton = document.createElement("input");
-	radioButton.type = "radio";
-	radioButton.name = "choice";
-	radioButton.value = -1;
-	radioButton.style.padding = 0;
-	radioButton.style.margin = 0;
-	radioButton.style.verticalAlign = "middle";
-	radioButton.onclick = function() { continueButton.disabled = false; };
-	td.appendChild(radioButton);
-	choices.push(radioButton);
-
-	var td = tr.appendChild(document.createElement("td"));
-	var nobr = td.appendChild(document.createElement("nobr"));
-		nobr.appendChild(document.createTextNode("None of the above, create a new record"));
-
-
-	continueButton.onclick = function() {
-		var choice = null;
-		for (var i=0; i < choices.length; ++i) {
-			if (choices[i].checked) {
-				choice = choices[i];
-				break;
-			}
-		}
-		if (! choice) return;
-
-		/* okay! We have a decision.
-		 * If the choice is -1 then the user has confirmed that they want to add the new record, so we will force that.
-		 * If the choice is anything else, then we invoke the popup-close function with the relevant details.
-		 */
-		continueAction(choice);
-
-		// FIXME: surely there is a better way to get the id of the top popup!
-		top.HEURIST.util.closePopup(top.HEURIST.util.popups.list[top.HEURIST.util.popups.list.length-1].id);
-	};
-	disambigInner.appendChild(continueButton);
 
 	top.HEURIST.util.popupElement(window, disambig);
 }
