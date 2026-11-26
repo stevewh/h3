@@ -355,7 +355,7 @@ DELIMITER $$
 	BEFORE UPDATE ON `recDetails`
 	FOR EACH ROW
 	begin
-		if asbinary(NEW.dtl_Geo)=asbinary(OLD.dtl_Geo) then
+		if ST_AsBinary(NEW.dtl_Geo)=ST_AsBinary(OLD.dtl_Geo) then
 			set NEW.dtl_Geo = OLD.dtl_Geo;
 		end if;
 		set NEW.dtl_ValShortened = NEW_LIPOSUCTION(NEW.dtl_Value);

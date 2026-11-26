@@ -828,7 +828,7 @@ DELIMITER ;;
 
 /*!50003 SET SESSION SQL_MODE="" */;;
 /*!50003 CREATE */ /*!50017 DEFINER=`root`@`localhost` */ /*!50003 TRIGGER `pre_update_Details_trigger` BEFORE UPDATE ON `recDetails` FOR EACH ROW begin
-		if asbinary(NEW.dtl_Geo)=asbinary(OLD.dtl_Geo) then
+		if ST_AsBinary(NEW.dtl_Geo)=ST_AsBinary(OLD.dtl_Geo) then
 			set NEW.dtl_Geo = OLD.dtl_Geo;
 		end if;
 		set NEW.dtl_ValShortened = ifnull(liposuction(NEW.dtl_Value), '');
