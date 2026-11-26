@@ -215,8 +215,8 @@ function saveRelationship($recID, $relTermID, $trgRecID, $interpRecID, $title, $
 	if ($mysqli->error) {
 		return array("error" => slash($mysqli->error));
 	} else {
-//		$related = getAllRelatedRecords($recID, $relnRecID);
-		$related = getAllRelatedRecords($recID);
+		$related = getAllRelatedRecords($recID, $relnRecID);
+//		$related = getAllRelatedRecords($recID);
 		return array("relationship" => $related,"relnRecID" => $relnRecID);
 	}
 }

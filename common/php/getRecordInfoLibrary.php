@@ -1687,28 +1687,49 @@ function getAllRelatedRecords($recID, $relnRecID = 0) {
     global $relRT, $relTypDT, $relSrcDT, $relTrgDT, $intrpDT, $notesDT, $startDT, $endDT, $titleDT;
     global $mysqliro;
     if (!$recID) return null;
-    $query = "select relnID, src.dtl_Value as src, srcRec.rec_RecTypeID as srcRT, srcRec.rec_Title as srcTitle, srcRec.rec_URL as srcURL, trg.dtl_Value as trg," .
-                    " if(srcRec.rec_ID = $recID, 'Primary', 'Non-Primary') as role, trgRec.rec_RecTypeID as trgRT, trgRec.rec_Title as trgTitle," .
-                    " trgRec.rec_URL as trgURL, trm.dtl_Value as trmID, term.trm_Label as term, inv.trm_ID as invTrmID," .
-                    " if(inv.trm_ID, inv.trm_Label, concat('inverse of ', term.trm_Label)) as invTrm, rlnTtl.dtl_Value as title," .
-                    " rlnNote.dtl_Value as note, strDate.dtl_Value as strDate, endDate.dtl_Value as endDate, intrpRec.rec_ID as intrp," .
-                    " intrpRec.rec_RecTypeID as intrpRT, intrpRec.rec_Title as intrpTitle, intrpRec.rec_URL as intrpURL" .
-              " from (select rrc_RecID as relnID from recRelationshipsCache) rels" .
-                " left join recDetails src on src.dtl_RecID = rels.relnID and src.dtl_DetailTypeID = $relSrcDT" .
+    if ($relnRecID) {
+        $query = "select src.dtl_RecID as relnID, src.dtl_Value as src, srcRec.rec_RecTypeID as srcRT, srcRec.rec_Title as srcTitle, srcRec.rec_URL as srcURL, trg.dtl_Value as trg,"; 
+    } else {
+        $query = "select relnID, src.dtl_Value as src, srcRec.rec_RecTypeID as srcRT, srcRec.rec_Title as srcTitle, srcRec.rec_URL as srcURL, trg.dtl_Value as trg,";
+    }
+    $query .= " if(srcRec.rec_ID = $recID, 'Primary', 'Non-Primary') as role, trgRec.rec_RecTypeID as trgRT, trgRec.rec_Title as trgTitle," .
+              " trgRec.rec_URL as trgURL, trm.dtl_Value as trmID, term.trm_Label as term, inv.trm_ID as invTrmID," .
+              " if(inv.trm_ID, inv.trm_Label, concat('inverse of ', term.trm_Label)) as invTrm, rlnTtl.dtl_Value as title," .
+              " rlnNote.dtl_Value as note, strDate.dtl_Value as strDate, endDate.dtl_Value as endDate, intrpRec.rec_ID as intrp," .
+              " intrpRec.rec_RecTypeID as intrpRT, intrpRec.rec_Title as intrpTitle, intrpRec.rec_URL as intrpURL";
+    if ($relnRecID) {
+        $query .= " from recDetails src" .
                 " left join Records srcRec on src.dtl_Value = srcRec.rec_ID" .
-                " left join recDetails trg on trg.dtl_RecID = rels.relnID and trg.dtl_DetailTypeID = $relTrgDT" .
+                " left join recDetails trg on trg.dtl_RecID = $relnRecID and trg.dtl_DetailTypeID = $relTrgDT" .
                 " left join Records trgRec on trg.dtl_Value = trgRec.rec_ID" .
-                " left join recDetails trm on trm.dtl_RecID = rels.relnID and trm.dtl_DetailTypeID = $relTypDT" .
+                " left join recDetails trm on trm.dtl_RecID = $relnRecID and trm.dtl_DetailTypeID = $relTypDT" .
                 " left join defTerms term on term.trm_ID = trm.dtl_Value" .
                 " left join defTerms inv on inv.trm_ID = term.trm_InverseTermID" .
-                " left join recDetails intrp on intrp.dtl_RecID = rels.relnID and intrp.dtl_DetailTypeID = $intrpDT" .
+                " left join recDetails intrp on intrp.dtl_RecID = $relnRecID and intrp.dtl_DetailTypeID = $intrpDT" .
                 " left join Records intrpRec on intrp.dtl_Value = intrpRec.rec_ID" .
-                " left join recDetails rlnTtl on rlnTtl.dtl_RecID = rels.relnID and rlnTtl.dtl_DetailTypeID = $titleDT" .
-                " left join recDetails rlnNote on rlnNote.dtl_RecID = rels.relnID and rlnNote.dtl_DetailTypeID = $notesDT" .
-                " left join recDetails strDate on strDate.dtl_RecID = rels.relnID and strDate.dtl_DetailTypeID = $startDT" .
-                " left join recDetails endDate on endDate.dtl_RecID = rels.relnID and endDate.dtl_DetailTypeID = $endDT" .
-              " where (srcRec.rec_ID = $recID or trgRec.rec_ID = $recID)";
-    if ($relnRecID) $query.= " and rels.relnID = $relnRecID";
+                " left join recDetails rlnTtl on rlnTtl.dtl_RecID = $relnRecID and rlnTtl.dtl_DetailTypeID = $titleDT" .
+                " left join recDetails rlnNote on rlnNote.dtl_RecID = $relnRecID and rlnNote.dtl_DetailTypeID = $notesDT" .
+                " left join recDetails strDate on strDate.dtl_RecID = $relnRecID and strDate.dtl_DetailTypeID = $startDT" .
+                " left join recDetails endDate on endDate.dtl_RecID = $relnRecID and endDate.dtl_DetailTypeID = $endDT" .
+            " where src.dtl_RecID =  $relnRecID and src.dtl_DetailTypeID = $relSrcDT";
+    } else {
+        $query .= " from (select rrc_RecID as relnID from recRelationshipsCache) rels" .
+                    " left join recDetails src on src.dtl_RecID = rels.relnID and src.dtl_DetailTypeID = $relSrcDT" .
+                    " left join Records srcRec on src.dtl_Value = srcRec.rec_ID" .
+                    " left join recDetails trg on trg.dtl_RecID = rels.relnID and trg.dtl_DetailTypeID = $relTrgDT" .
+                    " left join Records trgRec on trg.dtl_Value = trgRec.rec_ID" .
+                    " left join recDetails trm on trm.dtl_RecID = rels.relnID and trm.dtl_DetailTypeID = $relTypDT" .
+                    " left join defTerms term on term.trm_ID = trm.dtl_Value" .
+                    " left join defTerms inv on inv.trm_ID = term.trm_InverseTermID" .
+                    " left join recDetails intrp on intrp.dtl_RecID = rels.relnID and intrp.dtl_DetailTypeID = $intrpDT" .
+                    " left join Records intrpRec on intrp.dtl_Value = intrpRec.rec_ID" .
+                    " left join recDetails rlnTtl on rlnTtl.dtl_RecID = rels.relnID and rlnTtl.dtl_DetailTypeID = $titleDT" .
+                    " left join recDetails rlnNote on rlnNote.dtl_RecID = rels.relnID and rlnNote.dtl_DetailTypeID = $notesDT" .
+                    " left join recDetails strDate on strDate.dtl_RecID = rels.relnID and strDate.dtl_DetailTypeID = $startDT" .
+                    " left join recDetails endDate on endDate.dtl_RecID = rels.relnID and endDate.dtl_DetailTypeID = $endDT" .
+                " where (srcRec.rec_ID = $recID or trgRec.rec_ID = $recID)";
+    }
+
     /*****DEBUG****/// error_log($query);
     $res = $mysqliro->query($query);
     if (!mysqli_num_rows(@$res)) {
